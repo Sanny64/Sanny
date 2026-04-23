@@ -1,0 +1,122 @@
+/* Shared component styles */
+/* Card component styles */
+.card {
+	background-color: var(--bg-secondary);
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	padding: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+.card-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.card-header-icon {
+	color: var(--accent);
+	flex-shrink: 0;
+    margin-top: 2vw;
+}
+
+.card-title {
+	font-size: var(--font-size-xl);
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 0 0 0.5rem 0;
+}
+
+.card-description {
+	font-size: var(--font-size-m);
+	font-weight: 500;
+	color: var(--text-secondary);
+	margin: 0;
+	line-height: 1.5;
+}
+
+/* Toggle component styles */
+.toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	padding: 1rem;
+	background-color: var(--bg-primary);
+	border: 2px solid var(--border);
+	border-radius: 8px;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	text-align: left;
+}
+
+.toggle:hover {
+	border-color: var(--accent);
+	background-color: var(--bg-secondary);
+}
+
+.toggle:focus {
+	outline: none;
+	border-color: var(--accent);
+	box-shadow: 0 0 0 3px rgba(77, 166, 255, 0.1);
+}
+
+.toggle-active {
+	border-color: var(--accent);
+	background-color: var(--bg-secondary);
+}
+
+.toggle-content {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex: 1;
+}
+
+.toggle-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	background-color: var(--bg-primary);
+	border-radius: 8px;
+	color: var(--text-primary);
+	flex-shrink: 0;
+}
+
+.toggle-active .toggle-icon {
+	background-color: var(--accent);
+	color: var(--bg-primary);
+}
+
+.toggle-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.toggle-label {
+	font-size: var(--font-size-lg);
+	font-weight: 500;
+	color: var(--text-primary);
+}
+
+.toggle-sublabel {
+	font-size: var(--font-size-s);
+	color: var(--text-secondary);
+}
+
+.toggle-check {
+	color: var(--accent);
+	flex-shrink: 0;
+}
+
+.picture {
+	display: block;
+}
+
+.picture-blur {
+	filter: blur(8px);
+}
