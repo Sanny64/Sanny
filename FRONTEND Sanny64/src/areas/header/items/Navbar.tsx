@@ -42,14 +42,22 @@ export default function NavBar({ onLinkClick }: NavBarProps) {
           </Link>
         </li>
         <li role="none">
-          <Link 
+          <a
+            href="/stuff/wasd_minigame.html"
+            role="navbaritem"
+            aria-label={t.nav.minigame}
+            onClick={onLinkClick}
+          >
+            {t.nav.adventure}
+          </a>
+          {/* <Link 
             to="https://adventure.sanny64.de" 
             role="navbaritem" 
             aria-label={t.nav.adventure_redirect}
             onClick={onLinkClick}
           >
             {t.nav.adventure}
-          </Link>
+          </Link> */}
         </li>
       </ul>
     </nav>

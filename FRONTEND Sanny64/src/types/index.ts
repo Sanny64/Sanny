@@ -29,6 +29,7 @@ export interface Translations {
     projects_redirect: string;
     adventure: string;
     adventure_redirect: string;
+    minigame: string;
     open_menu: string;
     close_menu: string;
     settings_redirect: string;

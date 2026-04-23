@@ -12,6 +12,7 @@ export const en: Translations = {
     projects_redirect: 'Redirect to projects page.',
     adventure: 'Adventure',
     adventure_redirect: 'Redirect to an interactive adventure portfolio.',
+    minigame: 'Redirect to a meme project: "WASD Minigame"',
     open_menu: 'Open menu',
     close_menu: 'Close menu',
     settings_redirect: 'Redirect to settings page',

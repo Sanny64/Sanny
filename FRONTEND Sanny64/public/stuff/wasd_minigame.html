@@ -1,0 +1,4765 @@
+<!doctype html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>WASD Minispiel</title>
+	<!-- This is a meme btw, don't build games in one file -->
+	<style>
+		:root {
+			--bg1: #0a1930;
+			--bg2: #13345f;
+			--panel: #ffffff10;
+			--text: #eaf4ff;
+			--danger: #ff5f5f;
+			--accent: #ffd166;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		.hidden {
+			display: none !important;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			background:
+				radial-gradient(circle at 20% 20%, #214f86 0%, transparent 35%),
+				radial-gradient(circle at 80% 10%, #2e6db5 0%, transparent 30%),
+				linear-gradient(145deg, var(--bg1), var(--bg2));
+			color: var(--text);
+			font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+		}
+
+		.game-wrap {
+			position: relative;
+			width: min(92vw, 840px);
+			background: var(--panel);
+			border: 1px solid #ffffff2b;
+			border-radius: 16px;
+			padding: 14px;
+			backdrop-filter: blur(4px);
+			box-shadow: 0 20px 40px #00000045;
+		}
+
+		.hud {
+			display: flex;
+			justify-content: space-between;
+			gap: 12px;
+			align-items: center;
+			margin-bottom: 10px;
+			font-weight: 700;
+			letter-spacing: 0.2px;
+		}
+
+		.badge {
+			background: #ffffff20;
+			border: 1px solid #ffffff2e;
+			padding: 6px 10px;
+			border-radius: 10px;
+			font-size: 14px;
+			white-space: nowrap;
+		}
+
+		.badge.new-highscore {
+			background: #ffd16636;
+			border-color: #ffd166cc;
+			color: #fff4d1;
+		}
+
+		.highscore-indicator {
+			display: inline-block;
+			margin-left: 6px;
+			padding: 1px 6px;
+			border-radius: 999px;
+			font-size: 11px;
+			font-weight: 800;
+			letter-spacing: 0.2px;
+			text-transform: uppercase;
+			vertical-align: middle;
+			background: #ffd166;
+			color: #352400;
+		}
+
+		.fps-corner {
+			position: fixed;
+			top: calc(env(safe-area-inset-top, 0px) + 8px);
+			right: 8px;
+			background: #00000055;
+			border: 1px solid #ffffff33;
+			border-radius: 10px;
+			padding: 6px 10px;
+			font-size: 13px;
+			font-weight: 700;
+			backdrop-filter: blur(2px);
+			z-index: 1000;
+		}
+
+		.settings-button {
+			position: fixed;
+			top: calc(env(safe-area-inset-top, 0px) + 8px);
+			left: 8px;
+			width: 42px;
+			height: 42px;
+			border-radius: 10px;
+			border: 1px solid #ffffff44;
+			background: #0000005f;
+			color: var(--text);
+			font-size: 22px;
+			cursor: pointer;
+			backdrop-filter: blur(2px);
+			z-index: 1000;
+		}
+
+		.settings-button:hover {
+			background: #ffffff1f;
+		}
+
+		.shop-button {
+			position: fixed;
+			top: calc(env(safe-area-inset-top, 0px) + 8px);
+			left: 56px;
+			width: 42px;
+			height: 42px;
+			border-radius: 10px;
+			border: 1px solid #ffffff44;
+			background: #0000005f;
+			color: var(--text);
+			font-size: 20px;
+			cursor: pointer;
+			backdrop-filter: blur(2px);
+			z-index: 1000;
+		}
+
+		.shop-button:hover {
+			background: #ffffff1f;
+		}
+
+		.level-button {
+			position: fixed;
+			top: calc(env(safe-area-inset-top, 0px) + 8px);
+			left: 104px;
+			width: 42px;
+			height: 42px;
+			border-radius: 10px;
+			border: 1px solid #ffffff44;
+			background: #0000005f;
+			color: var(--text);
+			font-size: 20px;
+			cursor: pointer;
+			backdrop-filter: blur(2px);
+			z-index: 1000;
+		}
+
+		.level-button:hover {
+			background: #ffffff1f;
+		}
+
+		.devmode-trigger {
+			position: fixed;
+			left: 12px;
+			bottom: 12px;
+			width: 26px;
+			height: 26px;
+			border: none;
+			background: transparent;
+			color: #a8b2bf;
+			opacity: 0.42;
+			cursor: pointer;
+			padding: 0;
+			display: grid;
+			place-items: center;
+			z-index: 1000;
+			transition: opacity 0.2s ease;
+		}
+
+		.devmode-trigger:hover {
+			opacity: 0.8;
+		}
+
+		.devmode-trigger svg {
+			width: 20px;
+			height: 20px;
+			display: block;
+			fill: currentColor;
+			pointer-events: none;
+		}
+
+		.devmode-trigger.is-disabled {
+			pointer-events: none;
+			opacity: 0.16;
+		}
+
+		.settings-overlay,
+		.shop-overlay,
+		.level-overlay,
+		.confirm-overlay {
+			position: fixed;
+			inset: 0;
+			display: grid;
+			place-items: center;
+			background: #031224aa;
+			z-index: 1100;
+		}
+
+		.settings-panel,
+		.shop-panel,
+		.level-panel,
+		.confirm-panel {
+			width: min(92vw, 760px);
+			max-height: 88vh;
+			overflow: auto;
+			padding: 16px;
+			border-radius: 14px;
+			background: linear-gradient(180deg, #173961, #122f52);
+			border: 1px solid #ffffff38;
+			box-shadow: 0 20px 40px #00000066;
+		}
+
+		.settings-head {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.settings-title {
+			font-size: 20px;
+			font-weight: 700;
+		}
+
+		.close-btn {
+			border: 1px solid #ffffff44;
+			background: #ffffff18;
+			color: var(--text);
+			border-radius: 8px;
+			padding: 4px 10px;
+			cursor: pointer;
+			font-size: 18px;
+			font-weight: 900;
+			line-height: 1;
+		}
+
+		.settings-row {
+			margin-top: 14px;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			align-items: center;
+			justify-content: center;
+		}
+
+		.control-btn {
+			border: 1px solid #ffffff44;
+			background: #ffffff1a;
+			color: var(--text);
+			border-radius: 8px;
+			padding: 8px 12px;
+			cursor: pointer;
+			font-weight: 700;
+			white-space: nowrap;
+		}
+
+		.control-btn:hover {
+			background: #ffffff2a;
+		}
+
+		#devModeToggleBtn {
+			background: #00ff0030;
+			border-color: #00ff00aa;
+			color: #eaffea;
+		}
+
+		#devModeToggleBtn:hover {
+			background: #00ff0044;
+		}
+
+		#devResetAllBtn {
+			background: #ff5f5f30;
+			border-color: #ff5f5faa;
+			color: #ffe9e9;
+		}
+
+		#devResetAllBtn:hover {
+			background: #ff5f5f45;
+		}
+
+		.help-content {
+			margin-top: 14px;
+			padding: 12px;
+			border-radius: 10px;
+			border: 1px solid #ffffff2e;
+			background: #0a2340a8;
+		}
+
+		.tab-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			margin-bottom: 10px;
+			justify-content: center;
+		}
+
+		.tab-btn {
+			border: 1px solid #ffffff3b;
+			background: #ffffff16;
+			color: var(--text);
+			padding: 7px 10px;
+			border-radius: 8px;
+			cursor: pointer;
+			font-weight: 700;
+		}
+
+		.tab-btn.active {
+			background: #ffd16633;
+			border-color: #ffd166aa;
+		}
+
+		.tab-panel {
+			display: none;
+			line-height: 1.45;
+			font-size: 14px;
+		}
+
+		.tab-panel.active {
+			display: block;
+		}
+
+		.subtab-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 6px;
+			margin-bottom: 8px;
+			justify-content: center;
+		}
+
+		.subtab-btn {
+			border: 1px solid #ffffff36;
+			background: #ffffff10;
+			color: var(--text);
+			padding: 5px 9px;
+			border-radius: 7px;
+			cursor: pointer;
+			font-weight: 700;
+			font-size: 12px;
+		}
+
+		.subtab-btn.active {
+			background: #8bd3ff2e;
+			border-color: #8bd3ffaa;
+		}
+
+		.subtab-panel {
+			display: none;
+			line-height: 1.45;
+			font-size: 14px;
+		}
+
+		.subtab-panel.active {
+			display: block;
+		}
+
+		.shop-content {
+			margin-top: 14px;
+			padding: 12px;
+			border-radius: 10px;
+			border: 1px solid #ffffff2e;
+			background: #0a2340a8;
+		}
+
+		.level-content {
+			margin-top: 14px;
+			padding: 12px;
+			border-radius: 10px;
+			border: 1px solid #ffffff2e;
+			background: #0a2340a8;
+		}
+
+		.shop-points {
+			margin-bottom: 10px;
+			font-weight: 700;
+		}
+
+		.shop-list {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+			gap: 10px;
+		}
+
+		.shop-item {
+			padding: 10px;
+			border-radius: 10px;
+			border: 1px solid #ffffff2f;
+			background: #ffffff10;
+		}
+
+		.shop-item-title {
+			font-weight: 700;
+			margin-bottom: 8px;
+		}
+
+		.skin-swatch {
+			width: 36px;
+			height: 36px;
+			border-radius: 8px;
+			border: 2px solid #ffffff99;
+			margin-bottom: 8px;
+		}
+
+		.shop-item-cost {
+			font-size: 13px;
+			opacity: 0.95;
+			margin-bottom: 8px;
+		}
+
+		.shop-item button {
+			width: 100%;
+		}
+
+		.level-meta {
+			font-size: 13px;
+			opacity: 0.9;
+			margin-bottom: 8px;
+		}
+
+		.level-lock {
+			font-size: 12px;
+			color: #ffd9a6;
+			min-height: 18px;
+			margin-bottom: 8px;
+		}
+
+		canvas {
+			display: block;
+			width: 100%;
+			height: auto;
+			border-radius: 12px;
+			border: 1px solid #ffffff2e;
+			background: linear-gradient(180deg, #0a1c35, #0d2747 45%, #14355b);
+			touch-action: none;
+		}
+
+		.game-canvas-stage {
+			position: relative;
+		}
+
+		#touchInputPad {
+			position: absolute;
+			left: 0;
+			top: 100%;
+			width: 100%;
+			height: 0;
+			display: block;
+			opacity: 0;
+			background: transparent;
+			border: 0;
+			border-radius: 0;
+			z-index: 5;
+			touch-action: none;
+			pointer-events: auto;
+		}
+
+		.danger {
+			color: #ffd4d4;
+		}
+
+		.toast-container {
+			position: fixed;
+			top: 56px;
+			left: 50%;
+			transform: translateX(-50%);
+			z-index: 1300;
+			pointer-events: none;
+		}
+
+		.toast {
+			opacity: 0;
+			transform: translateY(-8px) scale(0.98);
+			transition: opacity 0.2s ease, transform 0.2s ease;
+			background: #08233ebd;
+			border: 1px solid #ffd16699;
+			color: #fff3cf;
+			padding: 9px 14px;
+			border-radius: 10px;
+			font-weight: 700;
+			box-shadow: 0 12px 24px #0000004a;
+			max-width: min(88vw, 420px);
+			text-align: center;
+		}
+
+		.toast.is-visible {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+
+		.gameover-overlay {
+			position: fixed;
+			inset: 0;
+			display: grid;
+			place-items: center;
+			background: #031224c9;
+			z-index: 1250;
+		}
+
+		.gameover-panel {
+			width: min(92vw, 420px);
+			padding: 18px;
+			border-radius: 14px;
+			background: linear-gradient(180deg, #173961, #122f52);
+			border: 1px solid #ffffff38;
+			box-shadow: 0 20px 40px #00000066;
+			text-align: center;
+		}
+
+		.gameover-title {
+			font-size: 28px;
+			font-weight: 900;
+			letter-spacing: 0.3px;
+			margin-bottom: 8px;
+		}
+
+		.gameover-score {
+			font-size: 17px;
+			font-weight: 700;
+			margin-bottom: 14px;
+		}
+
+		.gameover-highscore.new-highscore {
+			color: #ffe8a6;
+		}
+
+		.gameover-btn {
+			border: 1px solid #ffffff44;
+			background: #ffffff1a;
+			color: var(--text);
+			border-radius: 8px;
+			padding: 10px 14px;
+			cursor: pointer;
+			font-weight: 800;
+		}
+
+		.gameover-btn:hover {
+			background: #ffffff2a;
+		}
+
+		.confirm-panel {
+			width: min(92vw, 460px);
+			text-align: center;
+		}
+
+		.confirm-title {
+			font-size: 23px;
+			font-weight: 900;
+			margin-bottom: 10px;
+		}
+
+		.confirm-message {
+			font-size: 15px;
+			opacity: 0.96;
+			line-height: 1.4;
+			margin-bottom: 16px;
+		}
+
+		.confirm-actions {
+			display: flex;
+			justify-content: center;
+			gap: 10px;
+			flex-wrap: wrap;
+		}
+
+		.confirm-btn {
+			border: 1px solid #ffffff44;
+			background: #ffffff1a;
+			color: var(--text);
+			border-radius: 8px;
+			padding: 9px 14px;
+			cursor: pointer;
+			font-weight: 800;
+			min-width: 118px;
+		}
+
+		.confirm-btn:hover {
+			background: #ffffff2a;
+		}
+
+		.confirm-btn.is-danger {
+			border-color: #ff9090a8;
+			background: #ff4e4e2b;
+			color: #ffe6e6;
+		}
+
+		.confirm-btn.is-danger:hover {
+			background: #ff5c5c40;
+		}
+
+		@media (max-width: 900px), (hover: none), (pointer: coarse) {
+			body {
+				min-height: 100dvh;
+				place-items: center;
+				padding:
+					calc(env(safe-area-inset-top, 0px) + 8px)
+					8px
+					calc(env(safe-area-inset-bottom, 0px) + 8px);
+			}
+
+			.game-wrap {
+				width: min(100%, 860px);
+				padding: 10px;
+				border-radius: 12px;
+			}
+
+			.hud {
+				justify-content: center;
+				flex-wrap: wrap;
+				gap: 8px;
+				margin-bottom: 8px;
+			}
+
+			.badge {
+				font-size: clamp(12px, 3.2vw, 15px);
+				padding: 5px 8px;
+			}
+
+			.settings-button,
+			.shop-button,
+			.level-button {
+				width: 40px;
+				height: 40px;
+			}
+
+			.shop-button {
+				left: 54px;
+			}
+
+			.level-button {
+				left: 100px;
+			}
+
+			.fps-corner {
+				font-size: 12px;
+				padding: 5px 9px;
+			}
+
+			.settings-panel,
+			.shop-panel,
+			.level-panel,
+			.confirm-panel {
+				width: min(96vw, 760px);
+				max-height: 90vh;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div class="fps-corner">FPS: <span id="fps">0</span></div>
+	<div class="toast-container" id="toastContainer"></div>
+	<button class="settings-button" id="settingsButton" aria-label="Einstellungen">&#9881;</button>
+	<button class="shop-button" id="shopButton" aria-label="Shop">&#128722;</button>
+	<button class="level-button" id="levelButton" aria-label="Level">&#127919;</button>
+	<button class="devmode-trigger" id="devModeTrigger" aria-label="Devmodus-Schalter">
+		<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+			<path d="M4 18h16v2H4v-2Zm3-8.5c0-.8.7-1.5 1.5-1.5h7c.8 0 1.5.7 1.5 1.5V16H7V9.5Zm3.2-4.5h3.6c.7 0 1.2.5 1.2 1.2V8H9V6.2c0-.7.5-1.2 1.2-1.2Z"/>
+		</svg>
+	</button>
+
+	<section class="game-wrap">
+		<div class="hud">
+			<div class="badge">Leben: <span id="lives">3</span></div>
+			<div class="badge">Punkte: <span id="score">0</span></div>
+			<div class="badge">Gold: <span id="gold">0</span></div>
+			<div class="badge">Level: <span id="levelDisplay">1</span></div>
+			<div class="badge" id="highscoreBadge">Highscore: <span id="highscore">0</span><span class="highscore-indicator hidden" id="newHighscoreBadge">Neu!</span></div>
+		</div>
+		<div class="game-canvas-stage">
+			<canvas id="game" width="800" height="480"></canvas>
+			<div id="touchInputPad" aria-hidden="true"></div>
+		</div>
+	</section>
+
+	<div class="settings-overlay hidden" id="settingsOverlay" aria-hidden="true">
+		<div class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+			<div class="settings-head">
+				<div class="settings-title" id="settingsTitle">Einstellungen</div>
+				<button class="close-btn" id="closeSettingsBtn" aria-label="Schließen">X</button>
+			</div>
+
+            <div class="settings-row">
+				<button class="control-btn" id="resetRunBtn">Restart</button>
+			</div>
+
+			<div class="settings-row">
+				<button class="control-btn" id="musicToggleBtn">Musik einschalten</button>
+			</div>
+
+			<div class="settings-row">
+				<button class="control-btn" id="resetHighscoreBtn">Highscore zurücksetzen</button>
+			</div>
+
+			<div class="settings-row hidden" id="devModeToggleRow">
+				<button class="control-btn" id="devModeToggleBtn">Devmode: AN</button>
+			</div>
+
+			<div class="settings-row hidden" id="devResetRow">
+				<button class="control-btn" id="devResetAllBtn">Spiel zurücksetzen</button>
+			</div>
+
+			<div class="settings-row">
+				<button class="control-btn" id="helpToggleBtn">Spielerklärung anzeigen</button>
+			</div>
+
+			<div class="help-content hidden" id="helpContent">
+				<div class="tab-list" role="tablist" aria-label="Hilfe Tabs">
+					<button class="tab-btn active" data-tab="aufgaben">Aufgaben</button>
+					<button class="tab-btn" data-tab="powerups">Power-Ups</button>
+					<button class="tab-btn" data-tab="steuerung">Steuerung</button>
+					<button class="tab-btn" data-tab="levels">Level & Features</button>
+					<button class="tab-btn" data-tab="goldshop">Gold & Shop</button>
+				</div>
+
+				<div class="tab-panel active" data-panel="aufgaben">
+					<div class="subtab-list" role="tablist" aria-label="Aufgaben Untertabs">
+						<button class="subtab-btn active" data-group="aufgaben" data-subtab="punkte">Punkte sammeln</button>
+						<button class="subtab-btn" data-group="aufgaben" data-subtab="hindernisse">Meide rote Hindernisse</button>
+						<button class="subtab-btn" data-group="aufgaben" data-subtab="gold">Alle 10 Punkte</button>
+					</div>
+					<div class="subtab-panel active" data-group-panel="aufgaben" data-subpanel="punkte">
+						<span id="tasksCollectText">Sammle die gelben Ziele</span> für Punkte und verbessere deinen Highscore.
+					</div>
+					<div class="subtab-panel" data-group-panel="aufgaben" data-subpanel="hindernisse">
+						Meide rote Hindernisse. Jeder Treffer kostet 1 Leben.
+					</div>
+					<div class="subtab-panel" data-group-panel="aufgaben" data-subpanel="gold">
+						Alle 10 Punkte bekommst du 1 Gold.
+					</div>
+				</div>
+
+				<div class="tab-panel" data-panel="powerups">
+					<div class="subtab-list" role="tablist" aria-label="Power-Up Untertabs">
+						<button class="subtab-btn active" data-group="powerups" data-subtab="lila-orb">Lila Orb</button>
+						<button class="subtab-btn" data-group="powerups" data-subtab="gruener-orb">Grüner Orb</button>
+					</div>
+					<div class="subtab-panel active" data-group-panel="powerups" data-subpanel="lila-orb">
+						Ghostmode: Rote Hindernisse machen dir für 5 Sekunden keinen Schaden.
+					</div>
+					<div class="subtab-panel" data-group-panel="powerups" data-subpanel="gruener-orb">
+						Teleport: Tippe innerhalb von 10 Sekunden einmal auf den Screen, um dich dorthin zu teleportieren.
+					</div>
+				</div>
+
+				<div class="tab-panel" data-panel="steuerung">
+					<div class="subtab-list" role="tablist" aria-label="Steuerung Untertabs">
+						<button class="subtab-btn active" data-group="steuerung" data-subtab="wasd">WASD</button>
+						<button class="subtab-btn" data-group="steuerung" data-subtab="esc">ESC</button>
+						<button class="subtab-btn" data-group="steuerung" data-subtab="r">R</button>
+						<button class="subtab-btn" data-group="steuerung" data-subtab="m">M</button>
+						<button class="subtab-btn" data-group="steuerung" data-subtab="b">B</button>
+						<button class="subtab-btn" data-group="steuerung" data-subtab="l">L</button>
+					</div>
+					<div class="subtab-panel active" data-group-panel="steuerung" data-subpanel="wasd">
+						W A S D bewegt deinen Block. Auf Touch-Geräten steuert nur der Canvas: oben/unten/seitlich tippen oder den Finger ziehen, um die Richtung live zu wechseln.
+					</div>
+					<div class="subtab-panel" data-group-panel="steuerung" data-subpanel="esc">
+						ESC öffnet oder schließt die Einstellungen.
+					</div>
+					<div class="subtab-panel" data-group-panel="steuerung" data-subpanel="r">
+						R startet die Runde neu. Wenn ein Overlay offen ist, bleibt das Spiel pausiert.
+					</div>
+					<div class="subtab-panel" data-group-panel="steuerung" data-subpanel="m">
+						M schaltet Musik direkt an oder aus.
+					</div>
+					<div class="subtab-panel" data-group-panel="steuerung" data-subpanel="b">
+						B öffnet oder schließt den Shop.
+					</div>
+					<div class="subtab-panel" data-group-panel="steuerung" data-subpanel="l">
+						L öffnet oder schließt die Level-Übersicht.
+					</div>
+				</div>
+
+				<div class="tab-panel" data-panel="levels">
+					<div class="subtab-list" role="tablist" aria-label="Level und Features Untertabs">
+						<button class="subtab-btn active" data-group="levels" data-subtab="levelsystem">Levelsystem</button>
+						<button class="subtab-btn" data-group="levels" data-subtab="leben">Leben</button>
+						<button class="subtab-btn" data-group="levels" data-subtab="pacman">Pacman-Modus</button>
+						<button class="subtab-btn" data-group="levels" data-subtab="hud">Anzeige</button>
+						<button class="subtab-btn" data-group="levels" data-subtab="spielstand">Spielstand</button>
+					</div>
+					<div class="subtab-panel active" data-group-panel="levels" data-subpanel="levelsystem">
+						Du startest in Level 1. Neue Level werden freigeschaltet, wenn du im vorherigen Level 50 Punkte erreichst.
+					</div>
+					<div class="subtab-panel" data-group-panel="levels" data-subpanel="leben">
+						Du hast 3 Leben. Bei 0 Leben ist Game Over. Dann musst du auf "Neu starten" klicken.
+					</div>
+					<div class="subtab-panel" data-group-panel="levels" data-subpanel="pacman">
+						Mit dem Pacman Pack wird das Ziel zum Pacman auf einem Pfad. Du musst ihn abfangen.
+					</div>
+					<div class="subtab-panel" data-group-panel="levels" data-subpanel="hud">
+						Oben siehst du Leben, Punkte, Gold, Level und Highscore in Echtzeit.
+					</div>
+					<div class="subtab-panel" data-group-panel="levels" data-subpanel="spielstand">
+						Dein Gold, Highscore, freigeschaltete Skins und Level-Freischaltungen werden automatisch sessionübergreifend gespeichert.
+					</div>
+				</div>
+
+				<div class="tab-panel" data-panel="goldshop">
+					Gold bekommst du für jeweils 10 Punkte am Stück. Du kannst diese im Shop für Skins ausgeben. Das Pacman Pack schaltet den
+					Pacman-Modus frei. Dies ist erst erhältlich, sobald alle Skins erlangt wurden.
+				</div>
+
+			</div>
+
+		</div>
+	</div>
+
+	<div class="shop-overlay hidden" id="shopOverlay" aria-hidden="true">
+		<div class="shop-panel" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+			<div class="settings-head">
+				<div class="settings-title" id="shopTitle">Shop</div>
+				<button class="close-btn" id="closeShopBtn" aria-label="Schließen">X</button>
+			</div>
+			<div class="shop-content" id="shopContent">
+				<div class="shop-points">Gold: <span id="shopPoints">0</span></div>
+				<div class="shop-list" id="shopList"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="level-overlay hidden" id="levelOverlay" aria-hidden="true">
+		<div class="level-panel" role="dialog" aria-modal="true" aria-labelledby="levelTitle">
+			<div class="settings-head">
+				<div class="settings-title" id="levelTitle">Level</div>
+				<button class="close-btn" id="closeLevelBtn" aria-label="Schließen">X</button>
+			</div>
+			<div class="level-content" id="levelContent">
+				<div class="shop-list" id="levelList"></div>
+			</div>
+		</div>
+	</div>
+
+	<div class="confirm-overlay hidden" id="confirmOverlay" aria-hidden="true">
+		<div class="confirm-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+			<div class="confirm-title" id="confirmTitle">Bestätigen</div>
+			<div class="confirm-message" id="confirmMessage"></div>
+			<div class="confirm-actions">
+				<button class="confirm-btn" id="confirmCancelBtn" type="button">Abbrechen</button>
+				<button class="confirm-btn is-danger" id="confirmAcceptBtn" type="button">Bestätigen</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="gameover-overlay hidden" id="gameOverOverlay" aria-hidden="true">
+		<div class="gameover-panel" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
+			<div class="gameover-title" id="gameOverTitle">Spiel vorbei</div>
+			<div class="gameover-score">Finale Punkte: <span id="gameOverScore">0</span></div>
+			<div class="gameover-score gameover-highscore" id="gameOverHighscoreLine">Highscore: <span id="gameOverHighscore">0</span><span class="highscore-indicator hidden" id="gameOverNewHighscoreBadge">Neu!</span></div>
+			<button class="gameover-btn" id="restartGameBtn">Neu starten</button>
+		</div>
+	</div>
+
+	<script>
+		(async () => {
+		const HIGHSCORE_KEY = "wasdMiniGameHighscore";
+		const MUSIC_ENABLED_KEY = "wasdMiniGameMusicEnabled";
+		const PROGRESS_KEY = "wasdMiniGameSignedProgressV1";
+		const DEVMODE_KEY = "wasdMiniGameDevMode";
+		const DEVMODE_SHOP_BACKUP_KEY = "wasdMiniGameDevModeShopBackupV1";
+		// HINWEIS: Dieser Salt liegt im Client-Code und bietet keinen echten
+		// Schutz gegen Manipulation — er dient nur als einfache Plausibilitätsprüfung.
+		const PROGRESS_SALT = "m42:r9:shop:skin";
+		let progressSaveQueue = Promise.resolve();
+		const GAME_CONFIG = {
+			levelUnlockScore: 50,
+			saveBlockPopupCooldownMs: 5000,
+			player: {
+				startX: 70,
+				startY: 240,
+				size: 26,
+				speed: 220,
+				hitCooldownSec: 1
+			},
+			progress: {
+				pointsPerGold: 10,
+				goldToastDurationSec: 1.1
+			},
+			target: {
+				startX: 700,
+				startY: 120,
+				radius: 18,
+				collisionRadiusFactor: 0.75,
+				pulseRadiusMultiplier: 2
+			},
+			spawn: {
+				entityMargin: 50
+			},
+			pacman: {
+				wallMargin: 40,
+				avoidRadiusMultiplier: 3.2,
+				playerProximityAvoidMinRadius: 66,
+				playerProximityAvoidSizeFactor: 2.6,
+				revisitDistanceThreshold: 130,
+				revisitPenaltyFactor: 1.45,
+				speed: 120,
+				trail: {
+					nextFruitAt: 6,
+					visibleAheadCount: 6,
+					visibleAheadDistance: 230,
+					appendThresholdCount: 8,
+					itemSpacing: 48
+				}
+			},
+			controls: {
+				touchDragDeadzone: 18,
+				touchTapMaxMove: 14,
+				touchTapMaxTimeMs: 220
+			},
+			devMode: {
+				triggerClicks: 5,
+				triggerResetMs: 1700
+			},
+			pathfinding: {
+				defaultExtensionPoints: 2,
+				segmentMinDistance: 100,
+				candidateAttempts: 52,
+				turnBonusBase: 18,
+				turnBonusMaxExtra: 56,
+				reverseDotThreshold: -0.62,
+				reversePenaltyFactor: 240,
+				forwardDotThreshold: 0.9,
+				forwardPenaltyFactor: 170,
+				headingSpreadFactor: 26,
+				scoreWeights: {
+					segmentLength: 0.92,
+					away: 0.26,
+					oldNodeDistance: 0.24,
+					routeNodeDistance: 0.16,
+					centerDistance: 0.08,
+					randomNoiseMax: 18
+				},
+				avoidPushPadding: 6,
+				trailAheadProgressPadding: 6,
+				futureNodeThreshold: 2,
+				distanceEpsilon: 0.0001,
+				zeroDistanceEpsilon: 0.000001
+			},
+			audio: {
+				sfxBusGain: 0.22,
+				minGain: 0.0001,
+				attackSec: 0.005,
+				blipStopPaddingSec: 0.01,
+				schedulerLookaheadSec: 0.2,
+				mainSchedulerIntervalMs: 50,
+				pauseSchedulerIntervalMs: 60,
+				mainStartLeadSec: 0.06,
+				mainGain: 0.22,
+				mainGainRampSec: 0.08,
+				stopFadeSec: 0.1,
+				pauseGain: 0.14,
+				pauseGainRampSec: 0.08,
+				pauseStepDurationSec: 0.28,
+				pauseFadeSec: 0.06,
+				restartLeadSec: 0.02
+			}
+			,
+			powerups: {
+				ghost: {
+					startX: 120,
+					startY: 120,
+					radius: 13,
+					durationSec: 5
+				},
+				teleport: {
+					startX: 220,
+					startY: 260,
+					radius: 12,
+					windowSec: 10
+				}
+			},
+			obstacles: [
+				{ x: 120, y: 75, w: 120, h: 20, ampX: 25, ampY: 18, speed: 0.75, phase: 0.1, wobble: 0.7 },
+				{ x: 260, y: 150, w: 160, h: 18, ampX: 36, ampY: 24, speed: 0.95, phase: 1.1, wobble: 1.0 },
+				{ x: 470, y: 100, w: 110, h: 22, ampX: 16, ampY: 36, speed: 1.05, phase: 2.2, wobble: 1.1 },
+				{ x: 620, y: 190, w: 130, h: 20, ampX: 44, ampY: 10, speed: 0.7, phase: 0.7, wobble: 0.6 },
+				{ x: 170, y: 280, w: 190, h: 18, ampX: 28, ampY: 30, speed: 0.85, phase: 2.6, wobble: 0.9 },
+				{ x: 430, y: 260, w: 120, h: 24, ampX: 52, ampY: 20, speed: 1.0, phase: 3.0, wobble: 1.2 },
+				{ x: 560, y: 360, w: 170, h: 16, ampX: 20, ampY: 34, speed: 1.1, phase: 1.9, wobble: 0.8 },
+				{ x: 300, y: 390, w: 135, h: 20, ampX: 32, ampY: 22, speed: 0.9, phase: 0.3, wobble: 1.1 }
+			],
+			ghost: {
+				respawnMin: 22,
+				respawnMax: 36,
+				minScore: 5,
+				respawnScoreStep: 4,
+				minTravelDistance: 900,
+				warningTime: 1.2
+			},
+			teleport: {
+				respawnMin: 34,
+				respawnMax: 52,
+				minScore: 12,
+				respawnScoreStep: 7,
+				minTravelDistance: 1400
+			},
+			playerIdle: {
+				zoneDelay: 3,
+				zoneRadius: 18,
+				avoidRadius: 112
+			},
+			visual: {
+				pulse: {
+					target: 0.006,
+					ghost: 0.009,
+					teleport: 0.007,
+					teleportPhase: 1.1
+				},
+				grid: {
+					alpha: 0.12,
+					spacing: 40,
+					lineWidth: 1
+				},
+				touchDebug: {
+					guideLengthFactor: 0.46,
+					guideLineWidth: 2,
+					directionCount: 16,
+					startMarkerRadius: 6,
+					currentMarkerRadius: 5,
+					infoFontSize: 12,
+					infoOffsetX: 12,
+					infoOffsetYPrimary: -5,
+					infoOffsetYSecondary: 10,
+					directionFontSize: 18,
+					directionLabelY: 50
+				},
+				devOverlay: {
+					baseAlpha: 0.3,
+					pathMaxNodes: 30,
+					directionVectorsMax: 15,
+					arrowLength: 15,
+					arrowHeadLength: 6,
+					nodeRadius: 3,
+					currentArrowLength: 25,
+					currentArrowHeadLength: 8,
+					panelFontSize: 11,
+					panelWidth: 290,
+					panelRightOffset: 300,
+					panelTop: 10,
+					panelPadding: 5,
+					panelMaxHeight: 280,
+					recentLogCount: 5,
+					logMaxChars: 35
+				},
+				goldToast: {
+					scaleBoost: 0.08,
+					yOffset: 56,
+					lineWidth: 3,
+					fontSize: 28
+				}
+			}
+		};
+
+		const SKINS = [
+			{ id: "cyan", name: "Standard-Cyan", color: "#69d2ff", cost: 2 },
+			{ id: "lime", name: "Neon-Limette", color: "#9cff57", cost: 3 },
+			{ id: "orange", name: "Sonnenorange", color: "#ffb347", cost: 4 },
+			{ id: "pink", name: "Retro-Rosa", color: "#ff74c8", cost: 5 },
+			{ id: "white", name: "Pixel-Weiß", color: "#f5fbff", cost: 6 },
+			{ id: "pacmanpack", name: "Pacman-Paket", color: "#45b7ff", cost: 10 }
+		];
+		const LEVELS = [
+			{ id: 1, name: "Level 1: Standard", mode: "standard" },
+			{ id: 2, name: "Level 2: Vertikal", mode: "vertical" },
+			{ id: 3, name: "Level 3: Dual", mode: "mixed" },
+			{ id: 4, name: "Level 4: Rotierend", mode: "rotating" }
+		];
+		const PACMAN_TRIBUTE_ID = "pacmanpack";
+		const canvas = document.getElementById("game");
+		const touchInputPad = document.getElementById("touchInputPad");
+		const ctx = canvas.getContext("2d");
+		const mobileRestartModeQuery = window.matchMedia("(max-width: 900px), (hover: none), (pointer: coarse)");
+		let mobileRestartMode = mobileRestartModeQuery.matches;
+		mobileRestartModeQuery.addEventListener("change", (event) => {
+			mobileRestartMode = event.matches;
+			syncTouchInputPadBounds();
+		});
+
+		// Funktion: Prüft, ob Touch-Bewegungssteuerung aktiv sein soll.
+		function isMobileTouchControlsEnabled() {
+			return mobileRestartMode;
+		}
+
+		const ui = {
+			lives: document.getElementById("lives"),
+			score: document.getElementById("score"),
+			gold: document.getElementById("gold"),
+			highscore: document.getElementById("highscore"),
+			highscoreBadge: document.getElementById("highscoreBadge"),
+			newHighscoreBadge: document.getElementById("newHighscoreBadge"),
+			fps: document.getElementById("fps"),
+			settingsButton: document.getElementById("settingsButton"),
+			shopButton: document.getElementById("shopButton"),
+			levelButton: document.getElementById("levelButton"),
+			settingsOverlay: document.getElementById("settingsOverlay"),
+			shopOverlay: document.getElementById("shopOverlay"),
+			levelOverlay: document.getElementById("levelOverlay"),
+			confirmOverlay: document.getElementById("confirmOverlay"),
+			confirmTitle: document.getElementById("confirmTitle"),
+			confirmMessage: document.getElementById("confirmMessage"),
+			confirmCancelBtn: document.getElementById("confirmCancelBtn"),
+			confirmAcceptBtn: document.getElementById("confirmAcceptBtn"),
+			closeSettingsBtn: document.getElementById("closeSettingsBtn"),
+			closeShopBtn: document.getElementById("closeShopBtn"),
+			closeLevelBtn: document.getElementById("closeLevelBtn"),
+			musicToggleBtn: document.getElementById("musicToggleBtn"),
+			helpToggleBtn: document.getElementById("helpToggleBtn"),
+			resetHighscoreBtn: document.getElementById("resetHighscoreBtn"),
+			resetRunBtn: document.getElementById("resetRunBtn"),
+			devModeToggleRow: document.getElementById("devModeToggleRow"),
+			devModeToggleBtn: document.getElementById("devModeToggleBtn"),
+			devResetRow: document.getElementById("devResetRow"),
+			devResetAllBtn: document.getElementById("devResetAllBtn"),
+			devModeTrigger: document.getElementById("devModeTrigger"),
+			controlButtons: Array.from(document.querySelectorAll(".control-btn")),
+			helpContent: document.getElementById("helpContent"),
+			shopContent: document.getElementById("shopContent"),
+			shopPoints: document.getElementById("shopPoints"),
+			shopList: document.getElementById("shopList"),
+			levelDisplay: document.getElementById("levelDisplay"),
+			levelContent: document.getElementById("levelContent"),
+			levelList: document.getElementById("levelList"),
+			toastContainer: document.getElementById("toastContainer"),
+			gameOverOverlay: document.getElementById("gameOverOverlay"),
+			gameOverScore: document.getElementById("gameOverScore"),
+			gameOverHighscore: document.getElementById("gameOverHighscore"),
+			gameOverHighscoreLine: document.getElementById("gameOverHighscoreLine"),
+			gameOverNewHighscoreBadge: document.getElementById("gameOverNewHighscoreBadge"),
+			restartGameBtn: document.getElementById("restartGameBtn"),
+			tasksCollectText: document.getElementById("tasksCollectText"),
+			tabButtons: Array.from(document.querySelectorAll(".tab-btn")),
+			tabPanels: Array.from(document.querySelectorAll(".tab-panel"))
+		};
+
+		const music = {
+			ctx: null,
+			master: null,
+			sfxBus: null,
+			isOn: false,
+			pauseIsOn: false,
+			preferredOn: loadMusicEnabled(),
+			nextNoteTime: 0,
+			step: 0,
+			schedulerId: null,
+			pauseNextNoteTime: 0,
+			pauseStep: 0,
+			pauseSchedulerId: null,
+			startedByUser: false
+		};
+
+		const persistedProgress = await loadSignedProgress();
+		const ownedSkinIds = new Set(persistedProgress.ownedSkinIds);
+		let selectedSkinId = persistedProgress.selectedSkinId;
+		let selectedLevel = persistedProgress.selectedLevel;
+		const levelBestScores = { ...persistedProgress.levelBestScores };
+
+		const game = {
+			running: true,
+			started: false,
+			pausedBySettings: false,
+			wasPlayingBeforeShop: false,
+			statusText: "Bereit - W A S D zum Start",
+			score: 0,
+			highscore: loadHighscore(),
+			newHighscoreThisRun: false,
+			gold: persistedProgress.gold,
+			goldHintSeen: persistedProgress.goldHintSeen,
+			nextGhostScoreRequirement: GAME_CONFIG.ghost.minScore,
+			distanceSinceGhostPickup: 0,
+			nextTeleportScoreRequirement: GAME_CONFIG.teleport.minScore,
+			distanceSinceTeleportPickup: 0,
+			lives: 3,
+			keys: new Set(),
+			hitCooldown: 0,
+			ghostTimer: 0,
+			teleportCharges: 0,
+			teleportWindowTimer: 0,
+			goldToastTimer: 0,
+			goldToastText: "",
+			fps: 0,
+			fpsTimer: 0,
+			fpsFrames: 0,
+			width: canvas.width,
+			height: canvas.height,
+			devMode: localStorage.getItem(DEVMODE_KEY) === "1",
+			devLog: [],
+			pathRecalcCount: 0,
+			devModeShopBackup: null,
+			currentLevel: selectedLevel
+		};
+		const touchState = {
+			activeDirection: null,
+			movementPointerId: null,
+			startX: 0,
+			startY: 0,
+			lastX: 0,
+			lastY: 0,
+			startedAt: 0,
+			inputX: 0,
+			inputY: 0
+		};
+		let lastSaveBlockedPopupAt = -GAME_CONFIG.saveBlockPopupCooldownMs;
+		let toastHideTimer = null;
+		let pendingHighscoreResetUntil = 0;
+		let confirmResolve = null;
+		let shopRenderDirty = true;
+		const uiRenderState = {
+			dirty: true,
+			fpsDirty: true,
+			pendingMessage: ""
+		};
+
+		const melody = [
+			523.25, 659.25, 783.99, 659.25,
+			587.33, 698.46, 880.0, 698.46,
+			659.25, 783.99, 987.77, 783.99,
+			698.46, 659.25, 587.33, 493.88
+		];
+
+		const bass = [
+			130.81, null, 130.81, null,
+			146.83, null, 146.83, null,
+			164.81, null, 164.81, null,
+			146.83, null, 130.81, null
+		];
+
+		const ghostMelody = [
+			1046.5, 1174.66, 1318.51, 1567.98,
+			1318.51, 1174.66, 1046.5, 987.77,
+			1174.66, 1318.51, 1567.98, 1760.0,
+			1567.98, 1318.51, 1174.66, 987.77
+		];
+
+		const ghostBass = [
+			196.0, 196.0, null, 196.0,
+			220.0, 220.0, null, 220.0,
+			246.94, 246.94, null, 246.94,
+			220.0, 220.0, null, 196.0
+		];
+
+		const pacmanMelody = [
+			// Phrase 1: Aufstieg
+			493.88, 987.77, 739.99, 622.25, 987.77, 739.99, 622.25,
+			// Phrase 2: Chromatischer Abstieg
+			523.25, 1046.5, 783.99, 659.25, 1046.5, 783.99, 659.25,
+			// Phrase 3: Wiederholung Aufstieg
+			493.88, 987.77, 739.99, 622.25, 987.77, 739.99, 622.25,
+			// Finale
+			622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.0, 987.77
+		];
+
+		const pacmanBass = [
+			196.0, null, 196.0, null,
+			220.0, null, 220.0, null,
+			246.94, null, 246.94, null,
+			220.0, null, 196.0, null
+		];
+
+		const pacmanGhostMelody = [
+			// Schnellere, etwas aggressivere Abwandlung für Ghostmode
+			987.77, 739.99, 622.25, 739.99, 987.77, 739.99, 622.25,
+			1046.5, 783.99, 659.25, 783.99, 1046.5, 783.99, 659.25,
+			987.77, 739.99, 622.25, 739.99, 987.77, 739.99, 622.25,
+			622.25, 659.25, 698.46, 739.99, 783.99, 830.61, 880.0, 987.77
+		];
+
+		const pacmanGhostBass = [
+			261.63, 261.63, null, 261.63,
+			293.66, 293.66, null, 293.66,
+			329.63, 329.63, null, 329.63,
+			293.66, 293.66, null, 261.63
+		];
+
+		const pauseMelody = [
+			392.0, 440.0, 493.88, 440.0,
+			349.23, 392.0, 440.0, 392.0,
+			329.63, 349.23, 392.0, 349.23
+		];
+
+		const pauseBass = [
+			98.0, null, 110.0, null,
+			82.41, null, 98.0, null,
+			87.31, null, 98.0, null
+		];
+
+		const player = {
+			x: GAME_CONFIG.player.startX,
+			y: GAME_CONFIG.player.startY,
+			size: GAME_CONFIG.player.size,
+			speed: GAME_CONFIG.player.speed,
+			color: getSkinById(selectedSkinId).color,
+			vx: 0,
+			vy: 0
+		};
+
+		const target = {
+			x: GAME_CONFIG.target.startX,
+			y: GAME_CONFIG.target.startY,
+			r: GAME_CONFIG.target.radius,
+			pulse: 0
+		};
+
+		const WALLS = ["top", "right", "bottom", "left"];
+		const MOVEMENT_KEYS = ["w", "a", "s", "d"];
+		const ARROW_TO_WASD = {
+			"arrowup": "w",
+			"arrowdown": "s",
+			"arrowleft": "a",
+			"arrowright": "d"
+		};
+		const PREVENT_DEFAULT_KEYS = [...MOVEMENT_KEYS, "r", "m", "b", "l", "escape", "arrowup", "arrowdown", "arrowleft", "arrowright"];
+		const OPPOSITE_WALL = {
+			top: "bottom",
+			right: "left",
+			bottom: "top",
+			left: "right"
+		};
+		let pacmanPath = [];
+
+		const pacmanTrail = {
+			items: [],
+			nextFruitAt: GAME_CONFIG.pacman.trail.nextFruitAt,
+			consumedPulse: 0,
+			visibleAheadCount: GAME_CONFIG.pacman.trail.visibleAheadCount,
+			visibleAheadDistance: GAME_CONFIG.pacman.trail.visibleAheadDistance,
+			appendThresholdCount: GAME_CONFIG.pacman.trail.appendThresholdCount,
+			generatedCount: 0
+		};
+
+		const pacmanState = {
+			pathIndex: 0,
+			speed: GAME_CONFIG.pacman.speed,
+			directionX: 1,
+			directionY: 0,
+			visible: true,
+			powerUpTimer: 0,
+			segmentLengths: [],
+			segmentStarts: [],
+			totalLength: 0,
+			pathProgress: 0,
+			forbiddenPoint: null,
+			playerIdleAvoidPoint: null,
+			playerIdleAvoidRadius: 0,
+			playerStillTimer: 0,
+			idleAnchorPoint: null,
+			idleZoneActive: false,
+			routeVersion: 0
+		};
+
+		const ghostPowerup = {
+			x: GAME_CONFIG.powerups.ghost.startX,
+			y: GAME_CONFIG.powerups.ghost.startY,
+			r: GAME_CONFIG.powerups.ghost.radius,
+			pulse: 0,
+			active: false,
+			powerUpTimer: rand(GAME_CONFIG.ghost.respawnMin, GAME_CONFIG.ghost.respawnMax)
+		};
+
+		const teleportPowerup = {
+			x: GAME_CONFIG.powerups.teleport.startX,
+			y: GAME_CONFIG.powerups.teleport.startY,
+			r: GAME_CONFIG.powerups.teleport.radius,
+			pulse: 0,
+			active: false,
+			powerUpTimer: rand(GAME_CONFIG.teleport.respawnMin, GAME_CONFIG.teleport.respawnMax)
+		};
+
+		const obstacles = GAME_CONFIG.obstacles;
+
+		// Funktion: Begrenzt einen Wert auf einen Min/Max-Bereich.
+		function clamp(value, min, max) {
+			return Math.max(min, Math.min(max, value));
+		}
+
+		// Funktion: Erzeugt eine Zufallszahl in einem Bereich.
+		function rand(min, max) {
+			return Math.random() * (max - min) + min;
+		}
+
+		// Funktion: Berechnet distance point to segment.
+		function distancePointToSegment(point, a, b) {
+			const abX = b.x - a.x;
+			const abY = b.y - a.y;
+			const abLenSq = abX * abX + abY * abY;
+			if (abLenSq < 0.000001) {
+				return Math.hypot(point.x - a.x, point.y - a.y);
+			}
+
+			const apX = point.x - a.x;
+			const apY = point.y - a.y;
+			const t = clamp((apX * abX + apY * abY) / abLenSq, 0, 1);
+			const closestX = a.x + abX * t;
+			const closestY = a.y + abY * t;
+			return Math.hypot(point.x - closestX, point.y - closestY);
+		}
+
+		// Funktion: Ermittelt active pacman avoid zones.
+		function getActivePacmanAvoidZones(baseAvoidRadius) {
+			const zones = [];
+			if (pacmanState.forbiddenPoint) {
+				zones.push({ point: pacmanState.forbiddenPoint, radius: baseAvoidRadius });
+			}
+			if (pacmanState.playerIdleAvoidPoint && pacmanState.playerIdleAvoidRadius > 0) {
+				zones.push({ point: pacmanState.playerIdleAvoidPoint, radius: pacmanState.playerIdleAvoidRadius });
+			}
+			zones.push({
+				point: { x: player.x + player.size * 0.5, y: player.y + player.size * 0.5 },
+				radius: Math.max(GAME_CONFIG.pacman.playerProximityAvoidMinRadius, player.size * GAME_CONFIG.pacman.playerProximityAvoidSizeFactor)
+			});
+			return zones;
+		}
+
+		// Funktion: Prüft, ob segment safe from avoid zones.
+		function isSegmentSafeFromAvoidZones(a, b, avoidZones) {
+			for (const zone of avoidZones) {
+				if (distancePointToSegment(zone.point, a, b) < zone.radius) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		// Funktion: Hilfsfunktion für route crosses avoid zones.
+		function routeCrossesAvoidZones(route, avoidZones) {
+			for (let i = 0; i < route.length - 1; i += 1) {
+				if (!isSegmentSafeFromAvoidZones(route[i], route[i + 1], avoidZones)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		// Funktion: Lädt highscore.
+		function loadHighscore() {
+			const stored = Number(localStorage.getItem(HIGHSCORE_KEY));
+			return Number.isFinite(stored) && stored >= 0 ? Math.floor(stored) : 0;
+		}
+
+		// Funktion: Speichert highscore.
+		function saveHighscore(value) {
+			try {
+				localStorage.setItem(HIGHSCORE_KEY, String(value));
+			} catch {
+				// Bei Storage-Problemen (z. B. Quota/Privatmodus) still ignorieren.
+			}
+		}
+
+		// Funktion: Lädt music enabled.
+		function loadMusicEnabled() {
+			const stored = localStorage.getItem(MUSIC_ENABLED_KEY);
+			if (stored === null) return true;
+			return stored === "1";
+		}
+
+		// Funktion: Speichert music enabled.
+		function saveMusicEnabled(enabled) {
+			try {
+				localStorage.setItem(MUSIC_ENABLED_KEY, enabled ? "1" : "0");
+			} catch {
+				// Bei Storage-Problemen (z. B. Quota/Privatmodus) still ignorieren.
+			}
+		}
+
+		// Funktion: Berechnet einen Hash für string.
+		async function hashString(input) {
+			if (!window.crypto || !window.crypto.subtle) {
+				throw new Error("WebCrypto nicht verfügbar");
+			}
+			const bytes = new TextEncoder().encode(input);
+			const digest = await window.crypto.subtle.digest("SHA-256", bytes);
+			return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+		}
+
+		// Funktion: Liefert Standardwerte für level best scores.
+		function defaultLevelBestScores() {
+			return { "1": 0, "2": 0, "3": 0, "4": 0 };
+		}
+
+		// Funktion: Liefert Standardwerte für progress.
+		function defaultProgress() {
+			return {
+				gold: 0,
+				goldHintSeen: false,
+				ownedSkinIds: ["cyan"],
+				selectedSkinId: "cyan",
+				selectedLevel: 1,
+				levelBestScores: defaultLevelBestScores()
+			};
+		}
+
+		// Funktion: Signiert progress.
+		async function signProgress(progress) {
+			const owned = [...progress.ownedSkinIds].sort().join(",");
+			const levelBest = LEVELS.map((level) => String(progress.levelBestScores[String(level.id)] || 0)).join(",");
+			const payload = [
+				PROGRESS_SALT,
+				String(progress.gold),
+				String(progress.goldHintSeen ? 1 : 0),
+				progress.selectedSkinId,
+				owned,
+				String(progress.selectedLevel),
+				levelBest
+			].join("|");
+			return await hashString(payload);
+		}
+
+		// Funktion: Validiert progress Daten zentral.
+		function validateProgress(data) {
+			const source = data && typeof data === "object" ? data : {};
+			const validSkinIds = new Set(SKINS.map((skin) => skin.id));
+			const validLevelIds = new Set(LEVELS.map((level) => level.id));
+			const owned = Array.isArray(source.ownedSkinIds) ? source.ownedSkinIds.filter((id) => validSkinIds.has(id)) : [];
+			if (!owned.includes("cyan")) owned.push("cyan");
+
+			const selected = validSkinIds.has(source.selectedSkinId) && owned.includes(source.selectedSkinId)
+				? source.selectedSkinId
+				: "cyan";
+
+			let selectedLevelSafe = Math.floor(Number(source.selectedLevel) || 1);
+			if (!validLevelIds.has(selectedLevelSafe)) selectedLevelSafe = 1;
+
+			const bestInput = source.levelBestScores && typeof source.levelBestScores === "object"
+				? source.levelBestScores
+				: {};
+			const normalizedLevelBestScores = defaultLevelBestScores();
+			for (const level of LEVELS) {
+				const raw = Number(bestInput[String(level.id)]);
+				normalizedLevelBestScores[String(level.id)] = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
+			}
+
+			return {
+				gold: Math.max(0, Math.floor(Number(source.gold) || 0)),
+				goldHintSeen: Boolean(source.goldHintSeen) || Math.max(0, Math.floor(Number(source.gold) || 0)) > 0,
+				ownedSkinIds: [...new Set(owned)],
+				selectedSkinId: selected,
+				selectedLevel: selectedLevelSafe,
+				levelBestScores: normalizedLevelBestScores
+			};
+		}
+
+		// Funktion: Lädt signed progress.
+		async function loadSignedProgress() {
+			try {
+				const raw = localStorage.getItem(PROGRESS_KEY);
+				if (!raw) return defaultProgress();
+
+				const parsed = JSON.parse(raw);
+				if (!parsed || typeof parsed !== "object" || typeof parsed.sig !== "string" || !parsed.data) {
+					return defaultProgress();
+				}
+
+				const data = validateProgress(parsed.data);
+				const expected = await signProgress(data);
+				if (expected !== parsed.sig) {
+					return defaultProgress();
+				}
+
+				return data;
+			} catch {
+				return defaultProgress();
+			}
+		}
+
+		// Funktion: Speichert signed progress.
+		function saveSignedProgress() {
+			try {
+				const data = validateProgress({
+					gold: game.gold,
+					goldHintSeen: game.goldHintSeen,
+					ownedSkinIds: [...ownedSkinIds],
+					selectedSkinId,
+					selectedLevel: game.currentLevel,
+					levelBestScores
+				});
+				selectedLevel = data.selectedLevel;
+				for (const level of LEVELS) {
+					levelBestScores[String(level.id)] = data.levelBestScores[String(level.id)];
+				}
+
+				progressSaveQueue = progressSaveQueue
+					.catch(() => {
+						// Vorherige Save-Fehler ignorieren, damit die Queue weiterläuft.
+					})
+					.then(async () => {
+						try {
+							const toStore = {
+								data,
+								sig: await signProgress(data)
+							};
+							try {
+								localStorage.setItem(PROGRESS_KEY, JSON.stringify(toStore));
+							} catch {
+								// Bei Storage-Problemen (z. B. Quota/Privatmodus) still ignorieren.
+							}
+						} catch {
+							// Bei Hash-Fehlern keinen Spielabbruch erzwingen.
+						}
+					});
+
+				return progressSaveQueue;
+			} catch {
+				// Bei Validierungsfehlern keinen Spielabbruch erzwingen.
+				return Promise.resolve();
+			}
+		}
+
+		// Funktion: Speichert dev mode shop backup.
+		function saveDevModeShopBackup(backup) {
+			const payload = normalizeDevModeShopBackup(backup);
+
+			localStorage.setItem(DEVMODE_SHOP_BACKUP_KEY, JSON.stringify(payload));
+			return payload;
+		}
+
+		// Funktion: Normalisiert dev mode shop backup.
+		function normalizeDevModeShopBackup(backup) {
+			// Normalisierung könnte sich zukünftig erweitern, aktuell aber nur Validierung nötig.
+			return validateProgress(backup);
+		}
+
+		// Funktion: Lädt dev mode shop backup.
+		function loadDevModeShopBackup() {
+			try {
+				const raw = localStorage.getItem(DEVMODE_SHOP_BACKUP_KEY);
+				if (!raw) return null;
+				const parsed = JSON.parse(raw);
+				if (!parsed || typeof parsed !== "object") return null;
+				return normalizeDevModeShopBackup(parsed);
+			} catch {
+				return null;
+			}
+		}
+
+		// Funktion: Löscht dev mode shop backup.
+		function clearDevModeShopBackup() {
+			localStorage.removeItem(DEVMODE_SHOP_BACKUP_KEY);
+		}
+
+		// Funktion: Ermittelt skin by id.
+		function getSkinById(skinId) {
+			return SKINS.find((skin) => skin.id === skinId) || SKINS[0];
+		}
+
+		// Funktion: Fügt dev log hinzu.
+		function addDevLog(message) {
+			if (!game.devMode) return;
+			game.devLog.push(message);
+			if (game.devLog.length > 12) {
+				game.devLog.shift();
+			}
+		}
+
+		// Funktion: Prüft, ob pacman pack locked.
+		function isPacmanPackLocked() {
+			for (const skin of SKINS) {
+				if (skin.id === PACMAN_TRIBUTE_ID) continue;
+				if (!ownedSkinIds.has(skin.id)) return true;
+			}
+			return false;
+		}
+
+		// Funktion: Prüft, ob level unlocked.
+		function isLevelUnlocked(levelId) {
+			if (game.devMode) return true;
+			if (levelId <= 1) return true;
+			return (levelBestScores[String(levelId - 1)] || 0) >= GAME_CONFIG.levelUnlockScore;
+		}
+
+		// Funktion: Aktualisiert level best for current run.
+		function updateLevelBestForCurrentRun() {
+			const key = String(game.currentLevel);
+			const currentBest = levelBestScores[key] || 0;
+			if (game.score > currentBest) {
+				levelBestScores[key] = game.score;
+				void saveSignedProgress();
+			}
+		}
+
+		// Funktion: Erzeugt einen zufälligen Punkt auf der angegebenen Wand.
+		function randomWallPoint(wall) {
+			if (wall === "top") return { x: rand(GAME_CONFIG.pacman.wallMargin, game.width - GAME_CONFIG.pacman.wallMargin), y: GAME_CONFIG.pacman.wallMargin, wall };
+			if (wall === "bottom") return { x: rand(GAME_CONFIG.pacman.wallMargin, game.width - GAME_CONFIG.pacman.wallMargin), y: game.height - GAME_CONFIG.pacman.wallMargin, wall };
+			if (wall === "left") return { x: GAME_CONFIG.pacman.wallMargin, y: rand(GAME_CONFIG.pacman.wallMargin, game.height - GAME_CONFIG.pacman.wallMargin), wall };
+			return { x: game.width - GAME_CONFIG.pacman.wallMargin, y: rand(GAME_CONFIG.pacman.wallMargin, game.height - GAME_CONFIG.pacman.wallMargin), wall };
+		}
+
+		// Funktion: Ermittelt perpendicular walls.
+		function getPerpendicularWalls(wall) {
+			if (wall === "top" || wall === "bottom") return ["left", "right"];
+			return ["top", "bottom"];
+		}
+
+		// Funktion: Hilfsfunktion für pin point to wall.
+		function pinPointToWall(point) {
+			if (!point || !point.wall) return point;
+			if (point.wall === "top") point.y = GAME_CONFIG.pacman.wallMargin;
+			if (point.wall === "bottom") point.y = game.height - GAME_CONFIG.pacman.wallMargin;
+			if (point.wall === "left") point.x = GAME_CONFIG.pacman.wallMargin;
+			if (point.wall === "right") point.x = game.width - GAME_CONFIG.pacman.wallMargin;
+			point.x = clamp(point.x, GAME_CONFIG.pacman.wallMargin, game.width - GAME_CONFIG.pacman.wallMargin);
+			point.y = clamp(point.y, GAME_CONFIG.pacman.wallMargin, game.height - GAME_CONFIG.pacman.wallMargin);
+			return point;
+		}
+
+		// Funktion: Prüft, ob wall segment candidate safe.
+		function isWallSegmentCandidateSafe(prevPoint, candidate, avoidZones) {
+			if (Math.hypot(candidate.x - prevPoint.x, candidate.y - prevPoint.y) < GAME_CONFIG.pathfinding.segmentMinDistance) return false;
+			return isSegmentSafeFromAvoidZones(prevPoint, candidate, avoidZones);
+		}
+
+		// Funktion: Hilfsfunktion für wall transition penalty.
+		function wallTransitionPenalty(nextWall, currentWall, lastWall) {
+			let penalty = 0;
+			if (nextWall === currentWall) penalty += 1000;
+			if (currentWall && nextWall === OPPOSITE_WALL[currentWall]) penalty += 220;
+			if (lastWall && nextWall === lastWall) penalty += 120;
+			if (lastWall && nextWall === lastWall && currentWall === OPPOSITE_WALL[lastWall]) penalty += 220;
+			if (lastWall && currentWall && nextWall === OPPOSITE_WALL[currentWall] && lastWall === OPPOSITE_WALL[nextWall]) {
+				penalty += 180;
+			}
+			return penalty;
+		}
+
+		// Funktion: Hilfsfunktion für minimal angle delta.
+		function minimalAngleDelta(a, b) {
+			const fullTurn = Math.PI * 2;
+			const raw = (a - b + Math.PI) % fullTurn;
+			const wrapped = (raw + fullTurn) % fullTurn;
+			return Math.abs(wrapped - Math.PI);
+		}
+
+		// Funktion: Generiert pacman route.
+		function generatePacmanRoute() {
+			if (game.devMode) {
+				addDevLog("[PACMAN] generatePacmanRoute() aufgerufen");
+				game.pathRecalcCount += 1;
+			}
+			const startWall = WALLS[Math.floor(rand(0, WALLS.length))];
+			return generatePacmanRouteExtension(randomWallPoint(startWall), null, GAME_CONFIG.pathfinding.defaultExtensionPoints || 2);
+		}
+
+		// Funktion: Generiert pacman route extension.
+		function generatePacmanRouteExtension(startPoint, initialDirection, extensionPoints = 1) {
+			const avoidRadius = target.r * GAME_CONFIG.pacman.avoidRadiusMultiplier;
+			const avoidZones = getActivePacmanAvoidZones(avoidRadius);
+			const points = [{ x: startPoint.x, y: startPoint.y, wall: startPoint.wall }];
+			const extraPoints = Math.max(1, Math.floor(extensionPoints));
+
+			let currentWall = startPoint.wall;
+			if (!currentWall && initialDirection) {
+				if (Math.abs(initialDirection.x) > Math.abs(initialDirection.y)) {
+					currentWall = initialDirection.x > 0 ? "right" : "left";
+				} else {
+					currentWall = initialDirection.y > 0 ? "bottom" : "top";
+				}
+			}
+			if (!currentWall) {
+				currentWall = WALLS[Math.floor(rand(0, WALLS.length))];
+			}
+
+			for (let i = 0; i < extraPoints; i += 1) {
+				const prev = points[points.length - 1];
+				const wallCandidates = WALLS.filter((w) => w !== currentWall);
+				let best = null;
+				const lastWall = points.length >= 2 ? points[points.length - 2].wall : null;
+				let prevDirX = 0;
+				let prevDirY = 0;
+				let hasPrevDirection = false;
+				if (points.length >= 2) {
+					const p0 = points[points.length - 2];
+					const p1 = points[points.length - 1];
+					const plen = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
+					prevDirX = (p1.x - p0.x) / plen;
+					prevDirY = (p1.y - p0.y) / plen;
+					hasPrevDirection = true;
+				} else if (initialDirection) {
+					const idirLen = Math.hypot(initialDirection.x, initialDirection.y) || 1;
+					prevDirX = initialDirection.x / idirLen;
+					prevDirY = initialDirection.y / idirLen;
+					hasPrevDirection = true;
+				}
+
+				for (let attempt = 0; attempt < GAME_CONFIG.pathfinding.candidateAttempts; attempt += 1) {
+					const nextWall = wallCandidates[Math.floor(rand(0, wallCandidates.length))];
+					const candidate = randomWallPoint(nextWall);
+					if (!isWallSegmentCandidateSafe(prev, candidate, avoidZones)) continue;
+
+					const segX = candidate.x - prev.x;
+					const segY = candidate.y - prev.y;
+					const segLength = Math.hypot(segX, segY);
+					const segDirX = segX / (segLength || 1);
+					const segDirY = segY / (segLength || 1);
+
+					let away = 0;
+					for (const zone of avoidZones) {
+						away += distancePointToSegment(zone.point, prev, candidate);
+					}
+
+					const centerDist = Math.hypot(candidate.x - game.width * 0.5, candidate.y - game.height * 0.5);
+					let minDistToOldNodes = Infinity;
+					for (const p of points) {
+						minDistToOldNodes = Math.min(minDistToOldNodes, Math.hypot(candidate.x - p.x, candidate.y - p.y));
+					}
+
+					let minDistToRouteNodes = Infinity;
+					for (let r = 0; r < pacmanPath.length - 1; r += 1) {
+						const p = pacmanPath[r];
+						minDistToRouteNodes = Math.min(minDistToRouteNodes, Math.hypot(candidate.x - p.x, candidate.y - p.y));
+					}
+					if (!Number.isFinite(minDistToRouteNodes)) minDistToRouteNodes = Math.min(game.width, game.height);
+
+					let turnBonus = GAME_CONFIG.pathfinding.turnBonusBase + 10;
+					let backtrackPenalty = 0;
+					if (hasPrevDirection) {
+						const dot = clamp(prevDirX * segDirX + prevDirY * segDirY, -1, 1);
+						const angle = Math.acos(dot);
+						// Zielbereich ist ein klarer Knick statt fast gerade oder fast rückwärts.
+						const centered = Math.max(0, 1 - Math.abs(angle - Math.PI * 0.62) / (Math.PI * 0.62));
+						turnBonus = GAME_CONFIG.pathfinding.turnBonusBase + centered * GAME_CONFIG.pathfinding.turnBonusMaxExtra;
+						if (dot < GAME_CONFIG.pathfinding.reverseDotThreshold) {
+							backtrackPenalty = (GAME_CONFIG.pathfinding.reverseDotThreshold - dot) * GAME_CONFIG.pathfinding.reversePenaltyFactor;
+						}
+						if (dot > GAME_CONFIG.pathfinding.forwardDotThreshold) {
+							backtrackPenalty += (dot - GAME_CONFIG.pathfinding.forwardDotThreshold) * GAME_CONFIG.pathfinding.forwardPenaltyFactor;
+						}
+					}
+
+					const segHeading = Math.atan2(segDirY, segDirX);
+					const prevHeading = Math.atan2(pacmanState.directionY || 0, pacmanState.directionX || 1);
+					const headingDelta = minimalAngleDelta(segHeading, prevHeading);
+					const headingSpreadBonus = Math.sin(headingDelta) * GAME_CONFIG.pathfinding.headingSpreadFactor;
+
+					const repeatPenalty = wallTransitionPenalty(nextWall, currentWall, lastWall);
+					const revisitPenalty = minDistToRouteNodes < GAME_CONFIG.pacman.revisitDistanceThreshold
+						? (GAME_CONFIG.pacman.revisitDistanceThreshold - minDistToRouteNodes) * GAME_CONFIG.pacman.revisitPenaltyFactor
+						: 0;
+					const score =
+						segLength * GAME_CONFIG.pathfinding.scoreWeights.segmentLength +
+						away * GAME_CONFIG.pathfinding.scoreWeights.away +
+						minDistToOldNodes * GAME_CONFIG.pathfinding.scoreWeights.oldNodeDistance +
+						minDistToRouteNodes * GAME_CONFIG.pathfinding.scoreWeights.routeNodeDistance +
+						centerDist * GAME_CONFIG.pathfinding.scoreWeights.centerDistance +
+						headingSpreadBonus +
+						turnBonus -
+						backtrackPenalty -
+						revisitPenalty -
+						repeatPenalty +
+						rand(0, GAME_CONFIG.pathfinding.scoreWeights.randomNoiseMax);
+
+					if (!best || score > best.score) {
+						best = { point: candidate, score };
+					}
+				}
+
+				if (!best) {
+					const fallbackWall = wallCandidates[Math.floor(rand(0, wallCandidates.length))];
+					best = { point: randomWallPoint(fallbackWall), score: 0 };
+				}
+
+				points.push(best.point);
+				currentWall = best.point.wall;
+			}
+
+			if (routeCrossesAvoidZones(points, avoidZones)) {
+				for (let i = 1; i < points.length - 1; i += 1) {
+					const p = points[i];
+					for (const zone of avoidZones) {
+						const dx = p.x - zone.point.x;
+						const dy = p.y - zone.point.y;
+						const d = Math.hypot(dx, dy);
+						if (d < zone.radius) {
+							const nx = d > 0.001 ? dx / d : 1;
+							const ny = d > 0.001 ? dy / d : 0;
+							p.x = clamp(p.x + nx * (zone.radius - d + GAME_CONFIG.pathfinding.avoidPushPadding), GAME_CONFIG.pacman.wallMargin, game.width - GAME_CONFIG.pacman.wallMargin);
+							p.y = clamp(p.y + ny * (zone.radius - d + GAME_CONFIG.pathfinding.avoidPushPadding), GAME_CONFIG.pacman.wallMargin, game.height - GAME_CONFIG.pacman.wallMargin);
+						}
+					}
+					pinPointToWall(p);
+				}
+			}
+
+			return points;
+		}
+
+		// Funktion: Erweitert pacman route.
+		function appendPacmanRoute() {
+			if (pacmanPath.length === 0) {
+				addDevLog("[PACMAN] appendPacmanRoute() - Neue Route gen.");
+				pacmanPath = generatePacmanRoute();
+				rebuildPacmanPathMetrics();
+				resetPacmanTrailItems();
+				return;
+			}
+
+			const oldPointCount = pacmanPath.length;
+			const startPoint = pacmanPath[oldPointCount - 1];
+			const prevPoint = pacmanPath[Math.max(0, oldPointCount - 2)];
+			const baseDx = startPoint.x - prevPoint.x;
+			const baseDy = startPoint.y - prevPoint.y;
+			const baseLen = Math.hypot(baseDx, baseDy) || 1;
+			const extension = generatePacmanRouteExtension(startPoint, {
+				x: baseDx / baseLen,
+				y: baseDy / baseLen
+			}, 1);
+			if (extension.length <= 1) return;
+
+			pacmanPath = pacmanPath.concat(extension.slice(1));
+			rebuildPacmanPathMetrics();
+			appendPacmanTrailItemsForSegments(oldPointCount - 1);
+		}
+
+		// Funktion: Berechnet pacman path metrics neu.
+		function rebuildPacmanPathMetrics() {
+			const lengths = [];
+			const starts = [];
+			let total = 0;
+
+			for (let i = 0; i < pacmanPath.length - 1; i += 1) {
+				starts.push(total);
+				const a = pacmanPath[i];
+				const b = pacmanPath[i + 1];
+				const len = Math.hypot(b.x - a.x, b.y - a.y);
+				lengths.push(len);
+				total += len;
+			}
+
+			pacmanState.segmentLengths = lengths;
+			pacmanState.segmentStarts = starts;
+			pacmanState.totalLength = Math.max(0.001, total);
+		}
+
+		// Funktion: Erweitert pacman trail items for segments.
+		function appendPacmanTrailItemsForSegments(startSegmentIndex) {
+			const spacing = GAME_CONFIG.pacman.trail.itemSpacing;
+			const start = clamp(startSegmentIndex, 0, Math.max(0, pacmanPath.length - 2));
+
+			for (let i = start; i < pacmanPath.length - 1; i += 1) {
+				const a = pacmanPath[i];
+				const b = pacmanPath[i + 1];
+				const dx = b.x - a.x;
+				const dy = b.y - a.y;
+				const distance = Math.hypot(dx, dy);
+				const steps = Math.max(1, Math.floor(distance / spacing));
+				const segmentStart = pacmanState.segmentStarts[i] || 0;
+
+				for (let s = 0; s < steps; s += 1) {
+					const t = s / steps;
+					pacmanTrail.items.push({
+						x: a.x + dx * t,
+						y: a.y + dy * t,
+						type: pacmanTrail.generatedCount % pacmanTrail.nextFruitAt === 0 ? "fruit" : "dot",
+						alive: true,
+						// Randomisierte Startphase nur für optische Abwechslung beim Pulsieren.
+						pulse: Math.random() * Math.PI * 2,
+						segmentIndex: i,
+						routeVersion: pacmanState.routeVersion,
+						pathProgress: segmentStart + distance * t,
+						appear: 0
+					});
+					pacmanTrail.generatedCount += 1;
+				}
+			}
+		}
+
+		// Funktion: Setzt pacman trail items zurück.
+		function resetPacmanTrailItems() {
+			pacmanTrail.items = [];
+			pacmanTrail.generatedCount = 0;
+			appendPacmanTrailItemsForSegments(0);
+		}
+
+		// Funktion: Synchronisiert aufgaben tab text.
+		function syncAufgabenTabText() {
+			if (!ui.tasksCollectText) return;
+			ui.tasksCollectText.textContent = isPacmanPackActive()
+				? "Sammle die Pacman"
+				: "Sammle die gelben Ziele";
+		}
+
+		// Funktion: Hilfsfunktion für show toast.
+		function showToast(message, durationMs = 1800) {
+			if (!ui.toastContainer) return;
+
+			let toast = ui.toastContainer.firstElementChild;
+			if (!toast) {
+				toast = document.createElement("div");
+				toast.className = "toast";
+				ui.toastContainer.appendChild(toast);
+			}
+
+			toast.textContent = message;
+			toast.classList.remove("is-visible");
+			void toast.offsetWidth;
+			toast.classList.add("is-visible");
+
+			if (toastHideTimer) {
+				window.clearTimeout(toastHideTimer);
+			}
+			toastHideTimer = window.setTimeout(() => {
+				toast.classList.remove("is-visible");
+			}, durationMs);
+		}
+
+		// Funktion: Löst offenen confirm dialog auf.
+		function resolveConfirmDialog(result) {
+			if (!confirmResolve) return;
+			const resolver = confirmResolve;
+			confirmResolve = null;
+			setOverlayVisible(ui.confirmOverlay, false);
+			resolver(Boolean(result));
+		}
+
+		// Funktion: Zeigt gestylten confirm dialog.
+		function showConfirmDialog(message, options = {}) {
+			const title = options.title || "Bestätigen";
+			const confirmText = options.confirmText || "Bestätigen";
+			const cancelText = options.cancelText || "Abbrechen";
+
+			if (confirmResolve) {
+				resolveConfirmDialog(false);
+			}
+
+			ui.confirmTitle.textContent = title;
+			ui.confirmMessage.textContent = message;
+			ui.confirmAcceptBtn.textContent = confirmText;
+			ui.confirmCancelBtn.textContent = cancelText;
+
+			setOverlayVisible(ui.confirmOverlay, true);
+			window.requestAnimationFrame(() => {
+				ui.confirmAcceptBtn.focus();
+			});
+
+			return new Promise((resolve) => {
+				confirmResolve = resolve;
+			});
+		}
+
+		// Funktion: Zählt alive ahead trail items.
+		function countAliveAheadTrailItems() {
+			let count = 0;
+			for (const item of pacmanTrail.items) {
+				if (!item.alive) continue;
+				if (item.pathProgress > pacmanState.pathProgress + GAME_CONFIG.pathfinding.trailAheadProgressPadding) {
+					count += 1;
+				}
+			}
+			return count;
+		}
+
+		// Funktion: Hilfsfunktion für maybe append pacman route.
+		function maybeAppendPacmanRoute() {
+			const futureNodes = pacmanPath.length - pacmanState.pathIndex;
+			if (futureNodes < GAME_CONFIG.pathfinding.futureNodeThreshold) {
+				appendPacmanRoute();
+			}
+		}
+
+		// Funktion: Setzt pacman motion zurück.
+		function resetPacmanMotion(newRoute) {
+			if (newRoute || pacmanPath.length < 2) {
+				pacmanState.routeVersion += 1;
+				pacmanPath = generatePacmanRoute();
+				if (pacmanPath.length < 2) {
+					appendPacmanRoute();
+				}
+				rebuildPacmanPathMetrics();
+				resetPacmanTrailItems();
+			}
+			target.x = pacmanPath[0].x;
+			target.y = pacmanPath[0].y;
+			pacmanState.pathIndex = 1;
+			const next = pacmanPath[pacmanState.pathIndex];
+			const d0x = next.x - target.x;
+			const d0y = next.y - target.y;
+			const d0 = Math.hypot(d0x, d0y) || 1;
+			pacmanState.directionX = d0x / d0;
+			pacmanState.directionY = d0y / d0;
+			pacmanState.visible = true;
+			pacmanState.powerUpTimer = 0;
+			pacmanState.pathProgress = 0;
+			pacmanTrail.consumedPulse = 0;
+			maybeAppendPacmanRoute();
+		}
+
+		// Funktion: Aktualisiert pacman path motion.
+		function updatePacmanPathMotion(dt) {
+			if (!pacmanState.visible) {
+				pacmanState.powerUpTimer -= dt;
+				if (pacmanState.powerUpTimer <= 0) {
+					resetPacmanMotion(true);
+				}
+				return;
+			}
+
+			if (pacmanPath.length < 2) {
+				appendPacmanRoute();
+			}
+
+			if (pacmanTrail.items.length === 0) {
+				resetPacmanTrailItems();
+			}
+
+			let remaining = pacmanState.speed * dt;
+			while (remaining > 0) {
+				if (pacmanState.pathIndex >= pacmanPath.length) {
+					appendPacmanRoute();
+					if (pacmanState.pathIndex >= pacmanPath.length) break;
+				}
+
+				const next = pacmanPath[pacmanState.pathIndex];
+				const toX = next.x - target.x;
+				const toY = next.y - target.y;
+				const dist = Math.hypot(toX, toY);
+
+				if (dist < GAME_CONFIG.pathfinding.distanceEpsilon) {
+					pacmanState.pathIndex += 1;
+					continue;
+				}
+
+				const step = Math.min(dist, remaining);
+				const nx = toX / dist;
+				const ny = toY / dist;
+				target.x += nx * step;
+				target.y += ny * step;
+				pacmanState.pathProgress = Math.min(pacmanState.totalLength, pacmanState.pathProgress + step);
+				pacmanState.directionX = nx;
+				pacmanState.directionY = ny;
+				remaining -= step;
+
+				if (step === dist) {
+					pacmanState.pathIndex += 1;
+				}
+			}
+
+			let ateSomething = false;
+			const activeSegment = clamp(pacmanState.pathIndex - 1, 0, Math.max(0, pacmanPath.length - 2));
+			for (const item of pacmanTrail.items) {
+				if (!item.alive) continue;
+				if (item.routeVersion !== pacmanState.routeVersion) continue;
+				if (item.segmentIndex !== activeSegment) continue;
+				const d = Math.hypot(item.x - target.x, item.y - target.y);
+				if (d < target.r * GAME_CONFIG.target.collisionRadiusFactor) {
+					item.alive = false;
+					ateSomething = true;
+				}
+			}
+
+			if (ateSomething) {
+				pacmanTrail.consumedPulse = 0.35;
+			}
+
+			if (pacmanTrail.consumedPulse > 0) {
+				pacmanTrail.consumedPulse = Math.max(0, pacmanTrail.consumedPulse - dt);
+			}
+
+			let shownAhead = 0;
+			for (const item of pacmanTrail.items) {
+				if (!item.alive) {
+					item.appear = Math.max(0, item.appear - dt * 10);
+					continue;
+				}
+
+				if (item.routeVersion !== pacmanState.routeVersion) {
+					item.appear = Math.max(0, item.appear - dt * 8);
+					continue;
+				}
+
+				const ahead = item.pathProgress - pacmanState.pathProgress;
+				const shouldShow =
+					ahead > 8 &&
+					ahead <= pacmanTrail.visibleAheadDistance &&
+					shownAhead < pacmanTrail.visibleAheadCount;
+
+				if (shouldShow) {
+					shownAhead += 1;
+					item.appear = Math.min(1, item.appear + dt * 3.8);
+				} else {
+					item.appear = Math.max(0, item.appear - dt * 5.6);
+				}
+			}
+
+			maybeAppendPacmanRoute();
+
+			const keepFrom = pacmanState.pathProgress - 220;
+			pacmanTrail.items = pacmanTrail.items.filter((item) => (item.alive || item.pathProgress >= keepFrom) && item.appear > 0);
+		}
+
+		// Funktion: Wendet selected skin an.
+		function applySelectedSkin() {
+			if (selectedSkinId === PACMAN_TRIBUTE_ID) {
+				player.color = "#45b7ff";
+				resetPacmanMotion(true);
+				syncAufgabenTabText();
+				return;
+			}
+			player.color = getSkinById(selectedSkinId).color;
+			syncAufgabenTabText();
+		}
+
+		// Funktion: Prüft, ob pacman pack active.
+		function isPacmanPackActive() {
+			return selectedSkinId === PACMAN_TRIBUTE_ID;
+		}
+
+		// Funktion: Stellt console readout bereit.
+		function exposeConsoleReadout() {
+			const readout = {};
+			Object.defineProperties(readout, {
+				score: { get: () => game.score },
+				lives: { get: () => game.lives },
+				highscore: { get: () => game.highscore },
+				gold: { get: () => game.gold },
+				status: { get: () => game.statusText },
+				running: { get: () => game.running }
+			});
+
+			Object.defineProperty(window, "gameReadout", {
+				value: readout,
+				writable: false,
+				configurable: false,
+				enumerable: true
+			});
+		}
+
+		// Funktion: Rendert shop.
+		function renderShop() {
+			ui.shopPoints.textContent = String(game.gold);
+			ui.shopList.innerHTML = "";
+			const devFreeShop = game.devMode;
+
+			for (const skin of SKINS) {
+				const item = document.createElement("div");
+				item.className = "shop-item";
+
+				const title = document.createElement("div");
+				title.className = "shop-item-title";
+				title.textContent = skin.name;
+
+				const swatch = document.createElement("div");
+				swatch.className = "skin-swatch";
+				if (skin.id === PACMAN_TRIBUTE_ID) {
+					swatch.style.background = "conic-gradient(from 35deg, #ffd200 0 310deg, transparent 310deg 360deg)";
+					swatch.style.borderColor = "#ffe380";
+				} else {
+					swatch.style.background = skin.color;
+				}
+
+				const cost = document.createElement("div");
+				cost.className = "shop-item-cost";
+
+				const action = document.createElement("button");
+				action.className = "control-btn";
+				const effectiveCost = devFreeShop ? 0 : skin.cost;
+
+				const owned = ownedSkinIds.has(skin.id);
+				const isLockedPacman = !devFreeShop && skin.id === PACMAN_TRIBUTE_ID && isPacmanPackLocked();
+				if (owned && selectedSkinId === skin.id) {
+					action.textContent = "Ausgewählt";
+					action.disabled = true;
+				} else if (owned) {
+					action.textContent = "Auswählen";
+					action.addEventListener("click", async () => {
+						// Check if this is a mode switch (Pacman vs. non-Pacman)
+						const isModeSwitch = (isPacmanPackActive() && skin.id !== PACMAN_TRIBUTE_ID) ||
+											 (!isPacmanPackActive() && skin.id === PACMAN_TRIBUTE_ID);
+						
+						// If game was actively running before shop opened and it's a mode switch, ask for confirmation
+						if (isModeSwitch && game.wasPlayingBeforeShop) {
+							const confirmed = await showConfirmDialog(
+								"Du wechselst den Spielmodus während ein Spiel läuft. Möchtest du das wirklich tun?",
+								{ title: "Spielmodus wechseln", confirmText: "Wechseln" }
+							);
+							if (!confirmed) return;
+						}
+						
+						selectedSkinId = skin.id;
+						applySelectedSkin();
+						void saveSignedProgress();
+						shopRenderDirty = true;
+						refreshShopIfNeeded();
+						
+						// If this was a mode switch during active gameplay, trigger R (reset)
+						if (isModeSwitch && game.wasPlayingBeforeShop) {
+							requestRoundReset();
+						}
+					});
+				} else if (isLockedPacman) {
+					action.textContent = "Gesperrt";
+					action.addEventListener("click", () => {
+						showToast("Schalte zunächst die anderen Skins frei.");
+					});
+				} else {
+					action.textContent = devFreeShop ? "Freischalten" : "Kaufen (" + skin.cost + " G)";
+					action.addEventListener("click", () => {
+						if (game.gold < effectiveCost) {
+							showToast("Nicht genug Gold.");
+							return;
+						}
+
+						game.gold -= effectiveCost;
+						ownedSkinIds.add(skin.id);
+						selectedSkinId = skin.id;
+						applySelectedSkin();
+						void saveSignedProgress();
+						shopRenderDirty = true;
+						refreshShopIfNeeded();
+						showToast("Skin gekauft: " + skin.name);
+						updateUI("Skin gekauft: " + skin.name);
+					});
+				}
+
+				item.appendChild(title);
+				item.appendChild(swatch);
+				item.appendChild(cost);
+				item.appendChild(action);
+				ui.shopList.appendChild(item);
+			}
+		}
+
+		// Funktion: Rendert shop nur wenn nötig.
+		function refreshShopIfNeeded() {
+			if (!shopRenderDirty) return;
+			renderShop();
+			shopRenderDirty = false;
+		}
+
+		// Funktion: Rendert level menu.
+		function renderLevelMenu() {
+			ui.levelList.innerHTML = "";
+
+			for (const level of LEVELS) {
+				const item = document.createElement("div");
+				item.className = "shop-item";
+
+				const title = document.createElement("div");
+				title.className = "shop-item-title";
+				title.textContent = level.name;
+
+				const best = document.createElement("div");
+				best.className = "level-meta";
+				best.textContent = "Bestwert: " + String(levelBestScores[String(level.id)] || 0);
+
+				const unlocked = isLevelUnlocked(level.id);
+
+				const lock = document.createElement("div");
+				lock.className = "level-lock";
+				if (level.id === 1 || unlocked) {
+					lock.textContent = "";
+				} else {
+					lock.textContent = "Level " + String(level.id - 1) + " mit " + String(GAME_CONFIG.levelUnlockScore) + " Punkten";
+				}
+
+				const action = document.createElement("button");
+				action.className = "control-btn";
+				if (game.currentLevel === level.id) {
+					action.textContent = "Aktiv";
+					action.disabled = true;
+				} else if (!unlocked) {
+					action.textContent = "Gesperrt";
+					action.addEventListener("click", () => {
+						showToast("Level noch nicht freigeschaltet");
+					});
+				} else {
+					action.textContent = "Auswählen";
+					action.addEventListener("click", () => {
+						game.currentLevel = level.id;
+						selectedLevel = level.id;
+						void saveSignedProgress();
+						resetGame(false);
+						renderLevelMenu();
+						updateUI("Level gewechselt: " + level.name);
+					});
+				}
+
+				item.appendChild(title);
+				item.appendChild(best);
+				item.appendChild(lock);
+				item.appendChild(action);
+				ui.levelList.appendChild(item);
+			}
+		}
+
+		// Funktion: Normalisiert control button widths.
+		function normalizeControlButtonWidths() {
+			if (ui.controlButtons.length === 0) return;
+
+			const probeButton = ui.controlButtons[0];
+			const style = getComputedStyle(probeButton);
+			const measureCanvas = document.createElement("canvas");
+			const measureCtx = measureCanvas.getContext("2d");
+			if (!measureCtx) return;
+
+			measureCtx.font = style.font;
+			const sidePadding =
+				parseFloat(style.paddingLeft) +
+				parseFloat(style.paddingRight) +
+				parseFloat(style.borderLeftWidth) +
+				parseFloat(style.borderRightWidth);
+
+			let maxWidth = 0;
+			for (const btn of ui.controlButtons) {
+				const text = (btn.textContent || "").replace(/\s+/g, " ").trim();
+				const textWidth = measureCtx.measureText(text).width;
+				maxWidth = Math.max(maxWidth, textWidth + sidePadding);
+			}
+
+			const targetWidth = Math.ceil(maxWidth);
+			for (const btn of ui.controlButtons) {
+				btn.style.width = targetWidth + "px";
+			}
+		}
+
+		// Funktion: Synchronisiert music ui.
+		function syncMusicUI() {
+			ui.musicToggleBtn.textContent = music.preferredOn ? "Musik ausschalten" : "Musik einschalten";
+		}
+
+		// Funktion: Setzt active tab.
+		function setActiveTab(tabName) {
+			for (const btn of ui.tabButtons) {
+				btn.classList.toggle("active", btn.dataset.tab === tabName);
+			}
+			let activePanel = null;
+			for (const panel of ui.tabPanels) {
+				const isActive = panel.dataset.panel === tabName;
+				panel.classList.toggle("active", isActive);
+				if (isActive) activePanel = panel;
+			}
+			if (activePanel) {
+				initSubTabs(activePanel);
+			}
+		}
+
+		// Funktion: Setup all tab event listeners.
+		function setupTabListeners() {
+			for (const btn of ui.tabButtons) {
+				btn.addEventListener("click", () => setActiveTabFromClick(btn));
+			}
+
+			for (const btn of document.querySelectorAll(".subtab-btn")) {
+				btn.addEventListener("click", () => {
+					setActiveSubTab(btn.dataset.group, btn.dataset.subtab);
+				});
+			}
+		}
+
+		function setActiveTabFromClick(btn) {
+			const tabName = btn.dataset.tab;
+			if (tabName) {
+				setActiveTab(tabName);
+			}
+		}
+
+		// Funktion: Setzt active sub tab.
+		function setActiveSubTab(groupName, subTabName) {
+			const buttons = document.querySelectorAll('.subtab-btn[data-group="' + groupName + '"]');
+			const panels = document.querySelectorAll('.subtab-panel[data-group-panel="' + groupName + '"]');
+			for (const btn of buttons) {
+				btn.classList.toggle("active", btn.dataset.subtab === subTabName);
+			}
+			for (const panel of panels) {
+				panel.classList.toggle("active", panel.dataset.subpanel === subTabName);
+			}
+		}
+
+		// Funktion: Initialisiert sub tabs.
+		function initSubTabs(root = document) {
+			const subtabButtons = root.querySelectorAll(".subtab-btn[data-group]");
+			const groups = new Set();
+			for (const btn of subtabButtons) {
+				if (btn.dataset.group) groups.add(btn.dataset.group);
+			}
+
+			for (const group of groups) {
+				const activeBtn = root.querySelector('.subtab-btn[data-group="' + group + '"].active');
+				const firstBtn = root.querySelector('.subtab-btn[data-group="' + group + '"]');
+				const initial = activeBtn || firstBtn;
+				if (initial) {
+					setActiveSubTab(group, initial.dataset.subtab);
+				}
+			}
+		}
+
+		// Funktion: Hilfsfunktion für refresh overlay pause state.
+		function refreshOverlayPauseState() {
+			const settingsOpen = !ui.settingsOverlay.classList.contains("hidden");
+			const shopOpen = !ui.shopOverlay.classList.contains("hidden");
+			const levelOpen = !ui.levelOverlay.classList.contains("hidden");
+			const confirmOpen = !ui.confirmOverlay.classList.contains("hidden");
+			game.pausedBySettings = settingsOpen || shopOpen || levelOpen || confirmOpen;
+			syncMusicMode();
+			updateUI();
+		}
+
+		// Funktion: Setzt overlay visible.
+		function setOverlayVisible(overlay, isVisible) {
+			overlay.classList.toggle("hidden", !isVisible);
+			overlay.setAttribute("aria-hidden", isVisible ? "false" : "true");
+			refreshOverlayPauseState();
+		}
+
+		// Funktion: Verwaltet overlay generic.
+		function manageOverlay(overlayEl, renderFn, onOpen = null) {
+			return {
+				open() {
+					bootMusicByGesture();
+					if (onOpen) onOpen();
+					setOverlayVisible(overlayEl, true);
+					if (renderFn) renderFn();
+				},
+				close() {
+					setOverlayVisible(overlayEl, false);
+				},
+				isOpen() {
+					return !overlayEl.classList.contains("hidden");
+				}
+			};
+		}
+
+		const settingsOverlay = manageOverlay(ui.settingsOverlay, null, () => {
+			normalizeControlButtonWidths();
+		});
+		const shopOverlay = manageOverlay(ui.shopOverlay, refreshShopIfNeeded, () => {
+			game.wasPlayingBeforeShop = game.started && !game.pausedBySettings;
+		});
+		const levelOverlay = manageOverlay(ui.levelOverlay, renderLevelMenu);
+
+		function openSettings() { settingsOverlay.open(); }
+		function closeSettings() {
+			pendingHighscoreResetUntil = 0;
+			settingsOverlay.close();
+		}
+		function openShop() { shopOverlay.open(); }
+		function closeShop() { shopOverlay.close(); }
+		function openLevelMenu() { levelOverlay.open(); }
+		function closeLevelMenu() { levelOverlay.close(); }
+
+		// ========== ZENTRALES EVENT-MANAGEMENT-SYSTEM ==========
+		class EventManager {
+			constructor() {
+				this.registry = {
+					keyboard: {},
+					ui: {},
+					touch: {},
+					window: {}
+				};
+				this.handlers = new Map();
+			}
+
+			register(category, name, target, eventType, handler, options = {}) {
+				const key = `${category}:${name}`;
+				if (!this.registry[category]) {
+					this.registry[category] = {};
+				}
+				
+				this.registry[category][name] = {
+					target: target?.id || target?.className || 'window',
+					eventType,
+					label: name,
+					enabled: true
+				};
+
+				target.addEventListener(eventType, handler, options);
+					this.handlers.set(key, { target, handler, eventType, options });
+			}
+
+			getRegistry() {
+				return this.registry;
+			}
+
+			logRegistry() {
+				console.table(this.registry);
+			}
+
+			destroy() {
+				for (const [key, { target, handler, eventType, options }] of this.handlers) {
+					target.removeEventListener(eventType, handler, options);
+				}
+				this.handlers.clear();
+			}
+		}
+
+		const eventManager = new EventManager();
+
+		// Zentrale Event-Initialisierung
+		function initializeAllUIEvents() {
+			// ===== SETTINGS-PANEL EVENTS =====
+			eventManager.register('ui', 'settingsButton.click', ui.settingsButton, 'click', openSettings);
+			eventManager.register('ui', 'closeSettingsBtn.click', ui.closeSettingsBtn, 'click', closeSettings);
+			eventManager.register('ui', 'settingsOverlay.click', ui.settingsOverlay, 'click', (e) => {
+				if (e.target === ui.settingsOverlay) closeSettings();
+			});
+
+			// ===== SETTINGS CONTROLS =====
+			eventManager.register('ui', 'musicToggleBtn.click', ui.musicToggleBtn, 'click', async () => {
+				music.startedByUser = true;
+				await toggleMusic();
+			});
+
+			eventManager.register('ui', 'helpToggleBtn.click', ui.helpToggleBtn, 'click', () => {
+				const visible = !ui.helpContent.classList.contains("hidden");
+				ui.helpContent.classList.toggle("hidden", visible);
+				ui.helpToggleBtn.textContent = visible ? "Spielerklärung anzeigen" : "Spielerklärung ausblenden";
+			});
+
+			eventManager.register('ui', 'resetRunBtn.click', ui.resetRunBtn, 'click', () => {
+				requestRoundReset();
+			});
+
+			eventManager.register('ui', 'resetHighscoreBtn.click', ui.resetHighscoreBtn, 'click', () => {
+				const now = Date.now();
+				if (now > pendingHighscoreResetUntil) {
+					pendingHighscoreResetUntil = now + 3500;
+					showToast("Zum Bestätigen erneut klicken");
+					updateUI("Highscore-Reset bestätigen");
+					return;
+				}
+				pendingHighscoreResetUntil = 0;
+				game.highscore = 0;
+				saveHighscore(0);
+				showToast("Highscore zurückgesetzt");
+				updateUI("Highscore zurückgesetzt");
+			});
+
+			eventManager.register('ui', 'devResetAllBtn.click', ui.devResetAllBtn, 'click', async () => {
+				const confirmed = await showConfirmDialog(
+					"Wirklich ALLES zurücksetzen? (Punkte, Highscore, Shop, LocalStorage)",
+					{ title: "Alles zurücksetzen", confirmText: "Ja, resetten" }
+				);
+				if (!confirmed) return;
+				setDevMode(false, { restoreOnDisable: false });
+				localStorage.removeItem(HIGHSCORE_KEY);
+				localStorage.removeItem(MUSIC_ENABLED_KEY);
+				localStorage.removeItem(PROGRESS_KEY);
+				localStorage.removeItem(DEVMODE_KEY);
+				clearDevModeShopBackup();
+				ownedSkinIds.clear();
+				ownedSkinIds.add("cyan");
+				selectedSkinId = "cyan";
+				for (const level of LEVELS) {
+					levelBestScores[String(level.id)] = 0;
+				}
+				game.currentLevel = 1;
+				selectedLevel = 1;
+				game.highscore = 0;
+				game.gold = 0;
+				game.goldHintSeen = false;
+				applySelectedSkin();
+				void saveSignedProgress();
+				saveHighscore(0);
+				resetGame(false);
+				updateUI("Kompletter Spielstand zurückgesetzt");
+				shopRenderDirty = true;
+				refreshShopIfNeeded();
+				renderLevelMenu();
+			});
+
+			eventManager.register('ui', 'devModeToggleBtn.click', ui.devModeToggleBtn, 'click', () => {
+				setDevMode(false);
+				updateUI("Dev Mode deaktiviert");
+			});
+
+			// ===== SHOP PANEL EVENTS =====
+			eventManager.register('ui', 'shopButton.click', ui.shopButton, 'click', openShop);
+			eventManager.register('ui', 'closeShopBtn.click', ui.closeShopBtn, 'click', closeShop);
+			eventManager.register('ui', 'shopOverlay.click', ui.shopOverlay, 'click', (e) => {
+				if (e.target === ui.shopOverlay) closeShop();
+			});
+
+			// ===== LEVEL PANEL EVENTS =====
+			eventManager.register('ui', 'levelButton.click', ui.levelButton, 'click', openLevelMenu);
+			eventManager.register('ui', 'closeLevelBtn.click', ui.closeLevelBtn, 'click', closeLevelMenu);
+			eventManager.register('ui', 'levelOverlay.click', ui.levelOverlay, 'click', (e) => {
+				if (e.target === ui.levelOverlay) closeLevelMenu();
+			});
+
+			// ===== CONFIRM PANEL EVENTS =====
+			eventManager.register('ui', 'confirmCancelBtn.click', ui.confirmCancelBtn, 'click', () => {
+				resolveConfirmDialog(false);
+			});
+			eventManager.register('ui', 'confirmAcceptBtn.click', ui.confirmAcceptBtn, 'click', () => {
+				resolveConfirmDialog(true);
+			});
+			eventManager.register('ui', 'confirmOverlay.click', ui.confirmOverlay, 'click', (e) => {
+				if (e.target === ui.confirmOverlay) {
+					resolveConfirmDialog(false);
+				}
+			});
+
+			// ===== DEV MODE TRIGGER =====
+			let devModeClickCount = 0;
+			let devModeResetTimer = null;
+			eventManager.register('ui', 'devModeTrigger.click', ui.devModeTrigger, 'click', () => {
+				devModeClickCount += 1;
+				if (devModeResetTimer) {
+					window.clearTimeout(devModeResetTimer);
+				}
+				devModeResetTimer = window.setTimeout(() => {
+					devModeClickCount = 0;
+				}, GAME_CONFIG.devMode.triggerResetMs);
+
+				if (devModeClickCount >= GAME_CONFIG.devMode.triggerClicks) {
+					devModeClickCount = 0;
+					setDevMode(true);
+					updateUI("Dev Mode aktiviert");
+					showToast("Dev Mode aktiviert");
+				}
+			});
+
+			// ===== KEYBOARD EVENTS =====
+			eventManager.register('keyboard', 'keydown', window, 'keydown', (e) => {
+				let key = e.key.toLowerCase();
+				if (ARROW_TO_WASD[key]) key = ARROW_TO_WASD[key];
+				if ((e.ctrlKey || e.metaKey) && key === "s") {
+					e.preventDefault();
+					const nowMs = Date.now();
+					if (nowMs - lastSaveBlockedPopupAt >= GAME_CONFIG.saveBlockPopupCooldownMs) {
+						lastSaveBlockedPopupAt = nowMs;
+						showToast("Speichern nicht möglich");
+					}
+					return;
+				}
+
+				if (PREVENT_DEFAULT_KEYS.includes(key)) e.preventDefault();
+
+				if (isConfirmOpen()) {
+					if (key === "escape") {
+						e.preventDefault();
+						resolveConfirmDialog(false);
+						return;
+					}
+					if (key === "enter") {
+						e.preventDefault();
+						resolveConfirmDialog(true);
+						return;
+					}
+				}
+
+				if (key === "escape") {
+					if (isShopOpen()) {
+						closeShop();
+					} else if (isLevelOpen()) {
+						closeLevelMenu();
+					} else if (isSettingsOpen()) {
+						closeSettings();
+					} else {
+						openSettings();
+					}
+					return;
+				}
+
+				if (key === "b") {
+					if (isShopOpen()) {
+						closeShop();
+					} else {
+						if (isSettingsOpen()) closeSettings();
+						openShop();
+					}
+					return;
+				}
+
+				if (key === "l") {
+					if (isLevelOpen()) {
+						closeLevelMenu();
+					} else {
+						if (isSettingsOpen()) closeSettings();
+						if (isShopOpen()) closeShop();
+						openLevelMenu();
+					}
+					return;
+				}
+
+				if (!game.running) {
+					// Nach Game Over ist Neustart nur ueber den Button erlaubt.
+					return;
+				}
+
+				if (MOVEMENT_KEYS.includes(key)) bootMusicByGesture();
+
+				if (key === "r") {
+					bootMusicByGesture();
+					requestRoundReset();
+					return;
+				}
+
+				if (key === "m") {
+					music.startedByUser = true;
+					toggleMusic();
+				}
+
+				if (MOVEMENT_KEYS.includes(key)) {
+					ensureRunningFromMovementInput();
+					game.keys.add(key);
+				}
+			});
+
+			eventManager.register('keyboard', 'keyup', window, 'keyup', (e) => {
+				let key = e.key.toLowerCase();
+				if (ARROW_TO_WASD[key]) key = ARROW_TO_WASD[key];
+				game.keys.delete(key);
+			});
+
+			// ===== WINDOW/DOCUMENT EVENTS =====
+			eventManager.register('window', 'visibilitychange', document, 'visibilitychange', () => {
+				if (document.visibilityState !== "visible") {
+					for (const key of MOVEMENT_KEYS) {
+						game.keys.delete(key);
+					}
+					touchState.movementPointerId = null;
+					touchState.inputX = 0;
+					touchState.inputY = 0;
+					touchState.activeDirection = null;
+					return;
+				}
+				last = performance.now();
+			});
+
+			eventManager.register('window', 'resize.touchpad', window, 'resize', syncTouchInputPadBounds);
+			eventManager.register('window', 'scroll.touchpad', window, 'scroll', syncTouchInputPadBounds, { passive: true });
+			eventManager.register('ui', 'gameCanvas.teleportClick', canvas, 'click', (e) => {
+				if (isMobileTouchControlsEnabled()) return;
+				if (isAnyOverlayOpen()) return;
+				const point = getCanvasPointFromEvent(e, canvas);
+				useTeleportAt(point.x, point.y);
+			});
+
+			// ===== TOUCH EVENTS =====
+			if (ui.restartGameBtn) {
+				eventManager.register('ui', 'restartGameBtn.click', ui.restartGameBtn, 'click', () => {
+					bootMusicByGesture();
+					resetGame(!isAnyOverlayOpen());
+				});
+			}
+
+			// ===== TAB NAVIGATION =====
+			for (const btn of ui.tabButtons) {
+				eventManager.register('ui', `tab.${btn.getAttribute('data-tab')}`, btn, 'click', () => setActiveTabFromClick(btn));
+			}
+
+			// ===== HELP CONTENT SUBTABS =====
+			initSubTabs(ui.helpContent);
+
+			// ===== CALL SETUP FUNCTIONS =====
+			updateDevModeUI();
+			syncMusicUI();
+			syncAufgabenTabText();
+
+			// Expose registry für Debugging
+			window.eventRegistry = eventManager.getRegistry();
+		}
+
+		// Placeholder-Definition für syncTouchInputPadBounds (wird in setupTouchControls genutzt)
+		let syncTouchInputPadBounds = () => {
+			if (!touchInputPad) return;
+			if (!isMobileTouchControlsEnabled()) {
+				touchInputPad.style.height = "0px";
+				touchInputPad.style.pointerEvents = "none";
+				return;
+			}
+			const rect = canvas.getBoundingClientRect();
+			const viewportHeight = window.innerHeight;
+			const height = Math.max(0, viewportHeight - Math.max(0, rect.bottom));
+			touchInputPad.style.height = height + "px";
+			touchInputPad.style.pointerEvents = height > 0 ? "auto" : "none";
+		};
+
+		// Alte Setup-Funktionen in EventManager integriert - nicht länger nötig
+
+		// Funktion: Setzt Sichtbarkeit vom game over overlay.
+		function setGameOverOverlayVisible(visible) {
+			if (!ui.gameOverOverlay) return;
+			ui.gameOverOverlay.classList.toggle("hidden", !visible);
+			ui.gameOverOverlay.setAttribute("aria-hidden", visible ? "false" : "true");
+			if (ui.gameOverScore) {
+				ui.gameOverScore.textContent = String(game.score);
+			}
+			if (ui.gameOverHighscore) {
+				ui.gameOverHighscore.textContent = String(game.highscore);
+			}
+			if (ui.gameOverHighscoreLine) {
+				ui.gameOverHighscoreLine.classList.toggle("new-highscore", game.newHighscoreThisRun);
+			}
+			if (ui.gameOverNewHighscoreBadge) {
+				ui.gameOverNewHighscoreBadge.classList.toggle("hidden", !game.newHighscoreThisRun);
+			}
+		}
+
+		// Funktion: Liefert game-over hint passend zur Eingabeart.
+		function gameOverRestartHint() {
+			return "Spiel vorbei - Nutze den Neustart-Button";
+		}
+
+		// Funktion: Startet Lauf bei Bewegungsinput.
+		function ensureRunningFromMovementInput() {
+			if (!game.running) {
+				return;
+			}
+
+			if (!game.started) {
+				game.started = true;
+				updateUI();
+				syncMusicMode();
+			}
+		}
+
+		// Funktion: Ermittelt 16-Wege-Richtung aus Vektor.
+		function directionFromVector16(dx, dy) {
+			const DIR_16_LABELS = [
+				"E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW",
+				"W", "WNW", "NW", "NNW", "N", "NNE", "NE", "ENE"
+			];
+
+			const magnitude = Math.hypot(dx, dy);
+			if (magnitude < GAME_CONFIG.pathfinding.distanceEpsilon) {
+				if (touchState.activeDirection && magnitude < 0.000001) {
+					return { x: touchState.inputX, y: touchState.inputY, label: touchState.activeDirection };
+				}
+				return { x: 0, y: -1, label: "N" };
+			}
+
+			const rawSector = Math.round(Math.atan2(dy, dx) / (Math.PI / 8));
+			const normalizedSector = ((rawSector % 16) + 16) % 16;
+			const snappedAngle = normalizedSector * (Math.PI / 8);
+			return {
+				x: Math.cos(snappedAngle),
+				y: Math.sin(snappedAngle),
+				label: DIR_16_LABELS[normalizedSector]
+			};
+		}
+
+		// Funktion: Setzt aktive Touch-Richtung.
+		function setTouchDirection(directionInput) {
+			if (!directionInput || !Number.isFinite(directionInput.x) || !Number.isFinite(directionInput.y)) return;
+			bootMusicByGesture();
+			ensureRunningFromMovementInput();
+			touchState.inputX = directionInput.x;
+			touchState.inputY = directionInput.y;
+			touchState.activeDirection = directionInput.label || "?";
+		}
+
+		// Funktion: Löscht aktive Touch-Richtung.
+		function clearTouchDirection() {
+			touchState.inputX = 0;
+			touchState.inputY = 0;
+			touchState.activeDirection = null;
+		}
+
+		// Funktion: Wandelt Pointer Event in Canvas Koordinaten um.
+		function getCanvasPointFromEvent(e, sourceSurface = canvas) {
+			const rect = sourceSurface.getBoundingClientRect();
+			const scaleX = game.width / rect.width;
+			const scaleY = game.height / rect.height;
+			return {
+				x: (e.clientX - rect.left) * scaleX,
+				y: (e.clientY - rect.top) * scaleY
+			};
+		}
+
+		// Funktion: Ermittelt Richtungs-Vektor aus Bildschirmposition.
+		function directionFromScreenPoint(canvasX, canvasY) {
+			const nx = clamp(canvasX / game.width, 0, 1);
+			const ny = clamp(canvasY / game.height, 0, 1);
+			const dx = nx - 0.5;
+			const dy = ny - 0.5;
+			return directionFromVector16(dx, dy);
+		}
+
+		// Funktion: Ermittelt Richtungs-Vektor aus Drag-Vektor.
+		function directionFromDrag(dx, dy) {
+			return directionFromVector16(dx, dy);
+		}
+
+		// Funktion: Setzt mobile Touch-Steuerung auf.
+		function setupTouchControls() {
+			const touchSurfaces = [canvas, touchInputPad].filter(Boolean);
+
+			const onPointerDown = (e) => {
+				if (!isMobileTouchControlsEnabled()) return;
+				if (isAnyOverlayOpen()) return;
+				const point = getCanvasPointFromEvent(e, e.currentTarget || canvas);
+				if (touchState.movementPointerId !== null) return;
+
+				e.preventDefault();
+				e.currentTarget.setPointerCapture?.(e.pointerId);
+				touchState.movementPointerId = e.pointerId;
+				touchState.startX = point.x;
+				touchState.startY = point.y;
+				touchState.lastX = point.x;
+				touchState.lastY = point.y;
+				touchState.startedAt = performance.now();
+				setTouchDirection(directionFromScreenPoint(point.x, point.y));
+			};
+
+			const onPointerMove = (e) => {
+				if (!isMobileTouchControlsEnabled()) return;
+				if (e.pointerId !== touchState.movementPointerId) return;
+				e.preventDefault();
+				const point = getCanvasPointFromEvent(e, e.currentTarget || canvas);
+				touchState.lastX = point.x;
+				touchState.lastY = point.y;
+
+				const dx = point.x - touchState.startX;
+				const dy = point.y - touchState.startY;
+				const distance = Math.hypot(dx, dy);
+				if (distance >= GAME_CONFIG.controls.touchDragDeadzone) {
+					setTouchDirection(directionFromDrag(dx, dy));
+					return;
+				}
+				setTouchDirection(directionFromScreenPoint(point.x, point.y));
+			};
+
+			const finishMovementPointer = (e) => {
+				if (!isMobileTouchControlsEnabled()) return;
+				if (e.pointerId !== touchState.movementPointerId) return;
+				e.preventDefault();
+
+				const point = getCanvasPointFromEvent(e, e.currentTarget || canvas);
+				const dx = point.x - touchState.startX;
+				const dy = point.y - touchState.startY;
+				const moved = Math.hypot(dx, dy);
+				const heldMs = performance.now() - touchState.startedAt;
+
+				if (moved <= GAME_CONFIG.controls.touchTapMaxMove && heldMs <= GAME_CONFIG.controls.touchTapMaxTimeMs) {
+					useTeleportAt(point.x, point.y);
+				}
+
+				touchState.movementPointerId = null;
+				touchState.startedAt = 0;
+				e.currentTarget.releasePointerCapture?.(e.pointerId);
+				if (touchState.activeDirection) {
+					clearTouchDirection();
+				}
+			};
+
+			// Register Touch Events via EventManager
+			for (const surface of touchSurfaces) {
+				eventManager.register('touch', `${surface.id || 'surface'}.pointerdown`, surface, 'pointerdown', onPointerDown, { passive: false });
+				eventManager.register('touch', `${surface.id || 'surface'}.pointermove`, surface, 'pointermove', onPointerMove, { passive: false });
+				eventManager.register('touch', `${surface.id || 'surface'}.pointerup`, surface, 'pointerup', finishMovementPointer, { passive: false });
+				eventManager.register('touch', `${surface.id || 'surface'}.pointercancel`, surface, 'pointercancel', finishMovementPointer, { passive: false });
+			}
+		}
+
+		// Funktion: Prüft, ob settings open.
+		function isSettingsOpen() {
+			return settingsOverlay.isOpen();
+		}
+
+		// Funktion: Prüft, ob shop open.
+		function isShopOpen() {
+			return shopOverlay.isOpen();
+		}
+
+		// Funktion: Prüft, ob level open.
+		function isLevelOpen() {
+			return levelOverlay.isOpen();
+		}
+
+		// Funktion: Prüft, ob confirm open.
+		function isConfirmOpen() {
+			return !ui.confirmOverlay.classList.contains("hidden");
+		}
+
+		// Funktion: Prüft, ob any overlay open.
+		function isAnyOverlayOpen() {
+			return isSettingsOpen() || isShopOpen() || isLevelOpen() || isConfirmOpen();
+		}
+
+		// Funktion: Setzt dev mode.
+		function setDevMode(enabled, options = {}) {
+			const restoreOnDisable = options.restoreOnDisable !== false;
+			const nextDevMode = Boolean(enabled);
+			const wasDevMode = game.devMode;
+			if (nextDevMode === wasDevMode) {
+				updateDevModeUI();
+				return;
+			}
+
+			game.devMode = nextDevMode;
+			localStorage.setItem(DEVMODE_KEY, game.devMode ? "1" : "0");
+			game.devLog = [];
+
+			if (game.devMode) {
+				// Entering dev mode: save current shop state
+				game.devModeShopBackup = saveDevModeShopBackup({
+					ownedSkinIds: [...ownedSkinIds],
+					selectedSkinId,
+					gold: game.gold,
+					goldHintSeen: game.goldHintSeen,
+					selectedLevel: game.currentLevel,
+					levelBestScores
+				});
+			} else {
+				// Leaving dev mode: restore shop state
+				const backup = restoreOnDisable ? (game.devModeShopBackup || loadDevModeShopBackup()) : null;
+				if (backup) {
+					ownedSkinIds.clear();
+					for (const id of backup.ownedSkinIds) {
+						ownedSkinIds.add(id);
+					}
+					selectedSkinId = backup.selectedSkinId;
+					game.gold = backup.gold;
+					game.goldHintSeen = backup.goldHintSeen;
+					game.currentLevel = backup.selectedLevel;
+					selectedLevel = backup.selectedLevel;
+					for (const level of LEVELS) {
+						levelBestScores[String(level.id)] = backup.levelBestScores[String(level.id)] || 0;
+					}
+					applySelectedSkin();
+					void saveSignedProgress();
+				}
+				game.devModeShopBackup = null;
+				clearDevModeShopBackup();
+			}
+
+			updateDevModeUI();
+		}
+
+		// Funktion: Aktualisiert dev mode ui.
+		function updateDevModeUI() {
+			ui.devModeToggleRow.classList.toggle("hidden", !game.devMode);
+			ui.devModeToggleBtn.textContent = game.devMode ? "Devmode: AN" : "Devmode: AUS";
+			ui.devResetRow.classList.toggle("hidden", !game.devMode);
+			ui.devModeTrigger.classList.toggle("is-disabled", game.devMode);
+			ui.devModeTrigger.setAttribute("aria-disabled", game.devMode ? "true" : "false");
+			shopRenderDirty = true;
+			refreshShopIfNeeded();
+		}
+
+		// Funktion: Hilfsfunktion für ensure audio context.
+		function ensureAudioContext() {
+			if (music.ctx) return;
+			music.ctx = new AudioContext();
+			music.master = music.ctx.createGain();
+			music.sfxBus = music.ctx.createGain();
+			music.master.gain.value = 0;
+			music.sfxBus.gain.value = GAME_CONFIG.audio.sfxBusGain;
+			music.master.connect(music.ctx.destination);
+			music.sfxBus.connect(music.ctx.destination);
+		}
+
+		// Funktion: Hilfsfunktion für blip.
+		function blip(type, freq, time, duration, volume, output) {
+			if (!freq || !music.ctx || !output) return;
+			const osc = music.ctx.createOscillator();
+			const gain = music.ctx.createGain();
+			osc.type = type;
+			osc.frequency.setValueAtTime(freq, time);
+			gain.gain.setValueAtTime(GAME_CONFIG.audio.minGain, time);
+			gain.gain.exponentialRampToValueAtTime(volume, time + GAME_CONFIG.audio.attackSec);
+			gain.gain.exponentialRampToValueAtTime(GAME_CONFIG.audio.minGain, time + duration);
+			osc.connect(gain);
+			gain.connect(output);
+			osc.start(time);
+			osc.stop(time + duration + GAME_CONFIG.audio.blipStopPaddingSec);
+		}
+
+		// Funktion: Spielt point sound ab.
+		function playPointSound() {
+			ensureAudioContext();
+			if (!music.ctx || music.ctx.state !== "running") return;
+			const t = music.ctx.currentTime;
+			blip("square", 988, t, 0.05, 0.09, music.sfxBus);
+			blip("square", 1319, t + 0.055, 0.06, 0.08, music.sfxBus);
+		}
+
+		// Funktion: Spielt life lost sound ab.
+		function playLifeLostSound() {
+			ensureAudioContext();
+			if (!music.ctx || music.ctx.state !== "running") return;
+			const t = music.ctx.currentTime;
+			blip("sawtooth", 280, t, 0.12, 0.09, music.sfxBus);
+			blip("triangle", 190, t + 0.08, 0.16, 0.08, music.sfxBus);
+		}
+
+		// Funktion: Spielt death sound ab.
+		function playDeathSound() {
+			ensureAudioContext();
+			if (!music.ctx || music.ctx.state !== "running") return;
+			const t = music.ctx.currentTime;
+			blip("sawtooth", 220, t, 0.16, 0.1, music.sfxBus);
+			blip("sawtooth", 165, t + 0.12, 0.2, 0.095, music.sfxBus);
+			blip("triangle", 110, t + 0.26, 0.28, 0.09, music.sfxBus);
+		}
+
+		// Funktion: Spielt powerup sound ab.
+		function playPowerupSound() {
+			ensureAudioContext();
+			if (!music.ctx || music.ctx.state !== "running") return;
+			const t = music.ctx.currentTime;
+			blip("triangle", 740, t, 0.05, 0.08, music.sfxBus);
+			blip("square", 988, t + 0.05, 0.06, 0.08, music.sfxBus);
+			blip("square", 1319, t + 0.11, 0.08, 0.07, music.sfxBus);
+		}
+
+		// Funktion: Spielt gold sound ab.
+		function playGoldSound() {
+			ensureAudioContext();
+			if (!music.ctx || music.ctx.state !== "running") return;
+			const t = music.ctx.currentTime;
+			blip("square", 659.25, t, 0.06, 0.08, music.sfxBus);
+			blip("square", 783.99, t + 0.06, 0.07, 0.08, music.sfxBus);
+			blip("square", 987.77, t + 0.13, 0.09, 0.09, music.sfxBus);
+			blip("triangle", 523.25, t + 0.2, 0.1, 0.07, music.sfxBus);
+		}
+
+		// Funktion: Plant music step.
+		function scheduleMusicStep(time, step) {
+			const ghostActive = game.ghostTimer > 0;
+			const pacmanActive = isPacmanPackActive();
+
+			let melodyFreq;
+			let bassFreq;
+			if (pacmanActive && ghostActive) {
+				melodyFreq = pacmanGhostMelody[step % pacmanGhostMelody.length];
+				bassFreq = pacmanGhostBass[step % pacmanGhostBass.length];
+			} else if (pacmanActive) {
+				melodyFreq = pacmanMelody[step % pacmanMelody.length];
+				bassFreq = pacmanBass[step % pacmanBass.length];
+			} else if (ghostActive) {
+				melodyFreq = ghostMelody[step % ghostMelody.length];
+				bassFreq = ghostBass[step % ghostBass.length];
+			} else {
+				melodyFreq = melody[step % melody.length];
+				bassFreq = bass[step % bass.length];
+			}
+
+			blip("square", melodyFreq, time, 0.12, 0.09, music.master);
+			blip("square", bassFreq, time, ghostActive ? 0.11 : 0.15, 0.08, music.master);
+
+			if (step % 4 === 0) blip("triangle", 70, time, 0.08, 0.1, music.master);
+			if (step % 2 === 1) blip("square", 1800, time, 0.03, 0.035, music.master);
+			if (ghostActive && step % 2 === 0) blip("square", 2093.0, time + 0.03, 0.03, 0.03, music.master);
+			if (pacmanActive && !ghostActive && step % 2 === 0) {
+				blip("square", 1567.98, time + 0.04, 0.03, 0.025, music.master);
+			}
+		}
+
+		// Funktion: Hilfsfunktion für music scheduler.
+		function musicScheduler() {
+			if (!music.ctx || !music.isOn) return;
+			while (music.nextNoteTime < music.ctx.currentTime + GAME_CONFIG.audio.schedulerLookaheadSec) {
+				const pacmanActive = isPacmanPackActive();
+				const ghostActive = game.ghostTimer > 0;
+				const stepDuration = pacmanActive
+					? (ghostActive ? 0.1 : 0.135)
+					: (ghostActive ? 0.11 : 0.15);
+				scheduleMusicStep(music.nextNoteTime, music.step);
+				music.nextNoteTime += stepDuration;
+				music.step += 1;
+			}
+		}
+
+		// Funktion: Plant pause music step.
+		function schedulePauseMusicStep(time, step) {
+			const melodyFreq = pauseMelody[step % pauseMelody.length];
+			const bassFreq = pauseBass[step % pauseBass.length];
+			blip("triangle", melodyFreq, time, 0.2, 0.06, music.master);
+			blip("sine", bassFreq, time, 0.25, 0.05, music.master);
+			if (step % 3 === 0) {
+				blip("sine", melodyFreq ? melodyFreq * 0.5 : null, time + 0.08, 0.16, 0.03, music.master);
+			}
+		}
+
+		// Funktion: Hilfsfunktion für pause music scheduler.
+		function pauseMusicScheduler() {
+			if (!music.ctx || !music.pauseIsOn) return;
+			while (music.pauseNextNoteTime < music.ctx.currentTime + GAME_CONFIG.audio.schedulerLookaheadSec) {
+				schedulePauseMusicStep(music.pauseNextNoteTime, music.pauseStep);
+				music.pauseNextNoteTime += GAME_CONFIG.audio.pauseStepDurationSec;
+				music.pauseStep += 1;
+			}
+		}
+
+		// Funktion: Startet music.
+		async function startMusic() {
+			ensureAudioContext();
+			if (music.ctx.state === "suspended") await music.ctx.resume();
+			music.preferredOn = true;
+			saveMusicEnabled(true);
+			stopPauseMusic(false);
+			if (music.isOn) {
+				syncMusicUI();
+				return;
+			}
+			music.isOn = true;
+			music.nextNoteTime = music.ctx.currentTime + GAME_CONFIG.audio.mainStartLeadSec;
+			music.step = 0;
+			music.master.gain.cancelScheduledValues(music.ctx.currentTime);
+			music.master.gain.linearRampToValueAtTime(GAME_CONFIG.audio.mainGain, music.ctx.currentTime + GAME_CONFIG.audio.mainGainRampSec);
+			music.schedulerId = window.setInterval(musicScheduler, GAME_CONFIG.audio.mainSchedulerIntervalMs);
+			syncMusicUI();
+		}
+
+		// Funktion: Stoppt music.
+		function stopMusic() {
+			music.preferredOn = false;
+			saveMusicEnabled(false);
+			if (!music.ctx || !music.isOn) {
+				stopPauseMusic(false);
+				syncMusicUI();
+				return;
+			}
+			music.isOn = false;
+			if (music.schedulerId) {
+				window.clearInterval(music.schedulerId);
+				music.schedulerId = null;
+			}
+			music.master.gain.cancelScheduledValues(music.ctx.currentTime);
+			music.master.gain.linearRampToValueAtTime(GAME_CONFIG.audio.minGain, music.ctx.currentTime + GAME_CONFIG.audio.stopFadeSec);
+			stopPauseMusic(false);
+			syncMusicUI();
+		}
+
+		// Funktion: Startet pause music.
+		async function startPauseMusic() {
+			if (!music.preferredOn) return;
+			ensureAudioContext();
+			if (!music.ctx) return;
+			if (music.ctx.state === "suspended") await music.ctx.resume();
+			if (music.pauseIsOn) return;
+			if (music.isOn) {
+				music.isOn = false;
+				if (music.schedulerId) {
+					window.clearInterval(music.schedulerId);
+					music.schedulerId = null;
+				}
+			}
+			music.pauseIsOn = true;
+			music.pauseStep = 0;
+			music.pauseNextNoteTime = music.ctx.currentTime + GAME_CONFIG.audio.mainStartLeadSec;
+			music.master.gain.cancelScheduledValues(music.ctx.currentTime);
+			music.master.gain.linearRampToValueAtTime(GAME_CONFIG.audio.pauseGain, music.ctx.currentTime + GAME_CONFIG.audio.pauseGainRampSec);
+			music.pauseSchedulerId = window.setInterval(pauseMusicScheduler, GAME_CONFIG.audio.pauseSchedulerIntervalMs);
+		}
+
+		// Funktion: Stoppt pause music.
+		function stopPauseMusic(fade = true) {
+			if (!music.ctx || !music.pauseIsOn) return;
+			music.pauseIsOn = false;
+			if (music.pauseSchedulerId) {
+				window.clearInterval(music.pauseSchedulerId);
+				music.pauseSchedulerId = null;
+			}
+			if (fade) {
+				music.master.gain.cancelScheduledValues(music.ctx.currentTime);
+				music.master.gain.linearRampToValueAtTime(GAME_CONFIG.audio.minGain, music.ctx.currentTime + GAME_CONFIG.audio.pauseFadeSec);
+			}
+		}
+
+		// Funktion: Startet music now neu.
+		function restartMusicNow() {
+			if (!music.ctx || !music.isOn) return;
+
+			music.step = 0;
+			music.nextNoteTime = music.ctx.currentTime + GAME_CONFIG.audio.restartLeadSec;
+		}
+
+		// Funktion: Schaltet music um.
+		async function toggleMusic() {
+			if (music.preferredOn) stopMusic();
+			else {
+				music.preferredOn = true;
+				saveMusicEnabled(true);
+				await syncMusicMode();
+				syncMusicUI();
+			}
+		}
+
+		// Funktion: Prüft, ob play main music.
+		function shouldPlayMainMusic() {
+			return game.running && game.started && !game.pausedBySettings;
+		}
+
+		// Funktion: Prüft, ob play pause music.
+		function shouldPlayPauseMusic() {
+			if (!game.running || !game.started) return true;
+			return game.pausedBySettings;
+		}
+
+		// Funktion: Synchronisiert music mode.
+		async function syncMusicMode() {
+			if (!music.startedByUser) return;
+			if (!music.preferredOn) {
+				if (music.isOn) {
+					music.isOn = false;
+					if (music.schedulerId) {
+						window.clearInterval(music.schedulerId);
+						music.schedulerId = null;
+					}
+				}
+				stopPauseMusic(true);
+				return;
+			}
+
+			if (shouldPlayMainMusic()) {
+				stopPauseMusic(false);
+				await startMusic();
+				return;
+			}
+
+			if (shouldPlayPauseMusic()) {
+				await startPauseMusic();
+				return;
+			}
+
+			if (music.isOn) {
+				music.isOn = false;
+				if (music.schedulerId) {
+					window.clearInterval(music.schedulerId);
+					music.schedulerId = null;
+				}
+			}
+			stopPauseMusic(true);
+		}
+
+		// Funktion: Initialisiert music by gesture per Nutzeraktion.
+		async function bootMusicByGesture() {
+			if (music.startedByUser) return;
+			music.startedByUser = true;
+			ensureAudioContext();
+			if (music.ctx && music.ctx.state === "suspended") {
+				await music.ctx.resume();
+			}
+			await syncMusicMode();
+			syncMusicUI();
+		}
+
+		// Funktion: Prüft Kollisionen für rect rect.
+		function collidesRectRect(a, b) {
+			return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+		}
+
+		// Funktion: Prüft Kollisionen für rect circle.
+		function collidesRectCircle(rect, circle) {
+			const closestX = clamp(circle.x, rect.x, rect.x + rect.w);
+			const closestY = clamp(circle.y, rect.y, rect.y + rect.h);
+			const dx = circle.x - closestX;
+			const dy = circle.y - closestY;
+			return dx * dx + dy * dy <= circle.r * circle.r;
+		}
+
+		// Funktion: Ermittelt obstacle corners.
+		function getObstacleCorners(obstacle) {
+			if (!obstacle.angle) {
+				return [
+					{ x: obstacle.x, y: obstacle.y },
+					{ x: obstacle.x + obstacle.w, y: obstacle.y },
+					{ x: obstacle.x + obstacle.w, y: obstacle.y + obstacle.h },
+					{ x: obstacle.x, y: obstacle.y + obstacle.h }
+				];
+			}
+
+			const cx = typeof obstacle.cx === "number" ? obstacle.cx : obstacle.x + obstacle.w * 0.5;
+			const cy = typeof obstacle.cy === "number" ? obstacle.cy : obstacle.y + obstacle.h * 0.5;
+			const hw = obstacle.w * 0.5;
+			const hh = obstacle.h * 0.5;
+			const sinA = Math.sin(obstacle.angle);
+			const cosA = Math.cos(obstacle.angle);
+
+			const points = [
+				{ x: -hw, y: -hh },
+				{ x: hw, y: -hh },
+				{ x: hw, y: hh },
+				{ x: -hw, y: hh }
+			];
+
+			for (const p of points) {
+				const rx = p.x * cosA - p.y * sinA;
+				const ry = p.x * sinA + p.y * cosA;
+				p.x = cx + rx;
+				p.y = cy + ry;
+			}
+
+			return points;
+		}
+
+		// Funktion: Ermittelt Ecken eines axis-aligned rect als Polygon (im Uhrzeigersinn).
+		function getRectCorners(rect) {
+			return [
+				{ x: rect.x, y: rect.y },
+				{ x: rect.x + rect.w, y: rect.y },
+				{ x: rect.x + rect.w, y: rect.y + rect.h },
+				{ x: rect.x, y: rect.y + rect.h }
+			];
+		}
+
+		// Funktion: Baut SAT-Achsen aus Polygonkanten.
+		function getSatAxes(points) {
+			const axes = [];
+			for (let i = 0; i < points.length; i += 1) {
+				const p1 = points[i];
+				const p2 = points[(i + 1) % points.length];
+				const edgeX = p2.x - p1.x;
+				const edgeY = p2.y - p1.y;
+				const axisX = -edgeY;
+				const axisY = edgeX;
+				const len = Math.hypot(axisX, axisY);
+				if (len > 1e-10) {
+					axes.push({ x: axisX / len, y: axisY / len });
+				}
+			}
+			return axes;
+		}
+
+		// Funktion: Projiziert Polygonpunkte auf eine SAT-Achse.
+		function projectPolygonOnAxis(points, axis) {
+			let min = points[0].x * axis.x + points[0].y * axis.y;
+			let max = min;
+			for (let i = 1; i < points.length; i += 1) {
+				const p = points[i];
+				const value = p.x * axis.x + p.y * axis.y;
+				if (value < min) min = value;
+				if (value > max) max = value;
+			}
+			return { min, max };
+		}
+
+		// Funktion: Prüft SAT-Überlappung zwischen zwei konvexen Polygonen.
+		function collidesConvexPolygonsSAT(pointsA, pointsB) {
+			const axesA = getSatAxes(pointsA);
+			const axesB = getSatAxes(pointsB);
+			const axes = axesA.concat(axesB);
+
+			for (const axis of axes) {
+				const projA = projectPolygonOnAxis(pointsA, axis);
+				const projB = projectPolygonOnAxis(pointsB, axis);
+				if (projA.max < projB.min || projB.max < projA.min) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		// Funktion: Prüft Kollisionen für rect obstacle.
+		function collidesRectObstacle(playerRect, obstacle) {
+			if (!obstacle.angle) return collidesRectRect(playerRect, obstacle);
+
+			const rectPoints = getRectCorners(playerRect);
+			const obstaclePoints = getObstacleCorners(obstacle);
+
+			return collidesConvexPolygonsSAT(rectPoints, obstaclePoints);
+		}
+
+		// Funktion: Erweitert obstacle hitbox leicht für den sichtbaren Stroke.
+		function inflateObstacleCollisionRect(obstacle, padding) {
+			if (!Number.isFinite(padding) || padding <= 0) return obstacle;
+
+			if (!obstacle.angle) {
+				return {
+					...obstacle,
+					x: obstacle.x - padding,
+					y: obstacle.y - padding,
+					w: obstacle.w + padding * 2,
+					h: obstacle.h + padding * 2
+				};
+			}
+
+			const cx = typeof obstacle.cx === "number" ? obstacle.cx : obstacle.x + obstacle.w * 0.5;
+			const cy = typeof obstacle.cy === "number" ? obstacle.cy : obstacle.y + obstacle.h * 0.5;
+			const inflatedW = obstacle.w + padding * 2;
+			const inflatedH = obstacle.h + padding * 2;
+
+			return {
+				...obstacle,
+				cx,
+				cy,
+				x: cx - inflatedW * 0.5,
+				y: cy - inflatedH * 0.5,
+				w: inflatedW,
+				h: inflatedH
+			};
+		}
+
+		// Funktion: Wählt target zufällig.
+		function randomizeTarget() {
+			if (isPacmanPackActive()) {
+				return;
+			}
+			target.x = rand(GAME_CONFIG.spawn.entityMargin, game.width - GAME_CONFIG.spawn.entityMargin);
+			target.y = rand(GAME_CONFIG.spawn.entityMargin, game.height - GAME_CONFIG.spawn.entityMargin);
+		}
+
+		// Funktion: Wählt powerup position zufällig.
+		function randomizePowerupPosition(powerup) {
+			powerup.x = rand(GAME_CONFIG.spawn.entityMargin, game.width - GAME_CONFIG.spawn.entityMargin);
+			powerup.y = rand(GAME_CONFIG.spawn.entityMargin, game.height - GAME_CONFIG.spawn.entityMargin);
+		}
+
+		// Funktion: Wählt ghost powerup zufällig.
+		function randomizeGhostPowerup() {
+			randomizePowerupPosition(ghostPowerup);
+		}
+
+		// Funktion: Wählt teleport powerup zufällig.
+		function randomizeTeleportPowerup() {
+			randomizePowerupPosition(teleportPowerup);
+		}
+
+		// Funktion: Verwendet teleport at.
+		function useTeleportAt(canvasX, canvasY) {
+			if (game.teleportCharges <= 0 || game.teleportWindowTimer <= 0) return;
+			if (!game.running || !game.started || game.pausedBySettings) return;
+
+			player.x = clamp(canvasX - player.size * 0.5, 0, game.width - player.size);
+			player.y = clamp(canvasY - player.size * 0.5, 0, game.height - player.size);
+			game.teleportCharges = 0;
+			game.teleportWindowTimer = 0;
+			showToast("Teleport verwendet");
+		}
+
+		// Funktion: Hilfsfunktion für obstacle rect.
+		function obstacleRect(ob, t) {
+			const isPaused = game.pausedBySettings;
+			const effectiveT = isPaused ? 0 : t;
+			const time = effectiveT * 0.00075;
+			const main = time * ob.speed + ob.phase;
+			const levelMode = LEVELS.find((level) => level.id === game.currentLevel)?.mode || "standard";
+			const baseCenterX = ob.x + ob.w * 0.5;
+			const baseCenterY = ob.y + ob.h * 0.5;
+			const longSide = Math.max(ob.w, ob.h);
+			const shortSide = Math.max(14, Math.min(ob.w, ob.h));
+
+			// Funktion: Hilfsfunktion für rect from center.
+			function rectFromCenter(cx, cy, w, h, angle) {
+				if (angle) {
+					const radius = Math.hypot(w * 0.5, h * 0.5);
+					const clampedCx = clamp(cx, radius, game.width - radius);
+					const clampedCy = clamp(cy, radius, game.height - radius);
+					return {
+						x: clampedCx - w * 0.5,
+						y: clampedCy - h * 0.5,
+						w,
+						h,
+						cx: clampedCx,
+						cy: clampedCy,
+						angle
+					};
+				}
+				return {
+					x: clamp(cx - w * 0.5, 0, game.width - w),
+					y: clamp(cy - h * 0.5, 0, game.height - h),
+					w,
+					h
+				};
+			}
+
+			const mix = Math.sin(main * (1.45 + ob.wobble)) * 0.45 + Math.cos(main * 1.95) * 0.35;
+			const jitter = Math.sin(main * (3.3 + ob.wobble * 0.4)) * 0.09;
+			const x = ob.x + (Math.sin(main) + mix + jitter) * ob.ampX;
+			const y = ob.y + (Math.cos(main * 1.13) - mix + jitter) * ob.ampY;
+			const standardX = clamp(x, 0, game.width - ob.w);
+			const standardY = clamp(y, 0, game.height - ob.h);
+			const standardCx = standardX + ob.w * 0.5;
+			const standardCy = standardY + ob.h * 0.5;
+
+			if (levelMode === "vertical") {
+				return rectFromCenter(standardCx, standardCy, shortSide, longSide);
+			}
+
+			if (levelMode === "mixed") {
+				const orientPhase = Math.sin(main * 1.15 + ob.phase * 0.7);
+				const useVertical = orientPhase > 0;
+				return useVertical
+					? rectFromCenter(standardCx, standardCy, shortSide, longSide)
+					: rectFromCenter(standardCx, standardCy, longSide, shortSide);
+			}
+
+			if (levelMode === "rotating") {
+				const spin = main * 1.5 + ob.phase * 0.6;
+				return rectFromCenter(standardCx, standardCy, longSide, shortSide, spin);
+			}
+
+			return { x: standardX, y: standardY, w: ob.w, h: ob.h };
+		}
+
+		// Funktion: Aktualisiert ui.
+		function updateUI(message) {
+			if (typeof message === "string" && message.length > 0) {
+				uiRenderState.pendingMessage = message;
+			}
+			uiRenderState.dirty = true;
+		}
+
+		// Funktion: Rendert UI-Änderungen gebündelt.
+		function flushUIRender() {
+			if (uiRenderState.dirty) {
+				if (uiRenderState.pendingMessage) {
+					game.statusText = uiRenderState.pendingMessage;
+				} else if (!game.running) {
+					game.statusText = gameOverRestartHint();
+				} else if (game.pausedBySettings) {
+					game.statusText = "Pausiert - Einstellungen offen";
+				} else if (!game.started) {
+					game.statusText = "Bereit - W A S D zum Start";
+				} else {
+					game.statusText = "Laufend";
+				}
+
+				ui.lives.textContent = String(game.lives);
+				ui.score.textContent = String(game.score);
+				ui.gold.textContent = String(game.gold);
+				ui.highscore.textContent = String(game.highscore);
+				ui.levelDisplay.textContent = String(game.currentLevel);
+
+				if (ui.highscoreBadge) {
+					ui.highscoreBadge.classList.toggle("new-highscore", game.newHighscoreThisRun);
+				}
+				if (ui.newHighscoreBadge) {
+					ui.newHighscoreBadge.classList.toggle("hidden", !game.newHighscoreThisRun);
+				}
+
+				setGameOverOverlayVisible(!game.running);
+				if (!ui.shopOverlay.classList.contains("hidden")) {
+					refreshShopIfNeeded();
+				}
+				if (!ui.levelOverlay.classList.contains("hidden")) {
+					renderLevelMenu();
+				}
+
+				uiRenderState.pendingMessage = "";
+				uiRenderState.dirty = false;
+			}
+
+			if (uiRenderState.fpsDirty) {
+				ui.fps.textContent = String(Math.round(game.fps));
+				uiRenderState.fpsDirty = false;
+			}
+		}
+
+		// Funktion: Setzt game zurück.
+		function resetGame(startNow) {
+			game.running = true;
+			game.started = Boolean(startNow);
+			game.pausedBySettings = false;
+			game.score = 0;
+			game.newHighscoreThisRun = false;
+			game.lives = 3;
+			game.nextGhostScoreRequirement = GAME_CONFIG.ghost.minScore;
+			game.distanceSinceGhostPickup = 0;
+			game.nextTeleportScoreRequirement = GAME_CONFIG.teleport.minScore;
+			game.distanceSinceTeleportPickup = 0;
+			game.hitCooldown = 0;
+			game.ghostTimer = 0;
+			game.teleportCharges = 0;
+			game.teleportWindowTimer = 0;
+			game.goldToastTimer = 0;
+			game.goldToastText = "";
+			game.devLog = [];
+			game.pathRecalcCount = 0;
+			ghostPowerup.active = false;
+			ghostPowerup.powerUpTimer = rand(GAME_CONFIG.ghost.respawnMin, GAME_CONFIG.ghost.respawnMax);
+			teleportPowerup.active = false;
+			teleportPowerup.powerUpTimer = rand(GAME_CONFIG.teleport.respawnMin, GAME_CONFIG.teleport.respawnMax);
+			pacmanState.playerIdleAvoidPoint = null;
+			pacmanState.playerIdleAvoidRadius = 0;
+			pacmanState.playerStillTimer = 0;
+			pacmanState.idleAnchorPoint = null;
+			pacmanState.idleZoneActive = false;
+			player.x = GAME_CONFIG.player.startX;
+			player.y = GAME_CONFIG.player.startY;
+			if (isPacmanPackActive()) {
+				resetPacmanMotion(true);
+			}
+			randomizeTarget();
+			randomizeGhostPowerup();
+			randomizeTeleportPowerup();
+			updateUI();
+			if (isAnyOverlayOpen()) {
+				refreshOverlayPauseState();
+			}
+			syncMusicMode();
+		}
+
+		// Funktion: Fordert round reset an.
+		function requestRoundReset() {
+			const shouldStartNow = !isAnyOverlayOpen();
+			resetGame(shouldStartNow);
+			updateUI("Runde zurückgesetzt");
+		}
+
+		// Funktion: Verarbeitet input.
+		function handleInput(dt) {
+			const prevX = player.x;
+			const prevY = player.y;
+			player.vx = 0;
+			player.vy = 0;
+			if (game.keys.has("w")) player.vy -= 1;
+			if (game.keys.has("s")) player.vy += 1;
+			if (game.keys.has("a")) player.vx -= 1;
+			if (game.keys.has("d")) player.vx += 1;
+			if (touchState.movementPointerId !== null && touchState.activeDirection) {
+				player.vx = touchState.inputX;
+				player.vy = touchState.inputY;
+			}
+			const len = Math.hypot(player.vx, player.vy) || 1;
+			player.vx = (player.vx / len) * player.speed;
+			player.vy = (player.vy / len) * player.speed;
+			player.x = clamp(player.x + player.vx * dt, 0, game.width - player.size);
+			player.y = clamp(player.y + player.vy * dt, 0, game.height - player.size);
+
+			const moved = Math.hypot(player.x - prevX, player.y - prevY);
+			game.distanceSinceGhostPickup += moved;
+			game.distanceSinceTeleportPickup += moved;
+
+			const center = {
+				x: player.x + player.size * 0.5,
+				y: player.y + player.size * 0.5
+			};
+
+			if (!pacmanState.idleAnchorPoint) {
+				pacmanState.idleAnchorPoint = { x: center.x, y: center.y };
+				pacmanState.playerStillTimer = 0;
+			}
+
+			const anchorDist = Math.hypot(center.x - pacmanState.idleAnchorPoint.x, center.y - pacmanState.idleAnchorPoint.y);
+			if (anchorDist <= GAME_CONFIG.playerIdle.zoneRadius) {
+				pacmanState.playerStillTimer += dt;
+			} else {
+				pacmanState.idleAnchorPoint = { x: center.x, y: center.y };
+				pacmanState.playerStillTimer = 0;
+				if (pacmanState.idleZoneActive) {
+					pacmanState.idleZoneActive = false;
+					pacmanState.playerIdleAvoidPoint = null;
+					pacmanState.playerIdleAvoidRadius = 0;
+					addDevLog("[PLAYER] Idle Zone deaktiviert");
+				}
+			}
+
+			if (!pacmanState.idleZoneActive && pacmanState.playerStillTimer >= GAME_CONFIG.playerIdle.zoneDelay) {
+				pacmanState.idleZoneActive = true;
+				pacmanState.playerIdleAvoidPoint = { x: pacmanState.idleAnchorPoint.x, y: pacmanState.idleAnchorPoint.y };
+				pacmanState.playerIdleAvoidRadius = GAME_CONFIG.playerIdle.avoidRadius;
+				addDevLog("[PLAYER] Idle Zone aktiviert");
+			} else if (pacmanState.idleZoneActive) {
+				pacmanState.playerIdleAvoidPoint = { x: pacmanState.idleAnchorPoint.x, y: pacmanState.idleAnchorPoint.y };
+				pacmanState.playerIdleAvoidRadius = GAME_CONFIG.playerIdle.avoidRadius;
+			}
+		}
+
+		// Funktion: Aktualisiert ghost powerup.
+		function updateGhostPowerup(dt) {
+			if (!ghostPowerup.active) {
+				ghostPowerup.powerUpTimer -= dt;
+				const canSpawnByTime = ghostPowerup.powerUpTimer <= 0;
+				const canSpawnByScore = game.score >= game.nextGhostScoreRequirement;
+				const canSpawnByDistance = game.distanceSinceGhostPickup >= GAME_CONFIG.ghost.minTravelDistance;
+				const canSpawnExclusive = !teleportPowerup.active;
+				if (canSpawnByTime && canSpawnByScore && canSpawnByDistance && canSpawnExclusive) {
+					ghostPowerup.active = true;
+					randomizeGhostPowerup();
+				}
+			}
+
+			if (ghostPowerup.active) {
+				const playerRect = { x: player.x, y: player.y, w: player.size, h: player.size };
+				const ghostCircle = { x: ghostPowerup.x, y: ghostPowerup.y, r: ghostPowerup.r + (ghostPowerup.pulse + 1) * 1.5 };
+				if (collidesRectCircle(playerRect, ghostCircle)) {
+					game.ghostTimer = GAME_CONFIG.powerups.ghost.durationSec;
+					game.distanceSinceGhostPickup = 0;
+					game.nextGhostScoreRequirement = game.score + GAME_CONFIG.ghost.respawnScoreStep;
+					playPowerupSound();
+					ghostPowerup.active = false;
+					ghostPowerup.powerUpTimer = rand(GAME_CONFIG.ghost.respawnMin, GAME_CONFIG.ghost.respawnMax);
+					updateUI("Ghostmode aktiv (5s)");
+				}
+			}
+		}
+
+		// Funktion: Aktualisiert teleport powerup.
+		function updateTeleportPowerup(dt) {
+			if (!teleportPowerup.active) {
+				teleportPowerup.powerUpTimer -= dt;
+				const canSpawnByTime = teleportPowerup.powerUpTimer <= 0;
+				const canSpawnByScore = game.score >= game.nextTeleportScoreRequirement;
+				const canSpawnByDistance = game.distanceSinceTeleportPickup >= GAME_CONFIG.teleport.minTravelDistance;
+				const canSpawnExclusive = !ghostPowerup.active;
+				if (canSpawnByTime && canSpawnByScore && canSpawnByDistance && canSpawnExclusive && game.teleportCharges <= 0) {
+					teleportPowerup.active = true;
+					randomizeTeleportPowerup();
+				}
+			}
+
+			if (teleportPowerup.active) {
+				const playerRect = { x: player.x, y: player.y, w: player.size, h: player.size };
+				const teleportCircle = { x: teleportPowerup.x, y: teleportPowerup.y, r: teleportPowerup.r + (teleportPowerup.pulse + 1) * 1.2 };
+				if (collidesRectCircle(playerRect, teleportCircle)) {
+					game.teleportCharges = 1;
+					game.teleportWindowTimer = GAME_CONFIG.powerups.teleport.windowSec;
+					game.distanceSinceTeleportPickup = 0;
+					game.nextTeleportScoreRequirement = game.score + GAME_CONFIG.teleport.respawnScoreStep;
+					teleportPowerup.active = false;
+					teleportPowerup.powerUpTimer = rand(GAME_CONFIG.teleport.respawnMin, GAME_CONFIG.teleport.respawnMax);
+					playPowerupSound();
+					showToast("Teleport bereit: 1x in 10s tippen");
+				}
+			}
+		}
+
+		// Funktion: Prüft obstacle collisions.
+		function checkObstacleCollisions(playerRect, t) {
+			const collisionPadding = 1.5;
+			for (const ob of obstacles) {
+				const moving = obstacleRect(ob, t);
+				const collisionObstacle = inflateObstacleCollisionRect(moving, collisionPadding);
+				if (game.ghostTimer <= 0 && collidesRectObstacle(playerRect, collisionObstacle) && game.hitCooldown <= 0) {
+					game.lives -= 1;
+					game.hitCooldown = GAME_CONFIG.player.hitCooldownSec;
+					player.x = GAME_CONFIG.player.startX;
+					player.y = GAME_CONFIG.player.startY;
+					if (game.lives <= 0) {
+						restartMusicNow();
+						playDeathSound();
+						game.running = false;
+						game.started = false;
+						syncMusicMode();
+						updateUI(gameOverRestartHint());
+					} else {
+						restartMusicNow();
+						playLifeLostSound();
+						updateUI("Treffer! Vorsicht!");
+					}
+				}
+			}
+		}
+
+		// Funktion: Prüft target collision.
+		function checkTargetCollision(playerRect, t) {
+			const targetVisible = !isPacmanPackActive() || pacmanState.visible;
+			const targetCircle = {
+				x: target.x,
+				y: target.y,
+				r: target.r + (target.pulse + 1) * GAME_CONFIG.target.pulseRadiusMultiplier
+			};
+			if (targetVisible && collidesRectCircle(playerRect, targetCircle)) {
+				const levelKey = String(game.currentLevel);
+				const prevBestForLevel = levelBestScores[levelKey] || 0;
+				game.score += 1;
+				updateLevelBestForCurrentRun();
+				playPointSound();
+				if (game.score > game.highscore) {
+					game.highscore = game.score;
+					game.newHighscoreThisRun = true;
+					saveHighscore(game.highscore);
+				}
+				if (game.score % GAME_CONFIG.progress.pointsPerGold === 0) {
+					const nextLevelId = game.currentLevel + 1;
+					const hasNextLevel = nextLevelId <= LEVELS.length;
+					const unlockedBeforeHit = hasNextLevel ? prevBestForLevel >= GAME_CONFIG.levelUnlockScore : true;
+					const unlockedAfterHit = hasNextLevel ? (levelBestScores[levelKey] || 0) >= GAME_CONFIG.levelUnlockScore : true;
+					const showLevelUnlockNotice = hasNextLevel && !unlockedBeforeHit && unlockedAfterHit;
+					const showGoldHint = !game.goldHintSeen;
+
+					game.goldToastTimer = GAME_CONFIG.progress.goldToastDurationSec;
+					game.goldToastText = showLevelUnlockNotice
+						? "Level " + String(nextLevelId) + " freigeschaltet"
+						: showGoldHint
+							? "+1 Gold für den Shop"
+							: "+1 Gold";
+					if (showLevelUnlockNotice) {
+						showToast("Level " + String(nextLevelId) + " freigeschaltet");
+					}
+					game.gold += 1;
+					if (showGoldHint) {
+						game.goldHintSeen = true;
+					}
+					void saveSignedProgress();
+					playGoldSound();
+				}
+				if (isPacmanPackActive()) {
+					pacmanState.forbiddenPoint = { x: target.x, y: target.y };
+					pacmanState.visible = false;
+					pacmanState.powerUpTimer = 0.28;
+					pacmanTrail.items = [];
+					addDevLog("[PACMAN] Target gegessen @ " + Math.round(target.x) + ", " + Math.round(target.y));
+					addDevLog("[PACMAN] Path wird neu berechnet...");
+				} else {
+					randomizeTarget();
+				}
+				updateUI("Punkt geholt!");
+			}
+		}
+
+		// Funktion: Aktualisiert Spiellogik.
+		function update(dt, t) {
+			if (!game.running || !game.started || game.pausedBySettings) return;
+			
+			handleInput(dt);
+			
+			target.pulse = Math.sin(t * GAME_CONFIG.visual.pulse.target);
+			if (isPacmanPackActive()) {
+				updatePacmanPathMotion(dt);
+			}
+			
+			ghostPowerup.pulse = Math.sin(t * GAME_CONFIG.visual.pulse.ghost);
+			teleportPowerup.pulse = Math.sin(t * GAME_CONFIG.visual.pulse.teleport + GAME_CONFIG.visual.pulse.teleportPhase);
+			
+			if (game.hitCooldown > 0) game.hitCooldown -= dt;
+			if (game.ghostTimer > 0) game.ghostTimer -= dt;
+			if (game.teleportWindowTimer > 0) {
+				game.teleportWindowTimer -= dt;
+				if (game.teleportWindowTimer <= 0) {
+					game.teleportWindowTimer = 0;
+					game.teleportCharges = 0;
+				}
+			}
+			if (game.goldToastTimer > 0) game.goldToastTimer -= dt;
+
+			const playerRect = { x: player.x, y: player.y, w: player.size, h: player.size };
+
+			updateGhostPowerup(dt);
+			updateTeleportPowerup(dt);
+			checkObstacleCollisions(playerRect, t);
+			checkTargetCollision(playerRect, t);
+		}
+
+		// Funktion: Zeichnet grid.
+		function drawGrid() {
+			ctx.save();
+			ctx.globalAlpha = GAME_CONFIG.visual.grid.alpha;
+			ctx.strokeStyle = "#8bb6ff";
+			ctx.lineWidth = GAME_CONFIG.visual.grid.lineWidth;
+			ctx.beginPath();
+			for (let x = 0; x <= game.width; x += GAME_CONFIG.visual.grid.spacing) {
+				ctx.moveTo(x, 0);
+				ctx.lineTo(x, game.height);
+			}
+			for (let y = 0; y <= game.height; y += GAME_CONFIG.visual.grid.spacing) {
+				ctx.moveTo(0, y);
+				ctx.lineTo(game.width, y);
+			}
+			ctx.stroke();
+			ctx.restore();
+		}
+
+		function drawTouchZones() {
+			if (!game.devMode) return;
+			if (touchState.movementPointerId === null && touchState.activeDirection === null) return;
+
+			ctx.save();
+
+			// 16-Wege-Hilfslinien ab Bildschirmmitte.
+			const cx = game.width * 0.5;
+			const cy = game.height * 0.5;
+			const guideLen = Math.min(game.width, game.height) * GAME_CONFIG.visual.touchDebug.guideLengthFactor;
+			ctx.strokeStyle = "rgba(100, 200, 255, 0.3)";
+			ctx.lineWidth = GAME_CONFIG.visual.touchDebug.guideLineWidth;
+			for (let i = 0; i < GAME_CONFIG.visual.touchDebug.directionCount; i += 1) {
+				const angle = (Math.PI / 8) * i;
+				ctx.beginPath();
+				ctx.moveTo(cx, cy);
+				ctx.lineTo(cx + Math.cos(angle) * guideLen, cy + Math.sin(angle) * guideLen);
+				ctx.stroke();
+			}
+
+			// Aktueller Touch-Punkt
+			if (touchState.movementPointerId !== null) {
+				// Drag-Deadzone zeichnen (Kreis um Start-Punkt)
+				ctx.strokeStyle = "rgba(255, 255, 0, 0.5)";
+				ctx.lineWidth = 2;
+				ctx.setLineDash([4, 4]);
+				ctx.beginPath();
+				ctx.arc(touchState.startX, touchState.startY, GAME_CONFIG.controls.touchDragDeadzone, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.setLineDash([]);
+
+				// Start-Punkt (Kreis)
+				ctx.fillStyle = "rgba(255, 200, 0, 0.6)";
+				ctx.beginPath();
+				ctx.arc(touchState.startX, touchState.startY, GAME_CONFIG.visual.touchDebug.startMarkerRadius, 0, Math.PI * 2);
+				ctx.fill();
+
+				// Aktueller Punkt (Punkt)
+				ctx.fillStyle = "rgba(100, 255, 100, 0.8)";
+				ctx.beginPath();
+				ctx.arc(touchState.lastX, touchState.lastY, GAME_CONFIG.visual.touchDebug.currentMarkerRadius, 0, Math.PI * 2);
+				ctx.fill();
+
+				// Linie vom Start bis zum aktuellen Punkt
+				ctx.strokeStyle = "rgba(100, 255, 100, 0.6)";
+				ctx.lineWidth = 2;
+				ctx.beginPath();
+				ctx.moveTo(touchState.startX, touchState.startY);
+				ctx.lineTo(touchState.lastX, touchState.lastY);
+				ctx.stroke();
+
+				// Distanz-Info
+				const dx = touchState.lastX - touchState.startX;
+				const dy = touchState.lastY - touchState.startY;
+				const distance = Math.hypot(dx, dy);
+				ctx.fillStyle = "rgba(255, 255, 100, 0.8)";
+				ctx.font = "bold " + GAME_CONFIG.visual.touchDebug.infoFontSize + "px monospace";
+				ctx.textAlign = "left";
+				ctx.fillText("Dist: " + Math.round(distance) + "px", touchState.lastX + GAME_CONFIG.visual.touchDebug.infoOffsetX, touchState.lastY + GAME_CONFIG.visual.touchDebug.infoOffsetYPrimary);
+				ctx.fillText("ΔX: " + Math.round(dx) + " ΔY: " + Math.round(dy), touchState.lastX + GAME_CONFIG.visual.touchDebug.infoOffsetX, touchState.lastY + GAME_CONFIG.visual.touchDebug.infoOffsetYSecondary);
+			}
+
+			// Erkannte Richtung anzeigen
+			if (touchState.activeDirection) {
+				const dirText = String(touchState.activeDirection).toUpperCase();
+				if (dirText) {
+					ctx.save();
+					ctx.fillStyle = "rgba(0, 255, 150, 0.9)";
+					ctx.font = "bold " + GAME_CONFIG.visual.touchDebug.directionFontSize + "px monospace";
+					ctx.textAlign = "center";
+					ctx.fillText(dirText + " [ACTIVE]", game.width * 0.5, GAME_CONFIG.visual.touchDebug.directionLabelY);
+					ctx.restore();
+				}
+			}
+
+			ctx.restore();
+		}
+
+		function drawDevDebugOverlay() {
+			if (!game.devMode) return;
+
+			// Pacman Avoid Zones visualisieren
+			if (isPacmanPackActive() && pacmanState) {
+				ctx.save();
+				ctx.globalAlpha = GAME_CONFIG.visual.devOverlay.baseAlpha;
+				
+				// Forbidden Point
+				if (pacmanState.forbiddenPoint) {
+					ctx.fillStyle = "#ff0000";
+					ctx.beginPath();
+					ctx.arc(pacmanState.forbiddenPoint.x, pacmanState.forbiddenPoint.y, target.r * GAME_CONFIG.pacman.avoidRadiusMultiplier, 0, Math.PI * 2);
+					ctx.stroke();
+					ctx.fillStyle = "rgba(255, 0, 0, 0.1)";
+					ctx.fill();
+					ctx.fillStyle = "#ff0000";
+					ctx.font = "bold 11px monospace";
+					ctx.fillText("FORBIDDEN", pacmanState.forbiddenPoint.x - 30, pacmanState.forbiddenPoint.y - target.r * 3.5);
+				}
+
+				// Player Idle Avoid Point - nur wenn wirklich aktiv
+				if (pacmanState.playerIdleAvoidPoint !== null && pacmanState.playerIdleAvoidRadius > GAME_CONFIG.playerIdle.avoidRadius - 6) {
+					ctx.strokeStyle = "#ff7700";
+					ctx.globalAlpha = 0.4;
+					ctx.beginPath();
+					ctx.arc(pacmanState.playerIdleAvoidPoint.x, pacmanState.playerIdleAvoidPoint.y, pacmanState.playerIdleAvoidRadius, 0, Math.PI * 2);
+					ctx.stroke();
+					ctx.fillStyle = "rgba(255, 119, 0, 0.05)";
+					ctx.fill();
+					ctx.strokeStyle = "#ff7700";
+					ctx.fillStyle = "#ff7700";
+					ctx.font = "bold 11px monospace";
+					ctx.fillText("IDLE", pacmanState.playerIdleAvoidPoint.x - 15, pacmanState.playerIdleAvoidPoint.y - pacmanState.playerIdleAvoidRadius - 5);
+				}
+
+				// Player Avoid Zone
+				const playerPoint = { x: player.x + player.size * 0.5, y: player.y + player.size * 0.5 };
+				const playerRadius = Math.max(GAME_CONFIG.pacman.playerProximityAvoidMinRadius, player.size * GAME_CONFIG.pacman.playerProximityAvoidSizeFactor);
+				ctx.strokeStyle = "#0088ff";
+				ctx.globalAlpha = 0.35;
+				ctx.beginPath();
+				ctx.arc(playerPoint.x, playerPoint.y, playerRadius, 0, Math.PI * 2);
+				ctx.stroke();
+				ctx.fillStyle = "rgba(0, 136, 255, 0.05)";
+				ctx.fill();
+				ctx.fillStyle = "#0088ff";
+				ctx.font = "bold 11px monospace";
+				ctx.fillText("PLAYER_ZONE", playerPoint.x - 40, playerPoint.y - playerRadius - 5);
+
+				// Pacman Path zeichnen
+				if (pacmanPath && pacmanPath.length > 1) {
+					ctx.strokeStyle = "#00ff00";
+					ctx.globalAlpha = 0.6;
+					ctx.lineWidth = 2;
+					ctx.beginPath();
+					ctx.moveTo(pacmanPath[0].x, pacmanPath[0].y);
+					for (let i = 1; i < Math.min(pacmanPath.length, GAME_CONFIG.visual.devOverlay.pathMaxNodes); i++) {
+						ctx.lineTo(pacmanPath[i].x, pacmanPath[i].y);
+					}
+					ctx.stroke();
+
+					// Direction Vectors an Knoten zeichnen
+					ctx.strokeStyle = "#ffff00";
+					ctx.fillStyle = "#ffff00";
+					ctx.globalAlpha = 0.7;
+					for (let i = 0; i < Math.min(pacmanPath.length - 1, GAME_CONFIG.visual.devOverlay.directionVectorsMax); i++) {
+						const p1 = pacmanPath[i];
+						const p2 = pacmanPath[i + 1];
+						const dx = p2.x - p1.x;
+						const dy = p2.y - p1.y;
+						const len = Math.hypot(dx, dy) || 1;
+						const nx = dx / len;
+						const ny = dy / len;
+						const arrowLen = GAME_CONFIG.visual.devOverlay.arrowLength;
+						
+						ctx.beginPath();
+						ctx.moveTo(p1.x, p1.y);
+						ctx.lineTo(p1.x + nx * arrowLen, p1.y + ny * arrowLen);
+						ctx.stroke();
+
+						// Pfeilspitzen
+						const angle = Math.atan2(ny, nx);
+						ctx.beginPath();
+						ctx.moveTo(p1.x + nx * arrowLen, p1.y + ny * arrowLen);
+						ctx.lineTo(p1.x + nx * arrowLen + Math.cos(angle - Math.PI / 6) * GAME_CONFIG.visual.devOverlay.arrowHeadLength, p1.y + ny * arrowLen + Math.sin(angle - Math.PI / 6) * GAME_CONFIG.visual.devOverlay.arrowHeadLength);
+						ctx.stroke();
+						ctx.beginPath();
+						ctx.moveTo(p1.x + nx * arrowLen, p1.y + ny * arrowLen);
+						ctx.lineTo(p1.x + nx * arrowLen + Math.cos(angle + Math.PI / 6) * GAME_CONFIG.visual.devOverlay.arrowHeadLength, p1.y + ny * arrowLen + Math.sin(angle + Math.PI / 6) * GAME_CONFIG.visual.devOverlay.arrowHeadLength);
+						ctx.stroke();
+
+						// Knoten markieren
+						ctx.fillStyle = "#00ff00";
+						ctx.beginPath();
+						ctx.arc(p1.x, p1.y, GAME_CONFIG.visual.devOverlay.nodeRadius, 0, Math.PI * 2);
+						ctx.fill();
+					}
+				}
+
+				// Current Direction Vektor des Pacman zeichnen
+				if (target && (pacmanState.directionX || pacmanState.directionY)) {
+					ctx.strokeStyle = "#ff00ff";
+					ctx.lineWidth = 3;
+					ctx.globalAlpha = 0.8;
+					const arrowLen = GAME_CONFIG.visual.devOverlay.currentArrowLength;
+					ctx.beginPath();
+					ctx.moveTo(target.x, target.y);
+					ctx.lineTo(target.x + pacmanState.directionX * arrowLen, target.y + pacmanState.directionY * arrowLen);
+					ctx.stroke();
+					
+					// Pfeilspitze
+					const angle = Math.atan2(pacmanState.directionY, pacmanState.directionX);
+					ctx.beginPath();
+					ctx.moveTo(target.x + pacmanState.directionX * arrowLen, target.y + pacmanState.directionY * arrowLen);
+					ctx.lineTo(target.x + pacmanState.directionX * arrowLen + Math.cos(angle - Math.PI / 6) * GAME_CONFIG.visual.devOverlay.currentArrowHeadLength, target.y + pacmanState.directionY * arrowLen + Math.sin(angle - Math.PI / 6) * GAME_CONFIG.visual.devOverlay.currentArrowHeadLength);
+					ctx.stroke();
+					ctx.beginPath();
+					ctx.moveTo(target.x + pacmanState.directionX * arrowLen, target.y + pacmanState.directionY * arrowLen);
+					ctx.lineTo(target.x + pacmanState.directionX * arrowLen + Math.cos(angle + Math.PI / 6) * GAME_CONFIG.visual.devOverlay.currentArrowHeadLength, target.y + pacmanState.directionY * arrowLen + Math.sin(angle + Math.PI / 6) * GAME_CONFIG.visual.devOverlay.currentArrowHeadLength);
+					ctx.stroke();
+				}
+
+				ctx.restore();
+			}
+
+			// Touch-Zonen visualisieren
+			drawTouchZones();
+
+			// Dev Info Panel
+			const fontSize = GAME_CONFIG.visual.devOverlay.panelFontSize;
+			const lineHeight = fontSize + 2;
+			const panelX = game.width - GAME_CONFIG.visual.devOverlay.panelRightOffset;
+			const panelY = GAME_CONFIG.visual.devOverlay.panelTop;
+			const panelW = GAME_CONFIG.visual.devOverlay.panelWidth;
+			
+			// Touch-Status hinzufügen
+			const activeTouchText = touchState.activeDirection || "Inaktiv";
+			const touchStatus = touchState.movementPointerId !== null
+				? "Aktiv (" + activeTouchText + ")"
+				: activeTouchText;
+			
+			const modeLines = isPacmanPackActive()
+				? [
+					"Modus: PACMAN",
+					"Pfad-Neuberechnungen: " + game.pathRecalcCount,
+					"Pfadknoten: " + (pacmanPath ? pacmanPath.length : 0),
+					"Spurpunkte: " + pacmanTrail.items.length,
+					"Pacman sichtbar: " + (pacmanState.visible ? "JA" : "NEIN"),
+					"Pacman-Fortschritt: " + Math.floor(pacmanState.pathProgress),
+					"",
+					"Touch: " + touchStatus
+				]
+				: [
+					"Modus: STANDARD",
+					"Punkte: " + game.score,
+					"Lives: " + game.lives,
+					"Geist aktiv: " + (game.ghostTimer > 0 ? "JA" : "NEIN"),
+					"Geist-Timer: " + Math.max(0, game.ghostTimer).toFixed(2),
+					"Geist-Power-up-Timer: " + Math.max(0, ghostPowerup.powerUpTimer).toFixed(2),
+					"Teleport-Power-up-Timer: " + Math.max(0, teleportPowerup.powerUpTimer).toFixed(2),
+					"Teleport-Fenster: " + Math.max(0, game.teleportWindowTimer).toFixed(2),
+					"",
+					"Touch: " + touchStatus
+				];
+			const logCount = Math.min(game.devLog.length, GAME_CONFIG.visual.devOverlay.recentLogCount);
+			const panelH = Math.min(GAME_CONFIG.visual.devOverlay.panelMaxHeight, lineHeight * (3 + modeLines.length + logCount));
+
+			ctx.save();
+			ctx.fillStyle = "#00000088";
+			ctx.fillRect(panelX - GAME_CONFIG.visual.devOverlay.panelPadding, panelY - GAME_CONFIG.visual.devOverlay.panelPadding, panelW + GAME_CONFIG.visual.devOverlay.panelPadding * 2, panelH + GAME_CONFIG.visual.devOverlay.panelPadding * 2);
+			ctx.strokeStyle = "#00ff00";
+			ctx.lineWidth = 2;
+			ctx.strokeRect(panelX - GAME_CONFIG.visual.devOverlay.panelPadding, panelY - GAME_CONFIG.visual.devOverlay.panelPadding, panelW + GAME_CONFIG.visual.devOverlay.panelPadding * 2, panelH + GAME_CONFIG.visual.devOverlay.panelPadding * 2);
+
+			ctx.fillStyle = "#00ff00";
+			ctx.font = "bold " + fontSize + "px monospace";
+			let y = panelY + 10;
+			
+			ctx.fillText("=== DEV MODE ===", panelX, y);
+			y += lineHeight;
+
+			for (const line of modeLines) {
+				ctx.fillText(line, panelX, y);
+				y += lineHeight;
+			}
+			
+			ctx.fillStyle = "#ffff00";
+			ctx.font = fontSize + "px monospace";
+			y += lineHeight / 2;
+			ctx.fillText("--- Recent Log ---", panelX, y);
+			y += lineHeight;
+
+			for (let i = Math.max(0, game.devLog.length - logCount); i < game.devLog.length; i++) {
+				ctx.fillStyle = "#88ff88";
+				ctx.font = (fontSize - 1) + "px monospace";
+				ctx.fillText((game.devLog[i] || "").substring(0, GAME_CONFIG.visual.devOverlay.logMaxChars), panelX, y);
+				y += lineHeight - 1;
+			}
+
+			ctx.restore();
+		}
+
+		const glowSpriteCache = new Map();
+
+		function quantize(value, step) {
+			if (step <= 0) return value;
+			return Math.round(value / step) * step;
+		}
+
+		function createSpriteSurface(width, height) {
+			const safeWidth = Math.max(1, Math.ceil(width));
+			const safeHeight = Math.max(1, Math.ceil(height));
+			if (typeof OffscreenCanvas !== "undefined") {
+				return new OffscreenCanvas(safeWidth, safeHeight);
+			}
+			const surface = document.createElement("canvas");
+			surface.width = safeWidth;
+			surface.height = safeHeight;
+			return surface;
+		}
+
+		function getOrCreateGlowSprite(key, width, height, drawFn) {
+			let sprite = glowSpriteCache.get(key);
+			if (!sprite) {
+				const surface = createSpriteSurface(width, height);
+				const surfaceCtx = surface.getContext("2d");
+				if (!surfaceCtx) return null;
+				drawFn(surfaceCtx, surface.width, surface.height);
+				sprite = surface;
+				glowSpriteCache.set(key, sprite);
+			}
+			return sprite;
+		}
+
+		function getGlowCircleSprite(options) {
+			const radius = quantize(options.radius, 0.25);
+			const blur = quantize(options.blur, 0.5);
+			const lineWidth = options.lineWidth ? quantize(options.lineWidth, 0.25) : 0;
+			const pad = Math.ceil(blur + lineWidth + 4);
+			const size = Math.ceil((radius + pad) * 2);
+			const key = ["gc", options.fill || "", options.shadow || "", options.stroke || "", radius.toFixed(2), blur.toFixed(2), lineWidth.toFixed(2)].join("|");
+			return getOrCreateGlowSprite(key, size, size, (surfaceCtx, w, h) => {
+				surfaceCtx.clearRect(0, 0, w, h);
+				surfaceCtx.save();
+				surfaceCtx.translate(w / 2, h / 2);
+				surfaceCtx.shadowColor = options.shadow || "transparent";
+				surfaceCtx.shadowBlur = blur;
+				if (options.fill) {
+					surfaceCtx.fillStyle = options.fill;
+					surfaceCtx.beginPath();
+					surfaceCtx.arc(0, 0, radius, 0, Math.PI * 2);
+					surfaceCtx.fill();
+				}
+				if (options.stroke && lineWidth > 0) {
+					surfaceCtx.strokeStyle = options.stroke;
+					surfaceCtx.lineWidth = lineWidth;
+					surfaceCtx.beginPath();
+					surfaceCtx.arc(0, 0, radius, 0, Math.PI * 2);
+					surfaceCtx.stroke();
+				}
+				surfaceCtx.restore();
+			});
+		}
+
+		function drawGlowCircle(options) {
+			const sprite = getGlowCircleSprite(options);
+			if (!sprite) return;
+			ctx.drawImage(sprite, options.x - sprite.width / 2, options.y - sprite.height / 2);
+		}
+
+		function getGlowRectSprite(options) {
+			const width = Math.max(1, quantize(options.width, 0.5));
+			const height = Math.max(1, quantize(options.height, 0.5));
+			const blur = quantize(options.blur, 0.5);
+			const lineWidth = options.lineWidth ? quantize(options.lineWidth, 0.25) : 0;
+			const pad = Math.ceil(blur + lineWidth + 4);
+			const surfaceW = Math.ceil(width + pad * 2);
+			const surfaceH = Math.ceil(height + pad * 2);
+			const key = ["gr", options.fill || "", options.stroke || "", options.shadow || "", width.toFixed(2), height.toFixed(2), blur.toFixed(2), lineWidth.toFixed(2)].join("|");
+			return getOrCreateGlowSprite(key, surfaceW, surfaceH, (surfaceCtx, w, h) => {
+				surfaceCtx.clearRect(0, 0, w, h);
+				surfaceCtx.save();
+				surfaceCtx.shadowColor = options.shadow || "transparent";
+				surfaceCtx.shadowBlur = blur;
+				if (options.fill) {
+					surfaceCtx.fillStyle = options.fill;
+					surfaceCtx.fillRect(pad, pad, width, height);
+				}
+				if (options.stroke && lineWidth > 0) {
+					surfaceCtx.strokeStyle = options.stroke;
+					surfaceCtx.lineWidth = lineWidth;
+					surfaceCtx.strokeRect(pad, pad, width, height);
+				}
+				surfaceCtx.restore();
+			});
+		}
+
+		function drawGlowRect(options) {
+			const sprite = getGlowRectSprite(options);
+			if (!sprite) return;
+			if (options.angle) {
+				ctx.save();
+				ctx.translate(options.cx, options.cy);
+				ctx.rotate(options.angle);
+				ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+				ctx.restore();
+				return;
+			}
+			ctx.drawImage(sprite, options.x - (sprite.width - options.width) / 2, options.y - (sprite.height - options.height) / 2);
+		}
+
+		function getPacmanTargetSprite(radius, mouth, blur) {
+			const r = quantize(radius, 0.25);
+			const m = quantize(mouth, 0.015);
+			const b = quantize(blur, 0.5);
+			const pad = Math.ceil(b + 5);
+			const size = Math.ceil((r + pad) * 2);
+			const key = ["pac-target", r.toFixed(2), m.toFixed(3), b.toFixed(2)].join("|");
+			return getOrCreateGlowSprite(key, size, size, (surfaceCtx, w, h) => {
+				surfaceCtx.clearRect(0, 0, w, h);
+				surfaceCtx.save();
+				surfaceCtx.translate(w / 2, h / 2);
+				surfaceCtx.fillStyle = "#ffd200";
+				surfaceCtx.shadowColor = "#ffd200";
+				surfaceCtx.shadowBlur = b;
+				surfaceCtx.beginPath();
+				surfaceCtx.moveTo(0, 0);
+				surfaceCtx.arc(0, 0, r, m, Math.PI * 2 - m);
+				surfaceCtx.closePath();
+				surfaceCtx.fill();
+
+				surfaceCtx.shadowBlur = 0;
+				surfaceCtx.fillStyle = "#1a1a1a";
+				surfaceCtx.beginPath();
+				surfaceCtx.arc(r * 0.15, -r * 0.45, Math.max(2, r * 0.1), 0, Math.PI * 2);
+				surfaceCtx.fill();
+				surfaceCtx.restore();
+			});
+		}
+
+		function drawPacmanTarget(options) {
+			const sprite = getPacmanTargetSprite(options.radius, options.mouth, options.blur);
+			if (!sprite) return;
+			ctx.save();
+			ctx.translate(options.x, options.y);
+			ctx.rotate(options.facingAngle);
+			ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+			ctx.restore();
+		}
+
+		function getPacmanPlayerSprite(width, height, wave) {
+			const w = Math.max(1, quantize(width, 0.5));
+			const h = Math.max(1, quantize(height, 0.5));
+			const waveY = quantize(wave, 0.2);
+			const blur = 10;
+			const pad = Math.ceil(blur + 5);
+			const surfaceW = Math.ceil(w + pad * 2);
+			const surfaceH = Math.ceil(h + pad * 2 + Math.abs(waveY));
+			const key = ["pac-player", w.toFixed(2), h.toFixed(2), waveY.toFixed(2)].join("|");
+			return getOrCreateGlowSprite(key, surfaceW, surfaceH, (surfaceCtx) => {
+				surfaceCtx.clearRect(0, 0, surfaceW, surfaceH);
+				surfaceCtx.save();
+				surfaceCtx.translate(pad, pad);
+				surfaceCtx.fillStyle = "#45b7ff";
+				surfaceCtx.shadowColor = "#9fdfff";
+				surfaceCtx.shadowBlur = blur;
+				surfaceCtx.beginPath();
+				surfaceCtx.arc(w / 2, h * 0.42, w * 0.5, Math.PI, 0);
+				surfaceCtx.lineTo(w, h * 0.85);
+				surfaceCtx.lineTo(w * 0.83, h + waveY);
+				surfaceCtx.lineTo(w * 0.66, h * 0.84 - waveY);
+				surfaceCtx.lineTo(w * 0.5, h + waveY);
+				surfaceCtx.lineTo(w * 0.33, h * 0.84 - waveY);
+				surfaceCtx.lineTo(w * 0.16, h + waveY);
+				surfaceCtx.lineTo(0, h * 0.85);
+				surfaceCtx.closePath();
+				surfaceCtx.fill();
+
+				surfaceCtx.shadowBlur = 0;
+				surfaceCtx.fillStyle = "#ffffff";
+				surfaceCtx.beginPath();
+				surfaceCtx.arc(w * 0.38, h * 0.45, Math.max(3, w * 0.12), 0, Math.PI * 2);
+				surfaceCtx.arc(w * 0.62, h * 0.45, Math.max(3, w * 0.12), 0, Math.PI * 2);
+				surfaceCtx.fill();
+
+				surfaceCtx.fillStyle = "#1a1a1a";
+				surfaceCtx.beginPath();
+				surfaceCtx.arc(w * 0.4, h * 0.46, Math.max(1.8, w * 0.06), 0, Math.PI * 2);
+				surfaceCtx.arc(w * 0.64, h * 0.46, Math.max(1.8, w * 0.06), 0, Math.PI * 2);
+				surfaceCtx.fill();
+				surfaceCtx.restore();
+			});
+		}
+
+		// Funktion: Zeichnet den gesamten Spielframe (Hintergrund, Objekte, Overlays).
+		function draw(t) {
+			ctx.clearRect(0, 0, game.width, game.height);
+			drawGrid();
+
+			if (isPacmanPackActive()) {
+				ctx.save();
+				for (const item of pacmanTrail.items) {
+					if (!item.alive || item.appear <= 0.05) continue;
+					const pulse = 0.7 + Math.sin(t * 0.01 + item.pulse) * 0.25;
+					const appear = item.appear;
+					ctx.globalAlpha = 0.2 + appear * 0.8;
+					if (item.type === "fruit") {
+						drawGlowCircle({
+							x: item.x,
+							y: item.y,
+							radius: (6 + pulse * 1.2) * (0.65 + appear * 0.35),
+							fill: "#ff5c5c",
+							shadow: "#ff8a8a",
+							blur: 4 + appear * 8
+						});
+
+						ctx.fillStyle = "#7fd45b";
+						ctx.beginPath();
+						ctx.arc(item.x + 2.5, item.y - 6, 1.3 + appear, 0, Math.PI * 2);
+						ctx.fill();
+					} else {
+						drawGlowCircle({
+							x: item.x,
+							y: item.y,
+							radius: (3 + pulse * 0.65) * (0.6 + appear * 0.4),
+							fill: "#ffe58a",
+							shadow: "#ffe58a",
+							blur: 2 + appear * 7
+						});
+					}
+				}
+				ctx.globalAlpha = 1;
+				ctx.restore();
+			}
+
+			const pulse = (target.pulse + 1) * 2;
+			if (isPacmanPackActive() && pacmanState.visible) {
+				const radius = target.r + pulse;
+				const mouth = 0.15 + Math.abs(Math.sin(t * 0.02)) * 0.35 + pacmanTrail.consumedPulse * 0.2;
+				const facingAngle = Math.atan2(pacmanState.directionY, pacmanState.directionX);
+				drawPacmanTarget({
+					x: target.x,
+					y: target.y,
+					radius,
+					mouth,
+					facingAngle,
+					blur: 16 + pulse * 2
+				});
+			} else if (!isPacmanPackActive()) {
+				drawGlowCircle({
+					x: target.x,
+					y: target.y,
+					radius: target.r + pulse,
+					fill: "#ffd166",
+					shadow: "#ffd166",
+					blur: 16 + pulse * 2
+				});
+			}
+
+			for (const ob of obstacles) {
+				const movingOb = obstacleRect(ob, t);
+				const warningFlash = game.ghostTimer > 0 && game.ghostTimer <= GAME_CONFIG.ghost.warningTime && Math.sin(t * 0.07) > 0;
+				const drawHitboxGuide = () => {
+					ctx.save();
+					ctx.strokeStyle = "rgba(255, 95, 95, 0.45)";
+					ctx.lineWidth = 1;
+					if (movingOb.angle) {
+						ctx.strokeRect(-movingOb.w * 0.5 + 0.5, -movingOb.h * 0.5 + 0.5, movingOb.w - 1, movingOb.h - 1);
+					} else {
+						ctx.strokeRect(movingOb.x + 0.5, movingOb.y + 0.5, movingOb.w - 1, movingOb.h - 1);
+					}
+					ctx.restore();
+				};
+
+				if (movingOb.angle) {
+					ctx.save();
+					ctx.translate(movingOb.cx, movingOb.cy);
+					ctx.rotate(movingOb.angle);
+					if (game.ghostTimer > 0 && warningFlash) {
+						ctx.fillStyle = "rgba(255, 95, 95, 0.45)";
+						ctx.fillRect(-movingOb.w * 0.5, -movingOb.h * 0.5, movingOb.w, movingOb.h);
+					}
+					ctx.restore();
+					drawGlowRect({
+						cx: movingOb.cx,
+						cy: movingOb.cy,
+						angle: movingOb.angle,
+						width: movingOb.w,
+						height: movingOb.h,
+						fill: game.ghostTimer > 0 ? null : "#ff5f5f",
+						stroke: "#ff5f5f",
+						lineWidth: 2,
+						shadow: "#ff8a8a",
+						blur: 8
+					});
+					ctx.save();
+					ctx.translate(movingOb.cx, movingOb.cy);
+					ctx.rotate(movingOb.angle);
+					drawHitboxGuide();
+					ctx.restore();
+				} else {
+					if (game.ghostTimer > 0 && warningFlash) {
+						ctx.fillStyle = "rgba(255, 95, 95, 0.45)";
+						ctx.fillRect(movingOb.x, movingOb.y, movingOb.w, movingOb.h);
+					}
+					drawGlowRect({
+						x: movingOb.x,
+						y: movingOb.y,
+						width: movingOb.w,
+						height: movingOb.h,
+						fill: game.ghostTimer > 0 ? null : "#ff5f5f",
+						stroke: "#ff5f5f",
+						lineWidth: 2,
+						shadow: "#ff8a8a",
+						blur: 8
+					});
+					drawHitboxGuide();
+				}
+			}
+
+			if (ghostPowerup.active) {
+				const powerPulse = (ghostPowerup.pulse + 1) * 2;
+				drawGlowCircle({
+					x: ghostPowerup.x,
+					y: ghostPowerup.y,
+					radius: ghostPowerup.r + powerPulse * 0.4,
+					fill: "#b26cff",
+					shadow: "#b26cff",
+					stroke: "#b26cff",
+					lineWidth: 2,
+					blur: 12 + powerPulse
+				});
+			}
+
+			if (teleportPowerup.active) {
+				const tpPulse = (teleportPowerup.pulse + 1) * 2;
+				drawGlowCircle({
+					x: teleportPowerup.x,
+					y: teleportPowerup.y,
+					radius: teleportPowerup.r + tpPulse * 0.35,
+					fill: "#45e07d",
+					shadow: "#45e07d",
+					stroke: "#45e07d",
+					lineWidth: 2,
+					blur: 12 + tpPulse
+				});
+			}
+
+			const moving = Math.hypot(player.vx, player.vy) > 0;
+			const squash = moving ? 0.12 * Math.sin(t * 0.02) : 0;
+			const drawW = player.size * (1 + squash);
+			const drawH = player.size * (1 - squash);
+			const flash = game.hitCooldown > 0 ? Math.sin(t * 0.04) > 0 : true;
+			if (flash) {
+				if (isPacmanPackActive()) {
+					const wave = Math.sin(t * 0.03) * 1.8;
+					const playerSprite = getPacmanPlayerSprite(drawW, drawH, wave);
+					if (playerSprite) {
+						ctx.drawImage(playerSprite, player.x - (playerSprite.width - drawW) / 2, player.y - (playerSprite.height - drawH) / 2);
+					}
+				} else {
+					drawGlowRect({
+						x: player.x,
+						y: player.y,
+						width: drawW,
+						height: drawH,
+						fill: player.color,
+						shadow: player.color,
+						blur: 10
+					});
+				}
+			}
+
+			if (game.goldToastTimer > 0) {
+				const progress = 1 - game.goldToastTimer / GAME_CONFIG.progress.goldToastDurationSec;
+				const alpha = Math.sin(progress * Math.PI);
+				const scale = 1 + GAME_CONFIG.visual.goldToast.scaleBoost * alpha;
+				ctx.save();
+				ctx.translate(game.width / 2, GAME_CONFIG.visual.goldToast.yOffset);
+				ctx.scale(scale, scale);
+				ctx.globalAlpha = alpha;
+				ctx.fillStyle = "#ffd166";
+				ctx.strokeStyle = "#2b2100";
+				ctx.lineWidth = GAME_CONFIG.visual.goldToast.lineWidth;
+				ctx.textAlign = "center";
+				ctx.font = "bold " + GAME_CONFIG.visual.goldToast.fontSize + "px Trebuchet MS, Segoe UI, sans-serif";
+				ctx.strokeText(game.goldToastText, 0, 0);
+				ctx.fillText(game.goldToastText, 0, 0);
+				ctx.restore();
+			}
+
+			drawDevDebugOverlay();
+		}
+
+		let last = performance.now();
+		// Funktion: Hilfsfunktion für loop.
+		function loop(now) {
+			const dt = Math.min(0.033, (now - last) / 1000);
+			last = now;
+
+			game.fpsFrames += 1;
+			game.fpsTimer += dt;
+			if (game.fpsTimer >= 0.25) {
+				const instantFps = game.fpsFrames / game.fpsTimer;
+				game.fps = game.fps === 0 ? instantFps : game.fps * 0.7 + instantFps * 0.3;
+				uiRenderState.fpsDirty = true;
+				game.fpsFrames = 0;
+				game.fpsTimer = 0;
+			}
+
+			update(dt, now);
+			flushUIRender();
+			draw(now);
+			requestAnimationFrame(loop);
+		}
+
+		// Zentrale Verwaltung in initializeAllUIEvents()
+
+		randomizeTarget();
+		if (isPacmanPackActive()) {
+			resetPacmanMotion(true);
+		}
+		randomizeGhostPowerup();
+		randomizeTeleportPowerup();
+		await saveSignedProgress();
+		exposeConsoleReadout();
+		setDevMode(false);
+		
+		// Zentralisierte Event-Initialisierung
+		initializeAllUIEvents();
+		setupTouchControls();
+		
+		resetGame(false);
+		updateUI();
+		requestAnimationFrame(loop);
+		})().catch((error) => {
+			console.error("WASD Minispiel: Initialisierung fehlgeschlagen", error);
+		});
+	</script>
+</body>
+</html>
