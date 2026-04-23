@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MoreVertical, LogInIcon, LucideSettings } from 'lucide-react';
+import { MoreVertical, /* LogInIcon, */ LucideSettings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../../hooks/useLanguage';
 import Button from '../../../components/button';
@@ -26,10 +26,10 @@ export default function OptionsMenu() {
     };
   }, [isOpen]);
 
-  const handleLoginClick = () => {
+  /* const handleLoginClick = () => {
     window.location.href = "https://auth.sanny64.de"
     setIsOpen(false);
-  };
+  }; */
 
   const handleOptionsClick = () => {
     navigate("/settings");
