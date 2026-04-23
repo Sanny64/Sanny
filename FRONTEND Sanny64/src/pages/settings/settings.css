@@ -2,40 +2,25 @@
 .settings-page { min-height: 100%; padding: 1rem; }
 .settings-container { max-width: 800px; margin: 0 auto; }
 .settings-title { font-size: var(--font-size-xl); font-weight: 700; color: var(--text-primary); margin-bottom: 2rem; }
-.settings-card { background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
-.settings-card-header { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
-.settings-card-header-icon { color: var(--accent); flex-shrink: 0; }
-.settings-card-title { font-size: var(--font-size-xl); font-weight: 600; color: var(--text-primary); margin: 0 0 0.5rem 0; }
-.settings-card-description { font-size: var(--font-size-m); font-weight: 500; color: var(--text-secondary); margin: 0; line-height: 1.5; }
 .settings-options { display: flex; flex-direction: column; gap: 0.75rem; }
-.settings-option { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 1rem; background-color: var(--bg-primary); border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; text-align: left; }
-.settings-option:hover { border-color: var(--accent); background-color: var(--bg-secondary); }
-.settings-option:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(77,166,255,0.1); }
-.settings-option-active { border-color: var(--accent); background-color: var(--bg-secondary); }
-.settings-option-content { display: flex; align-items: center; gap: 1rem; flex: 1; }
-.settings-option-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background-color: var(--bg-primary); border-radius: 8px; color: var(--text-primary); flex-shrink: 0; }
-.settings-option-active .settings-option-icon { background-color: var(--accent); color: var(--bg-primary); }
-.settings-option-text { display: flex; flex-direction: column; gap: 0.25rem; }
-.settings-option-label { font-size: var(--font-size-lg); font-weight: 500; color: var(--text-primary); }
-.settings-option-sublabel { font-size: var(--font-size-s); color: var(--text-secondary); }
-.settings-option-check { color: var(--accent); flex-shrink: 0; }
-.settings-info { padding: 1rem; background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; margin-top: 2rem; }
+.settings-flag-icon { width: 75%; height: 75%; object-fit: cover; border-radius: 6px; display: block; }
+.settings-info { margin-top: 2rem; margin-bottom: 0; }
 .settings-info p { margin: 0; font-size: var(--font-size-s); color: var(--text-secondary); text-align: center; }
 
 @media (min-width: 768px) and (max-width: 1024px) {
 		.settings-title { font-size: var(--font-size-2xl); }
-		.settings-card-title { font-size: var(--font-size-l); }
-		.settings-card-description { font-size: var(--font-size-m); }
-		.settings-option-label { font-size: var(--font-size-l); }
-		.settings-option-sublabel { font-size: calc(var(--font-size-m)); }
+		.settings-page .card-title { font-size: var(--font-size-l); }
+		.settings-page .card-description { font-size: var(--font-size-m); }
+		.settings-page .toggle-label { font-size: var(--font-size-l); }
+		.settings-page .toggle-sublabel { font-size: calc(var(--font-size-m)); }
 		.settings-info p { font-size: calc(var(--font-size-s) * 1.2); }
 }
 
 @media (min-width: 1025px) {
 	.settings-title { font-size: var(--font-size-3xl); }
-	.settings-card-title { font-size: var(--font-size-2xl); }
-	.settings-card-description { font-size: var(--font-size-l) }
-	.settings-option-label { font-size: var(--font-size-l) }
-	.settings-option-sublabel { font-size: var(--font-size-m) }
+	.settings-page .card-title { font-size: var(--font-size-2xl); }
+	.settings-page .card-description { font-size: var(--font-size-l) }
+	.settings-page .toggle-label { font-size: var(--font-size-l) }
+	.settings-page .toggle-sublabel { font-size: var(--font-size-m) }
 	.settings-info p { font-size: var(--font-size-m); font-weight: 500; }
 }

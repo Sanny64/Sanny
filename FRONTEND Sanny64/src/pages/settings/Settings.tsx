@@ -1,11 +1,14 @@
-import { Moon, Sun, Languages, Check, Paintbrush } from 'lucide-react';
+import { Moon, Sun, Languages, Paintbrush } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useLanguage } from '../../hooks/useLanguage';
+import ToggleOption from '../../components/toggle';
+import Card from '../../components/card';
 import type { Language } from '../../types';
 
 export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const languageFlagsPath = `${import.meta.env.BASE_URL}lang_flags/`;
 
   const handleLanguageChange = (newLanguage: Language) => {
     setLanguage(newLanguage);
@@ -17,121 +20,75 @@ export default function Settings() {
         <h1 className="settings-title">{t.settings.title}</h1>
         
         {/* Theme Settings Section */}
-        <section className="settings-card">
-          <div className="settings-card-header">
-            <div className="settings-card-header-icon">
-              <Paintbrush size={24} />
-            </div>
-            <div>
-              <h2 className="settings-card-title">{t.settings.theme}</h2>
-              <p className="settings-card-description">
-                {t.settings.theme_description}
-              </p>
-            </div>
-          </div>
-          
+        <Card
+          icon={<Paintbrush size={24} />}
+          title={t.settings.theme}
+          description={t.settings.theme_description}
+        >
           <div className="settings-options">
-            <button
-              onClick={() => theme === 'dark' && toggleTheme()}
-              className={`settings-option ${theme === 'light' ? 'settings-option-active' : ''}`}
-              aria-label={`${t.settings.switch} ${t.settings.lightMode}`}
-              aria-pressed={theme === 'light'}
-            >
-              <div className="settings-option-content">
-                <div className="settings-option-icon">
-                  <Sun size={24} />
-                </div>
-                <div className="settings-option-text">
-                  <span className="settings-option-label">{t.settings.lightMode}</span>
-                  <span className="settings-option-sublabel">
-                    {t.settings.light_description}
-                  </span>
-                </div>
-              </div>
-              {theme === 'light' && (
-                <Check size={20} className="settings-option-check" />
-              )}
-            </button>
+            <ToggleOption
+              onToggle={() => theme === 'dark' && toggleTheme()}
+              active={theme === 'light'}
+              ariaLabel={`${t.settings.switch} ${t.settings.lightMode}`}
+              icon={<Sun size={24} />}
+              label={t.settings.lightMode}
+              sublabel={t.settings.light_description}
+            />
 
-            <button
-              onClick={() => theme === 'light' && toggleTheme()}
-              className={`settings-option ${theme === 'dark' ? 'settings-option-active' : ''}`}
-              aria-label={`${t.settings.switch} ${t.settings.darkMode}`}
-              aria-pressed={theme === 'dark'}
-            >
-              <div className="settings-option-content">
-                <div className="settings-option-icon">
-                  <Moon size={24} />
-                </div>
-                <div className="settings-option-text">
-                  <span className="settings-option-label">{t.settings.darkMode}</span>
-                  <span className="settings-option-sublabel">
-                    {t.settings.dark_description}
-                  </span>
-                </div>
-              </div>
-              {theme === 'dark' && (
-                <Check size={20} className="settings-option-check" />
-              )}
-            </button>
+            <ToggleOption
+              onToggle={() => theme === 'light' && toggleTheme()}
+              active={theme === 'dark'}
+              ariaLabel={`${t.settings.switch} ${t.settings.darkMode}`}
+              icon={<Moon size={24} />}
+              label={t.settings.darkMode}
+              sublabel={t.settings.dark_description}
+            />
           </div>
-        </section>
+        </Card>
 
         {/* Language Settings Section */}
-        <section className="settings-card">
-          <div className="settings-card-header">
-            <div className="settings-card-header-icon">
-              <Languages size={24} />
-            </div>
-            <div>
-              <h2 className="settings-card-title">{t.settings.language}</h2>
-              <p className="settings-card-description">
-                {t.settings.language_description}
-              </p>
-            </div>
-          </div>
-          
+        <Card
+          icon={<Languages size={24} />}
+          title={t.settings.language}
+          description={t.settings.language_description}
+        >
           <div className="settings-options">
-            <button
-              onClick={() => handleLanguageChange('en')}
-              className={`settings-option ${language === 'en' ? 'settings-option-active' : ''}`}
-              aria-label={`${t.settings.switch} ${t.settings.english}`}
-              aria-pressed={language === 'en'}
-            >
-              <div className="settings-option-content">
-                <div className="settings-option-text">
-                  <span className="settings-option-label">{t.settings.english}</span>
-                  <span className="settings-option-sublabel">{t.settings.global}</span>
-                </div>
-              </div>
-              {language === 'en' && (
-                <Check size={20} className="settings-option-check" />
-              )}
-            </button>
+            <ToggleOption
+              onToggle={() => handleLanguageChange('en')}
+              active={language === 'en'}
+              ariaLabel={`${t.settings.switch} ${t.settings.english}`}
+              icon={
+                <img
+                  src={`${languageFlagsPath}united-kingdom.png`}
+                  alt="UK flag"
+                  className="settings-flag-icon"
+                />
+              }
+              label={t.settings.english}
+              sublabel={t.settings.global}
+            />
 
-            <button
-              onClick={() => handleLanguageChange('de')}
-              className={`settings-option ${language === 'de' ? 'settings-option-active' : ''}`}
-              aria-label={`${t.settings.switch} ${t.settings.german}`}
-              aria-pressed={language === 'de'}
-            >
-              <div className="settings-option-content">
-                <div className="settings-option-text">
-                  <span className="settings-option-label">{t.settings.german}</span>
-                  <span className="settings-option-sublabel">{t.settings.local}</span>
-                </div>
-              </div>
-              {language === 'de' && (
-                <Check size={20} className="settings-option-check" />
-              )}
-            </button>
+            <ToggleOption
+              onToggle={() => handleLanguageChange('de')}
+              active={language === 'de'}
+              ariaLabel={`${t.settings.switch} ${t.settings.german}`}
+              icon={
+                <img
+                  src={`${languageFlagsPath}germany.png`}
+                  alt="German flag"
+                  className="settings-flag-icon"
+                />
+              }
+              label={t.settings.german}
+              sublabel={t.settings.local}
+            />
           </div>
-        </section>
+        </Card>
 
         {/* Info Section */}
-        <div className="settings-info">
+        <Card as="div" className="settings-info">
           <p>{t.settings.saved_info}</p>
-        </div>
+        </Card>
       </div>
     </div>
   );
