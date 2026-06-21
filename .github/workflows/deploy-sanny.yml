@@ -1,0 +1,44 @@
+name: Build and Deploy sanny frontend to Hetzner 
+
+on:
+  push:
+    branches:
+      - main  
+    paths:
+      - 'sanny/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm i
+        working-directory: ./sanny
+
+      - name: Lint the project
+        run: npm run lint
+        working-directory: ./sanny
+
+      - name: Build the project
+        run: npm run build
+        working-directory: ./sanny
+
+      - name: Deploy to Hetzner via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          security: loose
+          local-dir: ./sanny/dist/
+          server-dir: /public_html/
