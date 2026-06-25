@@ -1,6 +1,5 @@
-export { ThemeContext, ThemeProvider } from './ThemeProvider';
+export { ThemeContext } from './ThemeContext';
+export { ThemeProvider } from './ThemeProvider';
 export { useTheme } from './useTheme';
-export type { 
-    Theme,
-    ThemeContextType 
-} from './ThemeProvider';
+export { getThemeVariant } from './theme.utils';
+export type { Theme, ThemeContextType } from './theme.types';

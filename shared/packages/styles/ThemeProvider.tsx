@@ -1,14 +1,7 @@
 import { createContext, useState, useEffect, useLayoutEffect } from 'react';
 import Cookies from 'js-cookie';
 import type { ReactNode } from 'react';
-
-export type Theme = 'dark' | 'light';
-
-export interface ThemeContextType {
-  theme: Theme;
-  toggleTheme: () => void;
-  setTheme: (theme: Theme) => void;
-}
+import type { Theme, ThemeContextType } from './theme.types';
 
 const themeCookieOptions = {
   expires: 365,
