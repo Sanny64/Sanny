@@ -1,4 +1,4 @@
-﻿import type { Translations } from '../LanguageProvider';
+﻿import type { Translations } from '../language.types';
 
 export const de: Translations = {
   main: {
