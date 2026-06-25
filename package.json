@@ -1,0 +1,43 @@
+{
+  "name": "sanny-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "login",
+    "sanny",
+    "shared/packages/*",
+    "docs"
+  ],
+  "dependencies": {
+    "@sanny/i18n": "*",
+    "@sanny/styles": "*",
+    "@sanny/ui": "*"
+  },
+  "scripts": {
+    "dev:login": "npm run dev -w login",
+    "dev:sanny": "npm run dev -w sanny",
+    "dev:docs": "npm run start -w docs",
+    "build:shared": "npm run build -w @sanny/i18n && npm run build -w @sanny/styles && npm run build -w @sanny/ui",
+    "build:login": "npm run build:shared && npm run build -w login",
+    "build:sanny": "npm run build:shared && npm run build -w sanny",
+    "build:docs": "npm run build -w docs",
+    "serve:docs": "npm run build -w docs && npm run serve -w docs",
+    "lint:login": "npm run lint -w login",
+    "lint:sanny": "npm run lint -w sanny",
+    "lint:shared": "npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui",
+    "build": "npm run build:login && npm run build:sanny && npm run build:docs",
+    "lint": "npm run lint:login && npm run lint:sanny && npm run lint:shared",
+    "test": "npm run lint && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "^26.0.0",
+    "eslint": "^10.3.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2"
+  }
+}

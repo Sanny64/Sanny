@@ -1,9 +1,8 @@
-name: Build and Deploy sanny frontend to Hetzner (prod-environment)
-
+name: Build and Deploy sanny to Hetzner (test-environment)
 on:
   push:
     branches:
-      - main  
+      - test
     paths:
       - 'sanny/**'
       - 'shared/packages/**'
@@ -11,7 +10,7 @@ on:
       - 'package-lock.json'
 
 jobs:
-  build-and-deploy:
+  lint-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -38,7 +37,12 @@ jobs:
       - name: Build the project
         run: npm run build:sanny
 
-      - name: Deploy to Hetzner via FTP
+  deploy:
+    needs: lint-and-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hetzner via FTP (test)
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -47,4 +51,4 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./sanny/dist/
-          server-dir: /public_html/
+          server-dir: /public_html/dev/
