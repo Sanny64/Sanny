@@ -1,17 +1,16 @@
-name: Build and Deploy sanny frontend to Hetzner (prod-environment)
+name: Build and Deploy docs to Hetzner (prod-environment)
 
 on:
   push:
     branches:
-      - main  
+      - main
     paths:
-      - 'sanny/**'
-      - 'shared/packages/**'
+      - 'docs/**'
       - 'package.json'
       - 'package-lock.json'
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,18 +26,17 @@ jobs:
         run: npm ci
 
       - name: Copy favicon from root
-        run: cp ./favicon.ico ./sanny/public/
+        run: cp ./favicon.ico ./docs/static/img/
+        
+      - name: Build docs
+        run: npm run build:docs
+  
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-      - name: Lint the projects
-        run: npm run lint:sanny ; npm run lint:shared
-
-      - name: Build shared packages
-        run: npm run build:shared
-
-      - name: Build the project
-        run: npm run build:sanny
-
-      - name: Deploy to Hetzner via FTP
+    steps:
+      - name: Deploy docs to Hetzner via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -46,5 +44,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: loose
-          local-dir: ./sanny/dist/
-          server-dir: /public_html/
+          local-dir: ./docs/build/
+          server-dir: /public_html/docs/

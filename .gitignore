@@ -26,5 +26,8 @@ dist-ssr
 # Additional files to ignore
 AGENTS.md
 
-# Additonal directories to ignore
+# Additional folders to ignore
 games
+
+# Include the following folders
+!sanny/src/pages/games

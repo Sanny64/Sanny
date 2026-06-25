@@ -1,17 +1,17 @@
-name: Build and Deploy sanny frontend to Hetzner (prod-environment)
+name: Build and Deploy login to Hetzner (test-environment)
 
 on:
   push:
     branches:
-      - main  
+      - test
     paths:
-      - 'sanny/**'
+      - 'login/**'
       - 'shared/packages/**'
       - 'package.json'
       - 'package-lock.json'
 
 jobs:
-  build-and-deploy:
+  lint-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,18 +27,23 @@ jobs:
         run: npm ci
 
       - name: Copy favicon from root
-        run: cp ./favicon.ico ./sanny/public/
+        run: cp ./favicon.ico ./login/public/
 
       - name: Lint the projects
-        run: npm run lint:sanny ; npm run lint:shared
+        run: npm run lint:login ; npm run lint:shared
 
       - name: Build shared packages
         run: npm run build:shared
 
       - name: Build the project
-        run: npm run build:sanny
+        run: npm run build:login
 
-      - name: Deploy to Hetzner via FTP
+  deploy:
+    needs: lint-and-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Hetzner via FTP (test)
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -46,5 +51,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: loose
-          local-dir: ./sanny/dist/
-          server-dir: /public_html/
+          local-dir: ./login/dist/
+          server-dir: /public_html/dev/login/
