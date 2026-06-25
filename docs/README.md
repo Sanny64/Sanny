@@ -1,41 +1,35 @@
-# Website
+# Docs Site
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This docs site is built with [Docusaurus](https://docusaurus.io/) and runs as part of the root npm workspace.
 
 ## Installation
 
+From the repository root:
+
 ```bash
-yarn
+npm ci
 ```
 
 ## Local Development
 
 ```bash
-yarn start
+npm run dev:docs
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+This starts the local documentation server. Most changes are reflected live without a restart.
 
 ## Build
 
 ```bash
-yarn build
+npm run build:docs
 ```
 
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+This generates static output in the docs build directory.
 
-## Deployment
-
-Using SSH:
+## Preview
 
 ```bash
-USE_SSH=true yarn deploy
+npm run serve:docs
 ```
 
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> yarn deploy
-```
-
-If you are using GitHub pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+This builds the docs and serves the generated site locally for a final check.

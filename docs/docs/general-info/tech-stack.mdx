@@ -1,0 +1,43 @@
+---
+title: Tech Stack
+description: Explanation on what technologies the project uses.
+sidebar_position: 4
+---
+# Tech-Stack
+
+## Frontend
+- React + Typescript + Vite
+- Routing via React-Router-Dom
+- Animations via Framer-Motion
+
+## Backend
+- Fastify (TypeScript) + REST API Architecture; the api endpoints for all (sub)-domains are intended to route via *base-url*/api/v001/
+- Nginx is used for traffic management
+- Role-Based Access Control (RBAC) Middleware
+- MySQL (MariaDB + HeidiSQL)
+- Cloudflare (WAF & DDoS Protection) + Fastify-Helmet (@fastify/helmet)
+
+## Deployment
+- Frontend CI/CD via [SamKirkland FTP-Deploy-Action](https://github.com/SamKirkland/FTP-Deploy-Action) (v4.4.0)
+- Backend CI/CD via [Appleboy SHH Action](https://github.com/appleboy/ssh-action/tree/v1.0.3/) (v1.0.3)
+- Version control via [Git](https://git-scm.com) and [Github](https://github.com/Sanny64/Sanny)
+- Hosted at [Hetzner](https://www.hetzner.com) Webhosting on [Sanny64.de](https://www.sanny64.de)
+
+
+## Login
+Login is hosted here [Sanny64.de Auth-Service](https://auth.sanny64.de).
+- Google OAuth 2.0 (via Fastify-Passport / Fastify-Secure-Session) + JWT
+
+## Settings
+The settings can be accessed with /settings across all subdomains via npm package @sanny/ui.
+- Dark/Light mode ([@sanny/styles](../frontend/shared-packages/sanny/styles))
+- Accessibility settings ([@sanny/styles](../frontend/shared-packages/sanny/styles))
+- English/German ([@sanny/i18n](../frontend/shared-packages/sanny/i18n))
+- User profiles are planned to be saved in the backend: See ([/user-data](./user-data))
+
+## Error-Handling
+- Visual HTTP Error handling is done via npm package [@sanny/ui](../frontend/shared-packages/sanny/ui).
+
+---
+
+Last edit: 23.06.2026

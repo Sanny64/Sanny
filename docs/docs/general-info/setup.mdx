@@ -1,0 +1,80 @@
+---
+title: Setup
+description: Introduction to the documentation
+sidebar_position: 1
+---
+
+Clone this repository to get full access to close to all applications across this repository.<br/>You will need node.js and git installed on your machine. 
+
+---
+
+### Installation and Setup Instructions
+Installation: npm install
+
+In the root directory, run one of the workspace scripts:
+- npm run dev:sanny
+- npm run dev:login
+- npm run dev:docs
+
+Running the dev scripts will open http://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
+
+For quality checks:
+- npm run lint
+- npm run build
+- npm run test (lint & build)
+
+For local builds:
+- npm run build:sanny
+- npm run build:login
+- npm run build:docs
+- npm run serve:docs (builds the docs preemptively)
+---
+
+### Directory Structure
+```
+Sanny/ (Root Workspace)
+├── .github/                  # CI/CD Workflows & actions
+├── backend/                  # Fastify Server Engine
+│   └── src/
+│        ├── middleware/      # RBAC role guards & authentication checks
+│        └── modules/         # Encapsulated Fastify logic plugins
+│             ├── auth/       # OAuth2 & JWT handlers
+│             ├── blog/       # Public writing handlers
+│             ├── events/     # Secret /party /comfort /refreshing endpoints
+│             ├── portfolio/  # Recruiter-restricted data routes
+│             └── settings/   # Settings API for cross domain settings profiling
+│
+├── games/
+│   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
+│   └── blockrunner/          # Independent game service / repository (programming challenge)
+│
+├── login/                    # Frontend: auth.sanny64.de (Vite + React + TS)
+│   ├── public/
+│   └── src/
+│       ├── assets/           # Frontend project specific assets
+│       ├── components/       # Custom frontend project exclusive components
+│       └── pages/            # LoginPage
+│
+├── sanny/                    # Frontend: sanny64.de (Vite + React + TS)
+│   ├── public/
+│   └── src/
+│       ├── assets/           # Frontend project specific assets
+│       ├── components/       # Custom frontend project exclusive components
+│       └── pages/            # Main: Home, Blog, Games, Portfolio, Projects | Auxiliary: Party (different style)
+│
+├── shared                    # Shared custom npm packages
+│   └── packages/
+│       ├── i18n/             # Shared language context, types, utilities, and translations
+│       ├── styles/           # Shared theme context, types, utilities, and styling state
+│       └── ui/               # Shared UI components, pages, and component/page styles
+│           ├── components/   # Buttons, TextInput, etc.
+│           ├── pages/        # Settings, Errors
+│           └── styles/
+│
+├── .gitignore                # Global git ignoring rules
+└── README.md                 # Project roadmap & documentation
+```
+
+---
+
+Last edit: 24.06.2026

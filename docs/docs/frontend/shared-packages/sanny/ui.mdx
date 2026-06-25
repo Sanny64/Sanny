@@ -1,0 +1,168 @@
+---
+title: ui
+description: Information on the shared custom npm package @sanny/ui.
+sidebar_position: 3
+---
+
+# @sanny/ui
+
+`@sanny/ui` is a shared npm package that provides UI components used across all frontend projects.<br/>
+It keeps the overall component styles in sync and supports shared HTTP error and settings handling.
+
+---
+
+## What it exports
+
+The package’s public API exports shared UI components and shared UI pages used by frontend apps.<br/>
+It also ships the CSS used by those components and pages.
+
+- `components`
+  - Standard components like `Buttons` and `TextInputs`.
+  - Advanced components like the basic settings overlay, the page footer, and more, based on the standard components.
+- `pages`: Full pages that are used in all frontend projects, for example `Error.tsx` and `Settings.tsx`.
+- `styles`: CSS styles for those shared components and pages.
+
+---
+
+## Usage
+
+In a page you already set up routing for, import the needed component, for example `Button`:
+```typescript
+{/* Example Hello.tsx */}
+import { Button } from '@sanny/ui';
+import { useTheme, getThemeVariant } from '@sanny/styles';
+import { useLanguage, translations } from '@sanny/i18n';
+
+function sayHello() {
+  alert('Hello World');
+}
+
+export default function Hello() {
+  const { theme, toggleTheme } = useTheme(); // only needed if a component changes the global theme or its own theme.
+  const themeVariant = getThemeVariant(theme); // only needed if components change style based on global theme changes.
+  const { language } = useLanguage();
+  const t = translations[language]; // only needed if components change text based on global language changes.
+  return (
+    <div className="content">
+      // Standard button
+      <Button
+        className="say-hello-button"
+        aria-label="Click to say hello as an alert" // aria-label
+        variant={themeVariant} // could be 'primary' or 'secondary'; 'ghost' can be used to hide the button.
+        onClick={sayHello}
+      >
+        Hello World Button
+      </Button>
+      
+      // Dynamic button rendering
+      <Button
+        className="toggle-theme-button"
+        aria-label={t.shared.setupProbe.descriptionToggleThemeButton(theme)} // switches the description based on the theme
+        variant={themeVariant} // switches the look of the button (or any other component) based on the theme
+        onClick={toggleTheme} // switches the theme
+      >
+        {t.shared.setupProbe.toggleThemeButton(theme)} // switches the displayed button text based on the theme
+      </Button>
+    </div>
+  );
+}
+```
+
+As usual, for `onClick` functions that pass a parameter, use a setup like this:
+```tsx
+onClick={() => myFunction(parameter)}
+```
+
+For simple functions like `sayHello()`, you do not need to externalize the function outside the button:
+```tsx
+// standard
+onClick={() => 
+  alert('Button clicked')
+}
+
+// In an JS expression wrapper
+onClick={() => {
+  alert('Button clicked'); // allows you to use semicolons and other JS-specific syntax.
+}}
+```
+In general, externalizing functions is better for consistency and maintainability.
+
+---
+
+## Notes for developers
+Make sure to always add an `aria-label` to buttons without sufficient visible context, as they are commonly used by screen readers.
+
+Shared UI components must include route-scoped color divergence without changing layout behavior:
+- Shared component CSS reads component-level tokens with global fallbacks.
+
+This means that when implementing shared UI components, you must include color variables like this:
+```tsx
+.component--primary {
+  background: var(--component-primary-bg, var(--color-primary)); // if `--component-primary-bg` is set in an auxiliary route CSS file such as `party.css`, it uses that color.
+  color: var(--component-primary-text, white); // if the first variable is not set anywhere, it falls back to `var(--color-primary)`.
+}
+
+.component--secondary {
+  background: var(--component-secondary-bg, var(--color-surface-2));
+  color: var(--component-secondary-text, var(--color-text));
+}
+```
+
+These tokens are consumed in the shared UI component CSS and can be set in route classes like `.auxiliary-layout--auxiliary-page-name`:
+```css
+.auxiliary-layout--auxiliary-page-name {
+	--auxiliary-layout-bg:
+		radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
+		linear-gradient(180deg, #0c7a00 0%, #059600 100%);
+	--auxiliary-layout-text: #eff8ee;
+	--component-primary-bg: #ebf8e8;
+	--component-primary-text: #0d5b00;
+	--component-secondary-bg: rgba(10, 79, 4, 0.45);
+	--component-secondary-text: #eff8ee;
+}
+```
+
+Unlike `Main.tsx`, which stays mostly the same, `Auxiliary.tsx` files can diverge heavily based on the routes they render:
+```tsx
+import { Outlet, useLocation } from 'react-router-dom';
+import '@sanny/styles/globals.css';
+import '@sanny/styles/auxiliary.css';
+import '../styles/auxiliary-pages-one-to-three.css';
+
+export default function Layout() {
+  const { pathname } = useLocation();
+
+  function getRouteClass() {
+    switch (pathname) {
+      case '/auxiliary-page-1':
+        return 'auxiliary-layout--1';
+      case '/auxiliary-page-2':
+        return 'auxiliary-layout--2';
+      case '/auxiliary-page-3':
+        return 'auxiliary-layout--3';
+      default:
+        try {
+          console.error('Unknown route:', pathname);
+          return '';
+        } catch (e) {
+          console.error('Error occurred while determining route class:', e);
+          return '';
+        }
+    }
+  }
+
+  const routeClass = getRouteClass();
+
+  return (
+    <div className={`auxiliary-layout ${routeClass}`}>
+      <Outlet />
+    </div>
+  );
+}
+```
+
+More information about route behavior can be found [here](/docs/frontend/projects/sanny#special-behavior).
+
+---
+
+Last edit: 24.06.2026

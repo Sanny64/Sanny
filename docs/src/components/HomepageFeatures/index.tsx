@@ -11,12 +11,11 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
+    title: 'What is Sanny64?',
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Sanny64 is my private website, which I mainly use as a portfolio, a helper for me to host events and for you to play some of my games.
       </>
     ),
   },

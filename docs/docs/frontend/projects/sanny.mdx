@@ -1,0 +1,135 @@
+---
+title: Sanny
+description: Information on the sanny project.
+sidebar_position: 2
+---
+# Sanny
+## Use cases
+### Portfolio
+(/home, /portfolio, /projects)<br/>
+Its main purpose is to showcase my programming skills and architecture knowledge in setting up full stack applications.
+
+### Games Archive
+(/games, game.sanny64.de)<br/>
+I also program a game for fun here and there and therefore it's used as a games archive as well.
+
+### Event Organization Helper
+(/party, /comfort, /refreshing)<br/>
+As a private event host, it's my mission to have everyone feel as safe and welcome as possible.<br/>Which is why I introduced care kits at my parties, which will be organized through here.
+
+---
+
+## Special Behavior
+The Sanny frontend project uses two layout wrappers (`Main.tsx` and `Auxiliary.tsx`) that share the same layout baseline.
+
+Both wrappers import shared styles:
+- `@sanny/styles/globals.css`
+- one layout stylesheet (`@sanny/styles/main.css` or `@sanny/styles/auxiliary.css`)
+
+The difference is intentionally color-only for auxiliary routes:
+- `auxiliary.css` exposes route-scoped variables for background and text.
+- route styles provide values for those variables.
+
+Current auxiliary layout pattern:
+```typescript
+{/* Example Auxiliary.tsx */}
+
+import { Outlet, useLocation } from 'react-router-dom';
+import '@sanny/styles/globals.css';
+import '@sanny/styles/auxiliary.css';
+import '../styles/auxiliary-page-one.css';    // contains .auxiliary-layout--1
+import '../styles/auxiliary-page-two.css';    // contains .auxiliary-layout--2
+import '../styles/auxiliary-page-three.css';  // contains .auxiliary-layout--3
+
+export default function Layout() {
+  const { pathname } = useLocation();
+
+  function getRouteClass() {
+    switch (pathname) {
+      case '/auxiliary-page-1':          // set route in web url
+        return 'auxiliary-layout--1';    // layout name set in (here) auxiliary-page-one.css
+      case '/auxiliary-page-2':
+        return 'auxiliary-layout--2';
+      case '/auxiliary-page-3':
+        return 'auxiliary-layout--3';
+      default:
+        try {
+          console.error('Unknown route:', pathname);
+          return '';
+        } catch (e) {
+          console.error('Error occurred while determining route class:', e);
+          return '';
+        }
+    }
+  }
+
+  const routeClass = getRouteClass();
+
+  return (
+    <div className={`auxiliary-layout ${routeClass}`}>
+      <Outlet />
+    </div>
+  );
+}
+```
+
+Example `/auxiliary-page-1` route-scoped color pattern:
+```css
+{/* Example: auxiliary-page-one.css (green) */}
+.auxiliary-layout--1 {
+	--auxiliary-layout-bg:
+		radial-gradient(circle at top, rgba(0, 0, 0, 0.04), transparent 42%),
+		linear-gradient(180deg, #eaf9ec 0%, #d5f3d9 100%);
+	--auxiliary-layout-text: #0d5b00;
+	--component1-primary-bg: #0d5b00;
+	--component1-primary-text: #ebf8e8;
+	--component1-secondary-bg: rgba(13, 91, 0, 0.08);
+	--component1-secondary-text: #0d5b00;
+  --component2-primary-bg: rgba(255,255,255,0.02);
+	--component2-primary-text: #cfe8d0;
+	--component2-secondary-bg: rgba(10, 79, 4, 0.12);
+	--component2-secondary-text: #cfe8d0;
+  ...
+} // light mode green
+
+html[data-theme='dark'] .auxiliary-layout--1,
+html.dark .auxiliary-layout--1 {
+	--auxiliary-layout-bg:
+		radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
+		linear-gradient(180deg, #0f2b0c 0%, #163a0f 100%);
+	--auxiliary-layout-text: #cfe8d0;
+	--component1-primary-bg: rgba(255,255,255,0.03);
+	--component1-primary-text: #cfe8d0;
+	--component1-secondary-bg: rgba(10, 79, 4, 0.22);
+	--component1-secondary-text: #cfe8d0;
+	--component2-primary-bg: rgba(255,255,255,0.02);
+	--component2-primary-text: #cfe8d0;
+	--component2-secondary-bg: rgba(10, 79, 4, 0.12);
+	--component2-secondary-text: #cfe8d0;
+  ...
+} // dark mode green
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) .auxiliary-layout--1 {
+		--auxiliary-layout-bg:
+			radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
+			linear-gradient(180deg, #1e381b 0%, #163a0f 100%);
+		--auxiliary-layout-text: #cfe8d0;
+		--component1-primary-bg: rgba(255,255,255,0.03);
+		--component1-primary-text: #cfe8d0;
+		--component1-secondary-bg: rgba(10, 79, 4, 0.22);
+		--component1-secondary-text: #cfe8d0;
+		--component2-primary-bg: rgba(255,255,255,0.02);
+		--component2-primary-text: #cfe8d0;
+		--component2-secondary-bg: rgba(10, 79, 4, 0.12);
+		--component2-secondary-text: #cfe8d0;
+    ...
+	} // mirrored dark mode values in case dark mode is not set manually, but `prefers-color-scheme: dark`
+}
+```
+
+This allows shared UI components (for example `SharedSetupProbe`) to keep the same layout while diverging in colors per auxiliary route.
+
+---
+
+Last edit: 24.06.2026

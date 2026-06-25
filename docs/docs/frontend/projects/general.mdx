@@ -1,0 +1,55 @@
+---
+title: General
+description: General information on all frontend projects.
+sidebar_position: 1
+---
+
+## All frontend projects
+... have the same structure:
+
+- ReactJS + TypeScript + Vite
+- most configs are extended versions of root configs 
+- index.html remains unchanged
+- main.tsx -> context provider
+- App.tsx -> Routing component
+- All `{ children }` (sub-pages) are routed through a layout .tsx file, e.g., Main.tsx (globals.css + main layout):
+```typescript
+{/* Main.tsx */}
+import { Outlet } from 'react-router-dom';
+import '@sanny/styles/globals.css';
+import '@sanny/styles/main.css';
+
+export default function Layout() {
+  return (
+    <div className="layout">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <main id="main-content" className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+```
+This is then used in App.tsx:
+```typescript
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Main from './pages/Main';
+import Sample from './pages/sample/Sample';
+
+<BrowserRouter>
+  <Route element={<Main />}> //has the globals.css + main.css imports
+    <Route path="*" element={<Sample />} /> //therefore enforces the shared layout baseline
+  </Route>
+</BrowserRouter>
+```
+
+---
+
+## Auxiliary Route Themes
+More info on route-scoped color theming with the same shared layout baseline: [Click here](./sanny#special-behavior)
+
+--- 
+
+Last edit: 24.06.2026
