@@ -1,0 +1,16 @@
+.sct {
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font: inherit;
+}
+
+.sct--primary {
+  background: var(--sct-primary-bg, var(--color-primary));
+  color: var(--sct-primary-text, white);
+}
+
+.sct--secondary {
+  background: var(--sct-secondary-bg, var(--color-surface-2));
+  color: var(--sct-secondary-text, var(--color-text));
+}
