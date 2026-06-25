@@ -1,0 +1,47 @@
+.auxiliary-layout--refreshing {
+	--auxiliary-layout-bg:
+		radial-gradient(circle at top, rgba(0, 0, 0, 0.06), transparent 36%),
+		linear-gradient(180deg, #eaf6fb 0%, #dff3f5 100%);
+	--auxiliary-layout-text: #005778;
+	--btn-primary-bg: #005778;
+	--btn-primary-text: #e6f6fa;
+	--btn-secondary-bg: rgba(0, 87, 120, 0.08);
+	--btn-secondary-text: #005778;
+	--sct-primary-bg: #005778;
+	--sct-primary-text: #e6f6fa;
+	--sct-secondary-bg: rgba(0, 87, 120, 0.08);
+	--sct-secondary-text: #005778;
+}
+
+html[data-theme='dark'] .auxiliary-layout--refreshing,
+html.dark .auxiliary-layout--refreshing {
+	--auxiliary-layout-bg:
+		radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 36%),
+		linear-gradient(180deg, #012731 0%, #00363e 100%);
+	--auxiliary-layout-text: #bfeff4;
+	--btn-primary-bg: rgba(0,0,0,0.18);
+	--btn-primary-text: #bfeff4;
+	--btn-secondary-bg: rgba(2, 58, 85, 0.22);
+	--btn-secondary-text: #bfeff4;
+	--sct-primary-bg: rgba(0,0,0,0.12);
+	--sct-primary-text: #bfeff4;
+	--sct-secondary-bg: rgba(2, 58, 85, 0.12);
+	--sct-secondary-text: #bfeff4;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root:not([data-theme]) .auxiliary-layout--refreshing {
+		--auxiliary-layout-bg:
+			radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 36%),
+			linear-gradient(180deg, #012731 0%, #00363e 100%);
+		--auxiliary-layout-text: #bfeff4;
+		--btn-primary-bg: rgba(0,0,0,0.18);
+		--btn-primary-text: #bfeff4;
+		--btn-secondary-bg: rgba(2, 58, 85, 0.22);
+		--btn-secondary-text: #bfeff4;
+		--sct-primary-bg: rgba(0,0,0,0.12);
+		--sct-primary-text: #bfeff4;
+		--sct-secondary-bg: rgba(2, 58, 85, 0.12);
+		--sct-secondary-text: #bfeff4;
+	}
+}
