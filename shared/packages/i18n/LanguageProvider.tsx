@@ -1,24 +1,9 @@
-import { createContext, useEffect, useState } from 'react';
-import { de } from './locales/de';
-import { en } from './locales/en';
 import Cookies from 'js-cookie';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-
-export type Language = 'en' | 'de';
-export type Translations = typeof en;
-
-export interface LanguageContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  t: Translations;
-}
-
-export const translations: Record<Language, Translations> = {
-  en,
-  de,
-};
-
-export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+import { LanguageContext } from './LanguageContext';
+import { resolveSystemLanguage, translations } from './language.utils';
+import type { Language } from './language.types';
 
 const languageCookieOptions = {
   expires: 365,
@@ -36,13 +21,6 @@ function persistLanguage(lang: Language) {
 
 function applyLanguageToDocument(lang: Language) {
   document.documentElement.lang = lang;
-}
-
-function resolveSystemLanguage(): Language {
-  if (typeof navigator === 'undefined') return 'en';
-
-  const systemLanguage = navigator.languages?.[0] ?? navigator.language;
-  return systemLanguage?.toLowerCase().startsWith('de') ? 'de' : 'en';
 }
 
 interface LanguageProviderProps {
