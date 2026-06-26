@@ -1,27 +1,11 @@
-import Cookies from 'js-cookie';
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
+import { resolveStoredLanguage, resolveSystemLanguage, applyLanguageToDocument, persistLanguage } from './language.utils';
 import { LanguageContext } from './LanguageContext';
-import { resolveSystemLanguage, translations } from './language.utils';
+import { translations } from './locales/index';
+import type { ReactNode } from 'react';
 import type { Language } from './language.types';
 
-const languageCookieOptions = {
-  expires: 365,
-  path: '/',
-  sameSite: 'lax' as const,
-};
-
-const languageStorageKey = 'language';
-
-function persistLanguage(lang: Language) {
-  Cookies.set('language', lang, languageCookieOptions);
-  localStorage.setItem(languageStorageKey, lang);
-  document.documentElement.lang = lang;
-}
-
-function applyLanguageToDocument(lang: Language) {
-  document.documentElement.lang = lang;
-}
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 interface LanguageProviderProps {
   children: ReactNode;
@@ -29,31 +13,13 @@ interface LanguageProviderProps {
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const storedCookie = Cookies.get('language') as Language | undefined;
-    const storedLocal = localStorage.getItem(languageStorageKey) as Language | null;
-
-    if (storedCookie === 'en' || storedCookie === 'de') {
-      // Mirror cookie -> localStorage when cookie is present or changed
-      if (storedLocal !== storedCookie) {
-        try {
-          localStorage.setItem(languageStorageKey, storedCookie);
-        } catch {
-          // ignore storage errors (e.g. private mode)
-        }
-      }
-      return storedCookie;
-    }
-
-    if (storedLocal === 'en' || storedLocal === 'de') {
-      // No cookie set: initialize cookie from existing localStorage value
-      Cookies.set('language', storedLocal, languageCookieOptions);
-      return storedLocal;
-    }
+    const storedLanguage = resolveStoredLanguage();
+    if (storedLanguage) return storedLanguage;
 
     return resolveSystemLanguage();
   });
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     applyLanguageToDocument(language);
   }, [language]);
 
