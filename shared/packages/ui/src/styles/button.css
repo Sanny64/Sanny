@@ -10,12 +10,12 @@
 }
 
 .btn--primary {
-  background: var(--btn-primary-bg, var(--color-primary));
+  background: var(--btn-primary-bg, var(--color-btn-primary));
   color: var(--btn-primary-text, white);
 }
 
 .btn--secondary {
-  background: var(--btn-secondary-bg, var(--color-surface-2));
+  background: var(--btn-secondary-bg, var(--color-btn-secondary));
   color: var(--btn-secondary-text, var(--color-text));
 }
 
