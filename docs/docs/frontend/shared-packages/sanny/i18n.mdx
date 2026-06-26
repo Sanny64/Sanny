@@ -1,0 +1,160 @@
+---
+title: i18n
+description: Information on the shared custom npm package @sanny/i18n.
+sidebar_position: 2
+---
+
+# @sanny/i18n
+
+`@sanny/i18n` is a shared npm package that provides the language context, provider, hook, English and German translations, and the supporting language types and utilities.<br/>
+It persists the selected language in cookies and localStorage and keeps `<html lang="...">` in sync with the active language.
+
+---
+
+## What it exports
+
+The package’s public API is centered around `LanguageProvider`, `useLanguage`, `LanguageContext`, and `translations`. It also exports the `Language`, `LanguageContextType`, and `Translations` TypeScript types for safer app integration.
+
+- `LanguageProvider`: wraps the app and manages language state.
+- `useLanguage()`: reads the current language context and throws if used outside the provider.
+- `LanguageContext`: the React context used internally by the hook and provider.
+- `translations`: contains the available locale dictionaries for `en` and `de`.
+- `Language` / `LanguageContextType` / `Translations`: shared types used by consumers and helper code.
+
+---
+
+## Supported languages
+
+The package currently supports two languages: English (`en`) and German (`de`).<br/>
+The English and German locale files must cover the exact same structure.<br/>
+This includes sections like `main`, `auxiliary`, `login`, and `shared`, which makes it easy to reference keys consistently across the app.<br/>
+This setup lets developers update only the locale files.<br/>
+Any different setup would require redefining the `Translations` object for every new translation.
+
+| Language | Code | Notes |
+|---|---|---|
+| English | `en` | General English translation and the default fallback if no browser preference is set |
+| German | `de` | Chosen when the browser language starts with `de`, or when explicitly selected. |
+
+---
+
+## How it works
+
+When the provider initializes, it first checks the `language` cookie and then localStorage.<br/>
+If neither value exists, it falls back to the browser’s system language.<br/>
+If no stored browser preference exists, it resolves to English as the website’s default fallback.
+
+When the language changes, the provider:
+- Saves the value to the `language` cookie for 365 days.
+- Mirrors the value into localStorage.
+- Updates `document.documentElement.lang` to match the active locale.
+
+---
+
+## Usage
+
+In `main.tsx`, wrap your `App.tsx` inside `LanguageProvider`:
+
+```typescript
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { LanguageProvider } from '@sanny/i18n'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    {/* Context provider */}
+    <LanguageProvider>
+        <App />
+    </LanguageProvider>
+  </StrictMode>,
+)
+```
+
+Then within every page that uses translations, derive `t` as follows:
+```typescript
+import { useLanguage, translations } from '@sanny/i18n';
+import { SharedSetupProbe } from '@sanny/ui';
+
+export default function Sample() {
+  const { language } = useLanguage();
+  const t = translations[language];
+  return (
+    <div className="content">
+      {t.main.sample}
+      <SharedSetupProbe />
+    </div>
+  );
+}
+```
+
+The hook is designed to be used only under the provider; otherwise it throws a clear runtime error.
+
+---
+
+## Translation structure
+
+The locale files follow the same nested shape, which helps keep UI text organized and predictable. The translations include plain strings and function-based entries for dynamic labels such as theme toggles and language switches.
+
+Examples of translated areas include:
+```ts
+// standard
+main: {
+    sample: 'Sample'
+} // called with {t.main.sample}
+
+// nested
+auxiliary: {
+    sample: {
+      title: 'Sample',
+      example2: {
+        title: 'example2'
+      },
+    }
+} // called with {t.auxiliary.sample.example2}
+
+// dynamic
+settings: {
+    title: 'Settings',
+    switchLanguageButton: (nextLanguage: string): string =>
+        nextLanguage === 'en' ? 'English' : 'German' // alternates between the button text: 'English' and 'German'
+} // called with {t.settings.switchLanguageButton(nextLanguage)}
+```
+The dynamic naming could be implemented like this:
+```typescript
+<Button
+  className="switch-language-button"
+  aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(nextLanguage)}
+  variant="primary" // this makes it different from regular buttons.
+  onClick={() => setLanguage(nextLanguage)}
+> // Button is a shared UI component from @sanny/ui available to all frontend projects.
+{t.shared.setupProbe.switchLanguageButton(nextLanguage)}
+</Button>
+```
+
+---
+
+## Package API
+
+A typical consumer import looks like this:
+
+```ts
+import {
+  useLanguage,
+  translations,
+} from '@sanny/i18n';
+```
+
+---
+
+## Notes for developers
+
+The provider depends on browser APIs such as `cookies`, `localStorage`, `document`, and `navigator`, so it is intended for client-side use.
+The translation types are derived from the English locale, which helps keep locale files aligned as the package grows.
+If you add a new locale, you must keep the exact same nested key structure as the English locale so existing `t.some.path` lookups remain valid.
+
+Shared i18n state is split across dedicated source files: `LanguageContext.tsx` for the React context, `LanguageProvider.tsx` for state and persistence, `useLanguage.ts` for consumption, `language.types.ts` for shared types, and `language.utility.ts` for the translations map and language helper.
+
+---
+
+Last edit: 23.06.2026

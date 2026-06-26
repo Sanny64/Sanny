@@ -1,0 +1,31 @@
+#root {
+  width: 100%;
+  min-height: 100svh;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.layout {
+  width: 100%;
+  max-width: 1126px;
+  margin: 0 auto;
+  min-height: 100svh;
+  text-align: center;
+  border-inline: none;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+

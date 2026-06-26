@@ -1,0 +1,36 @@
+#root {
+	width: 100%;
+	min-height: 100svh;
+	display: flex;
+	justify-content: center;
+	box-sizing: border-box;
+}
+
+.auxiliary-layout {
+	width: 100%;
+	max-width: 1126px;
+	margin: 0 auto;
+	min-height: 100svh;
+	text-align: center;
+	border-inline: none;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	isolation: isolate;
+	background: transparent;
+	color: var(--auxiliary-layout-text, inherit);
+	box-sizing: border-box;
+}
+
+.auxiliary-layout::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	z-index: -1;
+	background: var(--auxiliary-layout-bg, transparent);
+	pointer-events: none;
+}
+
+body {
+	margin: 0;
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@sanny/styles",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": ["*.css"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./globals.css": "./globals.css",
+    "./main.css": "./main.css",
+    "./auxiliary.css": "./auxiliary.css",
+    "./party.css": "./party.css"
+  },
+  "files": [
+    "dist",
+    "globals.css",
+    "main.css",
+    "auxiliary.css",
+    "party.css"
+  ],
+  "dependencies": {
+    "@sanny/i18n": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  },
+  "scripts": {
+    "lint": "eslint --config ../../eslint.shared.config.js .",
+    "build": "tsc -p tsconfig.json"
+  }
+}

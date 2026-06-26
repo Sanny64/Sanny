@@ -1,0 +1,182 @@
+---
+title: styles
+description: Information on the shared custom npm package @sanny/styles.
+sidebar_position: 1
+---
+
+# @sanny/styles
+
+`@sanny/styles` is a shared npm package that provides the theme context, provider, hook, shared CSS entrypoints, and supporting theme types and utilities.<br/>
+It keeps the active theme in sync with `document.documentElement` and persists the selected theme in both cookies and localStorage.
+
+---
+
+## What it exports
+
+The package’s public API is centered around `ThemeProvider`, `useTheme`, `ThemeContext`, and `getThemeVariant`.<br/>
+It also exports the `Theme` and `ThemeVariant` TypeScript types for safer app integration.
+
+- `ThemeProvider`: wraps the app and manages theme state.
+- `useTheme()`: reads the current theme context and throws if used outside the provider.
+- `ThemeContext`: the React context used internally by the hook and provider.
+- `getThemeVariant(theme)`: maps the current theme to the shared UI variant contract.
+- `Theme` / `ThemeVariant`: shared types used by consumers and helper code.
+
+---
+
+## Supported themes
+
+The package currently supports two themes: light and dark.<br/>
+The theme value is stored as `Theme = 'light' | 'dark'` and is treated as the source of truth for all theme-aware UI.
+
+| Theme | Value | Notes |
+|---|---|---|
+| Light | `light` | Default visual mode when no stored preference exists and the system preference cannot be resolved. |
+| Dark | `dark` | Applied when selected by the user or when the system prefers a dark color scheme. |
+
+---
+
+## How it works
+
+When the provider initializes, it checks the theme cookie first and then localStorage.<br/>
+If neither value exists, it falls back to the browser’s `prefers-color-scheme` setting.<br/>
+If no system preference is available, it resolves to light mode as the default fallback.
+
+When the theme changes, the provider:
+- Saves the value to the `theme` cookie for 365 days.
+- Mirrors the value into localStorage.
+- Updates `document.documentElement` with `data-theme="..."`.
+- Keeps the `.dark` class in sync for styles that expect a dark-mode class.
+
+The theme provider listens for system theme changes only when there is no stored preference, so the UI can follow the browser automatically in that case.
+
+---
+
+## Styling system
+
+The package ships with three relevant CSS entrypoints:
+- `globals.css`: base visual system and theme-dependent CSS variables.
+- `main.css`: shared layout shell for pages routed through `Main.tsx`.
+- `auxiliary.css`: shared layout shell for pages routed through `Auxiliary.tsx`.
+
+`main.css` and `auxiliary.css` use the same layout baseline with the same centered geometry and sizing.<br/>
+They diverge only through route-scoped color variables, for example from `party.css`.
+
+Theme variables in `globals.css` power text colors, background colors, borders, code blocks, accents, shadows, and reusable surface tokens.
+
+Examples of shared variables include:
+```css
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --accent: #aa3bff;
+  --color-text: var(--text);
+  --color-primary: var(--accent);
+}
+```
+
+In dark mode, the same variables are overridden through `html[data-theme='dark']` and `html.dark`:
+
+```css
+html[data-theme='dark'],
+html.dark {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --accent: #c084fc;
+  color-scheme: dark;
+}
+```
+
+The stylesheet also includes:
+- Base document styling for `body`, `#root`, headings, paragraphs, and code blocks.
+- Responsive typography adjustments for tablet and desktop widths.
+- Reduced-motion handling for users who prefer less animation.
+- A dark-mode fallback using `prefers-color-scheme` when no explicit theme has been stored.
+
+For all pages importing `globals.css`, `prefers-reduced-motion` is respected.
+If you route your pages through `Main.tsx` (see below), an invisible `.skip-link` is added for accessibility.
+
+---
+
+## Usage
+
+In `main.tsx`, import the provider once and wrap your app with it:
+```typescript
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { ThemeProvider } from '@sanny/styles'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  </StrictMode>,
+)
+```
+
+Then import `globals.css` and `main.css` in `Main.tsx` to enforce the shared layout baseline on all routed subpages:
+```typescript
+import { Outlet } from 'react-router-dom';
+import '@sanny/styles/globals.css';
+import '@sanny/styles/main.css';
+
+export default function Layout() {
+  return (
+    <div className="layout">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <main id="main-content" className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+```
+
+In `App.tsx`, establish a routing setup like this:
+```typescript
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import Main from './pages/Main'
+import Sample from './pages/sample/Sample'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Main />}> // has the shared globals.css and main.css import
+          <Route path="/" element={<Sample />} /> // therefore enforces the shared layout baseline on this as well
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default App
+
+```
+The hook is designed to be used only under the provider; otherwise it throws a clear runtime error.
+
+---
+
+## Auxiliary Route Color Overrides
+For route-specific color themes on top of the same layout baseline, see [special behavior](/docs/frontend/projects/sanny#special-behavior).
+
+---
+
+## Notes for developers
+
+The provider depends on browser APIs such as `cookies`, `localStorage`, `document`, `window`, and `matchMedia`, so it is intended for client-side use.
+Theme persistence is synchronized between cookie and localStorage to keep the active mode stable across reloads and sessions.
+Because the theme is applied to the root document element, app-wide styling can react consistently without passing theme props through every component.
+Shared theme state is split across dedicated source files: `ThemeContext.tsx` for the React context, `ThemeProvider.tsx` for state and persistence, `useTheme.ts` for consumption, `theme.types.ts` for shared types, and `theme.utils.ts` for pure helpers like `getThemeVariant`.
+
+---
+
+Last edit: 24.06.2026
