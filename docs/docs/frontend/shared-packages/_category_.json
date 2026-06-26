@@ -1,8 +1,8 @@
 {
-    "label": "Shared Packages",
-    "position": 2,
-    "link": {
-        "type": "generated-index",
-        "description": "Here you can find all documentation related to the shared packages."
-    }
+  "label": "Shared Packages",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Here you can find all documentation related to the shared packages."
+  }
 }

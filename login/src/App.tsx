@@ -1,7 +1,7 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Main from './pages/Main'
-import LoginPage from './pages/loginPage/LoginPage'
-import { Error } from '@sanny/ui';
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Main from "./pages/Main";
+import LoginPage from "./pages/loginPage/LoginPage";
+import { Error } from "@sanny/ui";
 
 function App() {
   return (
@@ -14,7 +14,7 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

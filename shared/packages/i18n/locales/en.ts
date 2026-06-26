@@ -1,61 +1,61 @@
 ﻿export const en = {
   main: {
-    home: 'Home',
-    portfolio: 'Portfolio',
+    home: "Home",
+    portfolio: "Portfolio",
     projects: {
-      title: 'Projects',
+      title: "Projects",
       smnow: {
-        title: 'SMNow'
+        title: "SMNow",
       },
       seos: {
-        title: 'SEOS'
+        title: "SEOS",
       },
       sau: {
-        title: 'SAU'
+        title: "SAU",
       },
       proscrum: {
-        title: 'Proscrum'
+        title: "Proscrum",
       },
       haptigation: {
-        title: 'Haptigation'
-      }
+        title: "Haptigation",
+      },
     },
-    blog: 'Blog',
-    games: 'Games',
+    blog: "Blog",
+    games: "Games",
   },
   auxiliary: {
     party: {
-      title: 'Party',
+      title: "Party",
       refreshing: {
-        title: 'Refreshing Kit'
+        title: "Refreshing Kit",
       },
       comfort: {
-        title: 'Period Comfort Kit'
-      }
-    }
+        title: "Period Comfort Kit",
+      },
+    },
   },
   login: {
-    LoginPage: 'Login Page',
+    LoginPage: "Login Page",
   },
   shared: {
     setupProbe: {
-      title: 'Setup Check',
-      theme: 'Theme',
-      language: 'Language',
+      title: "Setup Check",
+      theme: "Theme",
+      language: "Language",
       toggleThemeButton: (theme: string): string =>
-        theme === 'dark' ? 'Light Mode' : 'Dark Mode',
+        theme === "dark" ? "Light Mode" : "Dark Mode",
       descriptionToggleThemeButton: (theme: string): string =>
-        theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+        theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
       switchLanguageButton: (nextLanguage: string): string =>
-        nextLanguage === 'en' ? 'English' : 'German',
+        nextLanguage === "en" ? "English" : "German",
       descriptionSwitchLanguageButton: (nextLanguage: string): string =>
-        nextLanguage === 'en' ? 'Switch to English' : 'Switch to German'
+        nextLanguage === "en" ? "Switch to English" : "Switch to German",
     },
     settings: {
-      title: 'Settings',
+      title: "Settings",
     },
     errors: {
-      title: 'Error Handler',
-    }
-  }
-}
+      title: "Error Handler",
+    },
+  },
+};

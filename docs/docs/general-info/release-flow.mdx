@@ -24,18 +24,21 @@ The goal is to keep `main` very tidy, support a real web test environment, and k
 This project uses `dev -> test -> main`.
 
 ### `dev`
+
 - Daily development branch.
 - Feature work lands here first.
 - Commit history can be messy.
 - Nothing in `dev` is considered release-ready until it has been promoted to `test`.
 
 ### `test`
+
 - Release-candidate branch.
 - Deploys the public test environment.
 - Used to verify the exact release on the web before production.
 - Fixes for release-candidate issues land here first.
 
 ### `main`
+
 - Production branch only.
 - Kept clean and readable.
 - Updated only by squash-merging `test` into `main`.
@@ -46,6 +49,7 @@ This project uses `dev -> test -> main`.
 ## Deployment mapping
 
 ### Test environment
+
 A push to `test` deploys the internet-accessible (in the future login-secured) test environment.
 
 - `sanny` -> test site.
@@ -54,13 +58,14 @@ A push to `test` deploys the internet-accessible (in the future login-secured) t
 - Backend test deployment is provisional and may stay manual or limited while the backend workflow is finalized.
 
 ### Production
+
 A push to `main` deploys production.
 
 - `sanny` -> production site.
 - `login` -> production site.
 - `docs` -> production site.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
-- Backend production deployment is provisional for now. The test and deployment pipeline will only trigger deployment on manual trigger. 
+- Backend production deployment is provisional for now. The test and deployment pipeline will only trigger deployment on manual trigger.
 
 ---
 
@@ -69,6 +74,7 @@ A push to `main` deploys production.
 `shared/packages/**` always affects frontend builds.
 
 That means:
+
 - Any relevant change in `shared/packages/**` must trigger the frontend pipeline.
 - Shared packages are not deployed manually on their own.
 - If a shared package changes, the dependent frontend must rebuild in test and production.
@@ -80,60 +86,76 @@ This keeps shared code in sync with the apps that consume it.
 ## Release flow
 
 ### 1. Build work on `dev`
+
 - Create a feature branch from `dev`.
-    - `feat/<name>`
+  - `feat/<name>`
 - Make your changes.
 - Merge the feature branch back into `dev`.
 
 ### 2. Promote `dev` to `test`
+
 - When you want a release candidate, merge `dev` into `test`.
 - Push `test`.
 - The test environment deploys automatically.
 
 ### 3. Test on the web
+
 - Open the test environment in a browser.
 - Verify UI, integration, deployment behavior, and any backend-dependent flows.
 - Fix anything that fails by branching from `test`.
 
 ### 4. Fix release issues on `test`
+
 - Create a fix branch from `test`.
-    - `fix/<name>`
+  - `fix/<name>`
 - Apply the fix.
 - Merge the fix back into `test`.
 - Push `test` again to redeploy the test environment.
 - Once the fix is verified, promote test to main and merge test into dev.
 
 ### 5. Promote `test` to `main`
+
 - Once the test environment is approved, open a pull request from `test` to `main`.
 - Use squash merge.
 - This creates one clean release commit on `main`.
 
 ### 6. Production deploy
+
 - After the squash merge, production deploys from `main`.
 - Frontends and docs deploy automatically.
 - Backend deployment needs a manual `workflow_dispatch` trigger in the GitHub Actions menu.
-<center>
-    <img src="/img/release_flow.drawio.svg" alt="Release flowchart" description="Release flowchart showing feature branches merged into dev, then test, with fix loops and final deployment through PR to main and manual trigger in GitHub Actions."/>
-</center>
+  <center>
+    <img
+      src="/img/release_flow.drawio.svg"
+      alt="Release flowchart"
+      description="Release flowchart showing feature branches merged into dev, then test, with fix loops and final deployment through PR to main and manual trigger in GitHub Actions."
+    />
+  </center>
 
---- 
+---
 
 ## Step-by-step Git Guide
 
 ### Working on a feature
-Create a feature branch based off the dev-branch: 
+
+Create a feature branch based off the dev-branch:
+
 ```bash
 git checkout dev
 git pull origin dev
 git checkout -b feat/<name>
 ```
+
 Commit your work and push the branch:
+
 ```bash
 git add .
 git commit -m "Describe the change"
 git push -u origin feat/<name>
 ```
+
 When finished, merge it back into `dev`:
+
 ```bash
 git checkout dev
 git pull origin dev
@@ -142,17 +164,22 @@ git push origin dev
 ```
 
 ### Start a release candidate
+
 When `dev` is ready to ship:
+
 ```bash
 git checkout test
 git pull origin test
 git merge dev
 git push origin test
 ```
+
 This deploys the test environment.
 
 ### Test the release
+
 Use the public test site to verify:
+
 - Layout and UI.
 - Routing.
 - API behavior.
@@ -162,13 +189,17 @@ Use the public test site to verify:
 If the release is good, move on to production. If not, fix it on `test`.
 
 ### Fix a problem found on `test`
+
 Create a bug-fixing branch based off the test-branch:
+
 ```bash
 git checkout test
 git pull origin test
 git checkout -b fix/<name>
 ```
+
 Make the fix, then merge it back into `test`:
+
 ```bash
 git add .
 git commit -m "Fix release issue"
@@ -177,8 +208,10 @@ git pull origin test
 git merge fix/<name>
 git push origin test
 ```
+
 Repeat for all bugs.
 After every fix is validated on `test` and the release is fully stable, merge test into dev.
+
 ```bash
 git checkout dev
 git pull origin dev
@@ -187,6 +220,7 @@ git push origin dev
 ```
 
 ### Promote to production
+
 When `test` is approved:
 
 1. Open a pull request from `test` to `main`.
@@ -207,7 +241,7 @@ Production deploy starts from `main` after the squash merge.
 - `docs` production deploys from the `main` branch.
 - Changes in shared packages always trigger the frontend release pipeline as well depending on branch.
 - Backend production deployment is provisional.
-    - It should be triggered manually only when you are ready to use it (VPS secrets set, etc.).
+  - It should be triggered manually only when you are ready to use it (VPS secrets set, etc.).
 
 This makes `main` the source of truth for production while keeping the actual release history small and clean.
 
@@ -218,11 +252,12 @@ This makes `main` the source of truth for production while keeping the actual re
 Backend deployment is provisional for now.
 
 That means:
+
 - It should not define the whole release train.
-- It can remain manual until the backend workflow is fully settled. 
-    - VPS host selected, server setup, etc.; for now backend will remain only available on local
+- It can remain manual until the backend workflow is fully settled.
+  - VPS host selected, server setup, etc.; for now backend will remain only available on local
 - Frontend and docs releases should still follow the normal `dev -> test -> main` path regardless of backend status.
 
---- 
+---
 
 Last edit: 23.06.2026

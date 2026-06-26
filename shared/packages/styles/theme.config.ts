@@ -1,7 +1,7 @@
- export const themeCookieOptions = {
+export const themeCookieOptions = {
   expires: 365,
-  path: '/',
-  sameSite: 'lax' as const,
+  path: "/",
+  sameSite: "lax" as const,
 };
 
-export const themeStorageKey = 'theme';
+export const themeStorageKey = "theme";

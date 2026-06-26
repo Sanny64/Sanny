@@ -1,7 +1,7 @@
 export const languageCookieOptions = {
   expires: 365,
-  path: '/',
-  sameSite: 'lax' as const,
+  path: "/",
+  sameSite: "lax" as const,
 };
 
-export const languageStorageKey = 'language';
+export const languageStorageKey = "language";

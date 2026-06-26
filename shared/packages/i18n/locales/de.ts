@@ -1,63 +1,65 @@
-﻿import type { Translations } from '../language.types';
+﻿import type { Translations } from "../language.types";
 
 export const de: Translations = {
   main: {
-    home: 'Startseite',
-    portfolio: 'Portfolio',
+    home: "Startseite",
+    portfolio: "Portfolio",
     projects: {
-      title: 'Projekte',
+      title: "Projekte",
       smnow: {
-        title: 'SMNow'
+        title: "SMNow",
       },
       seos: {
-        title: 'SEOS'
+        title: "SEOS",
       },
       sau: {
-        title: 'SAU'
+        title: "SAU",
       },
       proscrum: {
-        title: 'Proscrum'
+        title: "Proscrum",
       },
       haptigation: {
-        title: 'Haptigation'
-      }
+        title: "Haptigation",
+      },
     },
-    blog: 'Blog',
-    games: 'Spiele',
+    blog: "Blog",
+    games: "Spiele",
   },
   auxiliary: {
     party: {
-      title: 'Party',
+      title: "Party",
       refreshing: {
-        title: 'Refreshing Kit'
+        title: "Refreshing Kit",
       },
       comfort: {
-        title: 'Period Comfort Kit'
-      }
-    }
+        title: "Period Comfort Kit",
+      },
+    },
   },
   login: {
-    LoginPage: 'Login Seite',
+    LoginPage: "Login Seite",
   },
   shared: {
     setupProbe: {
-      title: 'Einrichtungsüberprüfung',
-      theme: 'Darstellung',
-      language: 'Sprache',
+      title: "Einrichtungsüberprüfung",
+      theme: "Darstellung",
+      language: "Sprache",
       toggleThemeButton: (theme: string): string =>
-        theme === 'dark' ? 'Heller Modus' : 'Dunkler Modus',
+        theme === "dark" ? "Heller Modus" : "Dunkler Modus",
       descriptionToggleThemeButton: (theme: string): string =>
-        theme === 'dark' ? 'Wechselt zu hellem Modus' : 'Wechselt zu dunklem Modus',
+        theme === "dark"
+          ? "Wechselt zu hellem Modus"
+          : "Wechselt zu dunklem Modus",
       switchLanguageButton: (nextLanguage: string): string =>
-        nextLanguage === 'en' ? 'Englisch' : 'Deutsch',
+        nextLanguage === "en" ? "Englisch" : "Deutsch",
       descriptionSwitchLanguageButton: (nextLanguage: string): string =>
-        nextLanguage === 'en' ? 'Wechselt zu Englisch' : 'Wechselt zu Deutsch',
+        nextLanguage === "en" ? "Wechselt zu Englisch" : "Wechselt zu Deutsch",
     },
     settings: {
-      title: 'Einstellungen',
+      title: "Einstellungen",
     },
     errors: {
-      title: 'Error Handler',
-    }
-  }
-}
+      title: "Error Handler",
+    },
+  },
+};

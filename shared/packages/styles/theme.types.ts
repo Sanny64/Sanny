@@ -1,6 +1,6 @@
-export type Theme = 'dark' | 'light';
+export type Theme = "dark" | "light";
 
-export type ThemeVariant = 'primary' | 'secondary' | 'ghost';
+export type ThemeVariant = "primary" | "secondary" | "ghost";
 
 export interface ThemeContextType {
   theme: Theme;

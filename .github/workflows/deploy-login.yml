@@ -5,10 +5,10 @@ on:
     branches:
       - main
     paths:
-      - 'login/**'
-      - 'shared/packages/**'
-      - 'package.json'
-      - 'package-lock.json'
+      - "login/**"
+      - "shared/packages/**"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   lint-and-build:
@@ -21,7 +21,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Install dependencies
         run: npm ci
@@ -31,7 +31,7 @@ jobs:
 
       - name: Lint the projects
         run: npm run lint:login ; npm run lint:shared
-        
+
       - name: Build shared packages
         run: npm run build:shared
 
@@ -41,15 +41,15 @@ jobs:
   deploy:
     needs: lint-and-build
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Deploy to Hetzner via FTP
-      uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-      with:
-        server: ${{ secrets.FTP_SERVER }}
-        username: ${{ secrets.FTP_USERNAME }}
-        password: ${{ secrets.FTP_PASSWORD }}
-        protocol: ftps
-        security: loose
-        local-dir: ./login/dist/
-        server-dir: /public_html/login/
+      - name: Deploy to Hetzner via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          security: loose
+          local-dir: ./login/dist/
+          server-dir: /public_html/login/

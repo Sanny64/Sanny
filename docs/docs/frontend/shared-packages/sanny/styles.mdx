@@ -29,10 +29,10 @@ It also exports the `Theme` and `ThemeVariant` TypeScript types for safer app in
 The package currently supports two themes: light and dark.<br/>
 The theme value is stored as `Theme = 'light' | 'dark'` and is treated as the source of truth for all theme-aware UI.
 
-| Theme | Value | Notes |
-|---|---|---|
+| Theme | Value   | Notes                                                                                              |
+| ----- | ------- | -------------------------------------------------------------------------------------------------- |
 | Light | `light` | Default visual mode when no stored preference exists and the system preference cannot be resolved. |
-| Dark | `dark` | Applied when selected by the user or when the system prefers a dark color scheme. |
+| Dark  | `dark`  | Applied when selected by the user or when the system prefers a dark color scheme.                  |
 
 ---
 
@@ -43,6 +43,7 @@ If neither value exists, it falls back to the browser’s `prefers-color-scheme`
 If no system preference is available, it resolves to light mode as the default fallback.
 
 When the theme changes, the provider:
+
 - Saves the value to the `theme` cookie for 365 days.
 - Mirrors the value into localStorage.
 - Updates `document.documentElement` with `data-theme="..."`.
@@ -55,6 +56,7 @@ The theme provider listens for system theme changes only when there is no stored
 ## Styling system
 
 The package ships with three relevant CSS entrypoints:
+
 - `globals.css`: base visual system and theme-dependent CSS variables.
 - `main.css`: shared layout shell for pages routed through `Main.tsx`.
 - `auxiliary.css`: shared layout shell for pages routed through `Auxiliary.tsx`.
@@ -65,6 +67,7 @@ They diverge only through route-scoped color variables, for example from `party.
 Theme variables in `globals.css` power text colors, background colors, borders, code blocks, accents, shadows, and reusable surface tokens.
 
 Examples of shared variables include:
+
 ```css
 :root {
   --text: #6b6375;
@@ -80,7 +83,7 @@ Examples of shared variables include:
 In dark mode, the same variables are overridden through `html[data-theme='dark']` and `html.dark`:
 
 ```css
-html[data-theme='dark'],
+html[data-theme="dark"],
 html.dark {
   --text: #9ca3af;
   --text-h: #f3f4f6;
@@ -92,6 +95,7 @@ html.dark {
 ```
 
 The stylesheet also includes:
+
 - Base document styling for `body`, `#root`, headings, paragraphs, and code blocks.
 - Responsive typography adjustments for tablet and desktop widths.
 - Reduced-motion handling for users who prefer less animation.
@@ -105,6 +109,7 @@ If you route your pages through `Main.tsx` (see below), an invisible `.skip-link
 ## Usage
 
 In `main.tsx`, import the provider once and wrap your app with it:
+
 ```typescript
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -121,6 +126,7 @@ createRoot(document.getElementById('root')!).render(
 ```
 
 Then import `globals.css` and `main.css` in `Main.tsx` to enforce the shared layout baseline on all routed subpages:
+
 ```typescript
 import { Outlet } from 'react-router-dom';
 import '@sanny/styles/globals.css';
@@ -141,6 +147,7 @@ export default function Layout() {
 ```
 
 In `App.tsx`, establish a routing setup like this:
+
 ```typescript
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import Main from './pages/Main'
@@ -161,11 +168,13 @@ function App() {
 export default App
 
 ```
+
 The hook is designed to be used only under the provider; otherwise it throws a clear runtime error.
 
 ---
 
 ## Auxiliary Route Color Overrides
+
 For route-specific color themes on top of the same layout baseline, see [special behavior](/docs/frontend/projects/sanny#special-behavior).
 
 ---

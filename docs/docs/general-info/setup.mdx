@@ -4,14 +4,16 @@ description: Introduction to the documentation
 sidebar_position: 1
 ---
 
-Clone this repository to get full access to close to all applications across this repository.<br/>You will need node.js and git installed on your machine. 
+Clone this repository to get full access to close to all applications across this repository.<br/>You will need node.js and git installed on your machine.
 
 ---
 
 ### Installation and Setup Instructions
+
 Installation: npm install
 
 In the root directory, run one of the workspace scripts:
+
 - npm run dev:sanny
 - npm run dev:login
 - npm run dev:docs
@@ -19,18 +21,22 @@ In the root directory, run one of the workspace scripts:
 Running the dev scripts will open http://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 
 For quality checks:
+
 - npm run lint
 - npm run build
 - npm run test (lint & build)
 
 For local builds:
+
 - npm run build:sanny
 - npm run build:login
 - npm run build:docs
 - npm run serve:docs (builds the docs preemptively)
+
 ---
 
 ### Directory Structure
+
 ```
 Sanny/ (Root Workspace)
 ├── .github/                  # CI/CD Workflows & actions

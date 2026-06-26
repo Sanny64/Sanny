@@ -9,5 +9,9 @@
     },
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
   },
-  "include": ["src", "../shared/packages/ui/src/pages/errors", "../shared/packages/ui/src/pages/settings"]
+  "include": [
+    "src",
+    "../shared/packages/ui/src/pages/errors",
+    "../shared/packages/ui/src/pages/settings"
+  ]
 }

@@ -1,4 +1,6 @@
-import { createContext } from 'react';
-import type { LanguageContextType } from './language.types';
+import { createContext } from "react";
+import type { LanguageContextType } from "./language.types";
 
-export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+export const LanguageContext = createContext<LanguageContextType | undefined>(
+  undefined,
+);

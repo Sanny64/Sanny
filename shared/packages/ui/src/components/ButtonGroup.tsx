@@ -13,8 +13,8 @@ export function ButtonGroup({
   layout = "horizontal",
 }: ButtonGroupProps) {
   return (
-      <div className={`btn-group btn-group--${layout} ${className}`}>
-        {children}
-      </div>
-    );
-  }
+    <div className={`btn-group btn-group--${layout} ${className}`}>
+      {children}
+    </div>
+  );
+}

@@ -1,11 +1,17 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
-import { resolveStoredLanguage, resolveSystemLanguage, applyLanguageToDocument, persistLanguage } from './language.utils';
-import { LanguageContext } from './LanguageContext';
-import { translations } from './locales/index';
-import type { ReactNode } from 'react';
-import type { Language } from './language.types';
+import { useState, useEffect, useLayoutEffect } from "react";
+import {
+  resolveStoredLanguage,
+  resolveSystemLanguage,
+  applyLanguageToDocument,
+  persistLanguage,
+} from "./language.utils";
+import { LanguageContext } from "./LanguageContext";
+import { translations } from "./locales/index";
+import type { ReactNode } from "react";
+import type { Language } from "./language.types";
 
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface LanguageProviderProps {
   children: ReactNode;

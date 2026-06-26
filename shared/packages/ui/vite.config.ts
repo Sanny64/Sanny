@@ -9,14 +9,14 @@ export default defineConfig({
   plugins: [dts({ include: ["src", "../../../global.d.ts"] })],
   resolve: {
     alias: {
-      '@sanny/styles': resolve(__dirname, '../styles/index.ts'),
+      "@sanny/styles": resolve(__dirname, "../styles/index.ts"),
     },
   },
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
       name: "SannyUI",
-      fileName: "sanny-ui"
-    }
-  }
+      fileName: "sanny-ui",
+    },
+  },
 });

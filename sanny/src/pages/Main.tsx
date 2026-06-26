@@ -1,6 +1,6 @@
-import { Outlet } from 'react-router-dom';
-import '@sanny/styles/globals.css';
-import '@sanny/styles/main.css';
+import { Outlet } from "react-router-dom";
+import "@sanny/styles/globals.css";
+import "@sanny/styles/main.css";
 
 export default function Layout() {
   return (

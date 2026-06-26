@@ -1,20 +1,20 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Error, Settings } from '@sanny/ui';
-import Main from './pages/Main';
-import Home from './pages/home/Home';
-import Portfolio from './pages/portfolio/Portfolio';
-import Projects from './pages/projects/Projects';
-import Haptigation from './pages/projects/haptigation/Haptigation';
-import Proscrum from './pages/projects/proscrum/Proscrum';
-import SAU from './pages/projects/sau/SAU';
-import SEO from './pages/projects/seos/SEOS';
-import SMNow from './pages/projects/smnow/SMNow';
-import Blog from './pages/blog/Blog';
-import Games from './pages/games/Games';
-import Auxiliary from './pages/Auxiliary';
-import Party from './pages/party/Party';
-import Refreshing from './pages/party/refreshing/Refreshing';
-import Comfort from './pages/party/comfort/Comfort';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Error, Settings } from "@sanny/ui";
+import Main from "./pages/Main";
+import Home from "./pages/home/Home";
+import Portfolio from "./pages/portfolio/Portfolio";
+import Projects from "./pages/projects/Projects";
+import Haptigation from "./pages/projects/haptigation/Haptigation";
+import Proscrum from "./pages/projects/proscrum/Proscrum";
+import SAU from "./pages/projects/sau/SAU";
+import SEO from "./pages/projects/seos/SEOS";
+import SMNow from "./pages/projects/smnow/SMNow";
+import Blog from "./pages/blog/Blog";
+import Games from "./pages/games/Games";
+import Auxiliary from "./pages/Auxiliary";
+import Party from "./pages/party/Party";
+import Refreshing from "./pages/party/refreshing/Refreshing";
+import Comfort from "./pages/party/comfort/Comfort";
 
 function App() {
   return (
@@ -49,7 +49,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

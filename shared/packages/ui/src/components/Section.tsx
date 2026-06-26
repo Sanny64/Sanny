@@ -5,7 +5,6 @@ type Variant = "primary" | "secondary" | "ghost";
 
 type SectionProps = ComponentPropsWithoutRef<"section"> & {
   variant?: Variant;
-
 };
 
 export function Section({
@@ -15,11 +14,8 @@ export function Section({
   ...props
 }: SectionProps) {
   return (
-      <section
-        className={`sct sct--${variant} ${className}`}
-        {...props}
-      >
-        {variant === "ghost" ? null : children}
-      </section>
-    );
-  }
+    <section className={`sct sct--${variant} ${className}`} {...props}>
+      {variant === "ghost" ? null : children}
+    </section>
+  );
+}

@@ -1,10 +1,16 @@
-export function createFrontendEslintConfig({ js, globals, reactHooks, reactRefresh, tseslint }) {
+export function createFrontendEslintConfig({
+  js,
+  globals,
+  reactHooks,
+  reactRefresh,
+  tseslint,
+}) {
   return [
     {
-      ignores: ['dist'],
+      ignores: ["dist"],
     },
     {
-      files: ['**/*.{ts,tsx}'],
+      files: ["**/*.{ts,tsx}"],
       extends: [
         js.configs.recommended,
         tseslint.configs.recommended,
@@ -15,5 +21,5 @@ export function createFrontendEslintConfig({ js, globals, reactHooks, reactRefre
         globals: globals.browser,
       },
     },
-  ]
+  ];
 }

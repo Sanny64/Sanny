@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import { createStylesAlias } from '../vite.shared'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import { createStylesAlias } from "../vite.shared";
+import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -8,4 +8,4 @@ export default defineConfig({
   resolve: {
     alias: createStylesAlias(__dirname),
   },
-})
+});

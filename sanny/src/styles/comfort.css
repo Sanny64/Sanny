@@ -1,47 +1,51 @@
 .auxiliary-layout--comfort {
-	--auxiliary-layout-bg:
-		radial-gradient(circle at top, rgba(0, 0, 0, 0.06), transparent 38%),
-		linear-gradient(180deg, #f3eefb 0%, #ece8f6 100%);
-	--auxiliary-layout-text: #3b2f93;
-	--btn-primary-bg: #3b2f93;
-	--btn-primary-text: #f0ebff;
-	--btn-secondary-bg: rgba(59, 47, 147, 0.08);
-	--btn-secondary-text: #3b2f93;
-	--sct-primary-bg: #3b2f93;
-	--sct-primary-text: #f0ebff;
-	--sct-secondary-bg: rgba(59, 47, 147, 0.08);
-	--sct-secondary-text: #3b2f93;
+  --auxiliary-layout-bg:
+    radial-gradient(circle at top, rgba(0, 0, 0, 0.06), transparent 38%),
+    linear-gradient(180deg, #f3eefb 0%, #ece8f6 100%);
+  --auxiliary-layout-text: #3b2f93;
+  --btn-primary-bg: #3b2f93;
+  --btn-primary-text: #f0ebff;
+  --btn-secondary-bg: rgba(59, 47, 147, 0.08);
+  --btn-secondary-text: #3b2f93;
+  --sct-primary-bg: #3b2f93;
+  --sct-primary-text: #f0ebff;
+  --sct-secondary-bg: rgba(59, 47, 147, 0.08);
+  --sct-secondary-text: #3b2f93;
 }
 
-html[data-theme='dark'] .auxiliary-layout--comfort,
+html[data-theme="dark"] .auxiliary-layout--comfort,
 html.dark .auxiliary-layout--comfort {
-	--auxiliary-layout-bg:
-		radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 38%),
-		linear-gradient(180deg, #2b2148 0%, #1b1830 100%);
-	--auxiliary-layout-text: #e6e2ff;
-	--btn-primary-bg: rgba(0,0,0,0.18);
-	--btn-primary-text: #e6e2ff;
-	--btn-secondary-bg: rgba(34, 26, 92, 0.22);
-	--btn-secondary-text: #e6e2ff;
-	--sct-primary-bg: rgba(0,0,0,0.12);
-	--sct-primary-text: #e6e2ff;
-	--sct-secondary-bg: rgba(34, 26, 92, 0.12);
-	--sct-secondary-text: #e6e2ff;
+  --auxiliary-layout-bg:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 38%),
+    linear-gradient(180deg, #2b2148 0%, #1b1830 100%);
+  --auxiliary-layout-text: #e6e2ff;
+  --btn-primary-bg: rgba(0, 0, 0, 0.18);
+  --btn-primary-text: #e6e2ff;
+  --btn-secondary-bg: rgba(34, 26, 92, 0.22);
+  --btn-secondary-text: #e6e2ff;
+  --sct-primary-bg: rgba(0, 0, 0, 0.12);
+  --sct-primary-text: #e6e2ff;
+  --sct-secondary-bg: rgba(34, 26, 92, 0.12);
+  --sct-secondary-text: #e6e2ff;
 }
 
 @media (prefers-color-scheme: dark) {
-	:root:not([data-theme]) .auxiliary-layout--comfort {
-		--auxiliary-layout-bg:
-			radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 38%),
-			linear-gradient(180deg, #2b2148 0%, #1b1830 100%);
-		--auxiliary-layout-text: #e6e2ff;
-		--btn-primary-bg: rgba(0,0,0,0.18);
-		--btn-primary-text: #e6e2ff;
-		--btn-secondary-bg: rgba(34, 26, 92, 0.22);
-		--btn-secondary-text: #e6e2ff;
-		--sct-primary-bg: rgba(0,0,0,0.12);
-		--sct-primary-text: #e6e2ff;
-		--sct-secondary-bg: rgba(34, 26, 92, 0.12);
-		--sct-secondary-text: #e6e2ff;
-	}
+  :root:not([data-theme]) .auxiliary-layout--comfort {
+    --auxiliary-layout-bg:
+      radial-gradient(
+        circle at top,
+        rgba(255, 255, 255, 0.06),
+        transparent 38%
+      ),
+      linear-gradient(180deg, #2b2148 0%, #1b1830 100%);
+    --auxiliary-layout-text: #e6e2ff;
+    --btn-primary-bg: rgba(0, 0, 0, 0.18);
+    --btn-primary-text: #e6e2ff;
+    --btn-secondary-bg: rgba(34, 26, 92, 0.22);
+    --btn-secondary-text: #e6e2ff;
+    --sct-primary-bg: rgba(0, 0, 0, 0.12);
+    --sct-primary-text: #e6e2ff;
+    --sct-secondary-bg: rgba(34, 26, 92, 0.12);
+    --sct-secondary-text: #e6e2ff;
+  }
 }

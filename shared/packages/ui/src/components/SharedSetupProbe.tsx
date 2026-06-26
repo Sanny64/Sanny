@@ -1,16 +1,14 @@
-import { useTheme, getThemeVariant } from '@sanny/styles';
-import { useLanguage, translations } from '@sanny/i18n';
-import { Button } from './Button';
-import { ButtonGroup } from './ButtonGroup';
-import { Section } from './Section';
-import '../styles/sharedSetupProbe.css';
+import { useTheme, getThemeVariant } from "@sanny/styles";
+import { useLanguage, translations } from "@sanny/i18n";
+import { Button } from "./Button";
+import { ButtonGroup } from "./ButtonGroup";
+import { Section } from "./Section";
+import "../styles/sharedSetupProbe.css";
 
-export function SharedSetupProbe({ 
-  className = "shared-setup-probe",
-}) {
+export function SharedSetupProbe({ className = "shared-setup-probe" }) {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
-  const nextLanguage = language === 'en' ? 'de' : 'en';
+  const nextLanguage = language === "en" ? "de" : "en";
   const themeVariant = getThemeVariant(theme);
   const t = translations[language];
 
@@ -23,14 +21,19 @@ export function SharedSetupProbe({
         data-testid={`shared-setup-probe ${className}`}
       >
         <strong>{t.shared.setupProbe.title}</strong>
-        <div>{t.shared.setupProbe.theme}: {theme}</div>
-        <div>{t.shared.setupProbe.language}: {language}</div>
+        <div>
+          {t.shared.setupProbe.theme}: {theme}
+        </div>
+        <div>
+          {t.shared.setupProbe.language}: {language}
+        </div>
         {/* Test global provider state changes */}
-        <ButtonGroup 
+        <ButtonGroup
           className={`settings-button-group ${className}`}
-          layout="horizontal">
+          layout="horizontal"
+        >
           {/* Test global theme provider state changes */}
-          <Button 
+          <Button
             className={`toggle-theme-button ${className}`}
             aria-label={t.shared.setupProbe.descriptionToggleThemeButton(theme)}
             variant={themeVariant}
@@ -42,7 +45,9 @@ export function SharedSetupProbe({
           {/* Test global language provider state changes */}
           <Button
             className={`switch-language-button ${className}`}
-            aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(nextLanguage)}
+            aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(
+              nextLanguage,
+            )}
             variant={themeVariant}
             onClick={() => setLanguage(nextLanguage)}
             data-testid={`switch-language-test ${className}`}
@@ -52,5 +57,5 @@ export function SharedSetupProbe({
         </ButtonGroup>
       </Section>
     </>
-  )
+  );
 }

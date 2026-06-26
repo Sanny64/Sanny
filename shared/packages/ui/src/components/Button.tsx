@@ -14,11 +14,8 @@ export function Button({
   ...props
 }: ButtonProps) {
   return (
-      <button
-        className={`btn btn--${variant} ${className}`}
-        {...props}
-      >
-        {variant === "ghost" ? null : children}
-      </button>
-    );
-  }
+    <button className={`btn btn--${variant} ${className}`} {...props}>
+      {variant === "ghost" ? null : children}
+    </button>
+  );
+}

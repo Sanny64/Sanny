@@ -1,10 +1,17 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
-import { resolveStoredTheme, resolveSystemTheme, applyThemeToDocument, persistTheme, watchSystemTheme } from './theme.utils';
-import { ThemeContext } from './ThemeContext';
-import type { Theme } from './theme.types';
-import type { ReactNode } from 'react';
+import { useState, useEffect, useLayoutEffect } from "react";
+import {
+  resolveStoredTheme,
+  resolveSystemTheme,
+  applyThemeToDocument,
+  persistTheme,
+  watchSystemTheme,
+} from "./theme.utils";
+import { ThemeContext } from "./ThemeContext";
+import type { Theme } from "./theme.types";
+import type { ReactNode } from "react";
 
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 interface ThemeProviderProps {
   children: ReactNode;
@@ -28,8 +35,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return watchSystemTheme(setThemeFromSystem);
   }, []);
 
-  const updateAndPersistTheme = (resolveNextTheme: (currentTheme: Theme) => Theme) => {
-    setTheme(currentTheme => {
+  const updateAndPersistTheme = (
+    resolveNextTheme: (currentTheme: Theme) => Theme,
+  ) => {
+    setTheme((currentTheme) => {
       const nextTheme = resolveNextTheme(currentTheme);
       persistTheme(nextTheme);
       return nextTheme;
@@ -37,7 +46,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   };
 
   const toggleTheme = () => {
-    updateAndPersistTheme(currentTheme => (currentTheme === 'light' ? 'dark' : 'light'));
+    updateAndPersistTheme((currentTheme) =>
+      currentTheme === "light" ? "dark" : "light",
+    );
   };
 
   const updateTheme = (nextTheme: Theme) => {

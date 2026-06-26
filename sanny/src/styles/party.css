@@ -1,47 +1,51 @@
 .auxiliary-layout--party {
-	--auxiliary-layout-bg:
-		radial-gradient(circle at top, rgba(0, 0, 0, 0.04), transparent 42%),
-		linear-gradient(180deg, #eaf9ec 0%, #d5f3d9 100%);
-	--auxiliary-layout-text: #0d5b00;
-	--btn-primary-bg: #0d5b00;
-	--btn-primary-text: #ebf8e8;
-	--btn-secondary-bg: rgba(13, 91, 0, 0.08);
-	--btn-secondary-text: #0d5b00;
-	--sct-primary-bg: #0d5b00;
-	--sct-primary-text: #ebf8e8;
-	--sct-secondary-bg: rgba(13, 91, 0, 0.08);
-	--sct-secondary-text: #0d5b00;
+  --auxiliary-layout-bg:
+    radial-gradient(circle at top, rgba(0, 0, 0, 0.04), transparent 42%),
+    linear-gradient(180deg, #eaf9ec 0%, #d5f3d9 100%);
+  --auxiliary-layout-text: #0d5b00;
+  --btn-primary-bg: #0d5b00;
+  --btn-primary-text: #ebf8e8;
+  --btn-secondary-bg: rgba(13, 91, 0, 0.08);
+  --btn-secondary-text: #0d5b00;
+  --sct-primary-bg: #0d5b00;
+  --sct-primary-text: #ebf8e8;
+  --sct-secondary-bg: rgba(13, 91, 0, 0.08);
+  --sct-secondary-text: #0d5b00;
 }
 
-html[data-theme='dark'] .auxiliary-layout--party,
+html[data-theme="dark"] .auxiliary-layout--party,
 html.dark .auxiliary-layout--party {
-	--auxiliary-layout-bg:
-		radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
-		linear-gradient(180deg, #0f2b0c 0%, #163a0f 100%);
-	--auxiliary-layout-text: #cfe8d0;
-	--btn-primary-bg: rgba(255,255,255,0.03);
-	--btn-primary-text: #cfe8d0;
-	--btn-secondary-bg: rgba(10, 79, 4, 0.22);
-	--btn-secondary-text: #cfe8d0;
-	--sct-primary-bg: rgba(255,255,255,0.02);
-	--sct-primary-text: #cfe8d0;
-	--sct-secondary-bg: rgba(10, 79, 4, 0.12);
-	--sct-secondary-text: #cfe8d0;
+  --auxiliary-layout-bg:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
+    linear-gradient(180deg, #0f2b0c 0%, #163a0f 100%);
+  --auxiliary-layout-text: #cfe8d0;
+  --btn-primary-bg: rgba(255, 255, 255, 0.03);
+  --btn-primary-text: #cfe8d0;
+  --btn-secondary-bg: rgba(10, 79, 4, 0.22);
+  --btn-secondary-text: #cfe8d0;
+  --sct-primary-bg: rgba(255, 255, 255, 0.02);
+  --sct-primary-text: #cfe8d0;
+  --sct-secondary-bg: rgba(10, 79, 4, 0.12);
+  --sct-secondary-text: #cfe8d0;
 }
 
 @media (prefers-color-scheme: dark) {
-	:root:not([data-theme]) .auxiliary-layout--party {
-		--auxiliary-layout-bg:
-			radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
-			linear-gradient(180deg, #1e381b 0%, #163a0f 100%);
-		--auxiliary-layout-text: #cfe8d0;
-		--btn-primary-bg: rgba(255,255,255,0.03);
-		--btn-primary-text: #cfe8d0;
-		--btn-secondary-bg: rgba(10, 79, 4, 0.22);
-		--btn-secondary-text: #cfe8d0;
-		--sct-primary-bg: rgba(255,255,255,0.02);
-		--sct-primary-text: #cfe8d0;
-		--sct-secondary-bg: rgba(10, 79, 4, 0.12);
-		--sct-secondary-text: #cfe8d0;
-	}
+  :root:not([data-theme]) .auxiliary-layout--party {
+    --auxiliary-layout-bg:
+      radial-gradient(
+        circle at top,
+        rgba(255, 255, 255, 0.14),
+        transparent 42%
+      ),
+      linear-gradient(180deg, #1e381b 0%, #163a0f 100%);
+    --auxiliary-layout-text: #cfe8d0;
+    --btn-primary-bg: rgba(255, 255, 255, 0.03);
+    --btn-primary-text: #cfe8d0;
+    --btn-secondary-bg: rgba(10, 79, 4, 0.22);
+    --btn-secondary-text: #cfe8d0;
+    --sct-primary-bg: rgba(255, 255, 255, 0.02);
+    --sct-primary-text: #cfe8d0;
+    --sct-secondary-bg: rgba(10, 79, 4, 0.12);
+    --sct-secondary-text: #cfe8d0;
+  }
 }

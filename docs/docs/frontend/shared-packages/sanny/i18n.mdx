@@ -31,10 +31,10 @@ This includes sections like `main`, `auxiliary`, `login`, and `shared`, which ma
 This setup lets developers update only the locale files.<br/>
 Any different setup would require redefining the `Translations` object for every new translation.
 
-| Language | Code | Notes |
-|---|---|---|
-| English | `en` | General English translation and the default fallback if no browser preference is set |
-| German | `de` | Chosen when the browser language starts with `de`, or when explicitly selected. |
+| Language | Code | Notes                                                                                |
+| -------- | ---- | ------------------------------------------------------------------------------------ |
+| English  | `en` | General English translation and the default fallback if no browser preference is set |
+| German   | `de` | Chosen when the browser language starts with `de`, or when explicitly selected.      |
 
 ---
 
@@ -45,6 +45,7 @@ If neither value exists, it falls back to the browser’s system language.<br/>
 If no stored browser preference exists, it resolves to English as the website’s default fallback.
 
 When the language changes, the provider:
+
 - Saves the value to the `language` cookie for 365 days.
 - Mirrors the value into localStorage.
 - Updates `document.documentElement.lang` to match the active locale.
@@ -72,6 +73,7 @@ createRoot(document.getElementById('root')!).render(
 ```
 
 Then within every page that uses translations, derive `t` as follows:
+
 ```typescript
 import { useLanguage, translations } from '@sanny/i18n';
 import { SharedSetupProbe } from '@sanny/ui';
@@ -97,6 +99,7 @@ The hook is designed to be used only under the provider; otherwise it throws a c
 The locale files follow the same nested shape, which helps keep UI text organized and predictable. The translations include plain strings and function-based entries for dynamic labels such as theme toggles and language switches.
 
 Examples of translated areas include:
+
 ```ts
 // standard
 main: {
@@ -120,7 +123,9 @@ settings: {
         nextLanguage === 'en' ? 'English' : 'German' // alternates between the button text: 'English' and 'German'
 } // called with {t.settings.switchLanguageButton(nextLanguage)}
 ```
+
 The dynamic naming could be implemented like this:
+
 ```typescript
 <Button
   className="switch-language-button"
@@ -139,10 +144,7 @@ The dynamic naming could be implemented like this:
 A typical consumer import looks like this:
 
 ```ts
-import {
-  useLanguage,
-  translations,
-} from '@sanny/i18n';
+import { useLanguage, translations } from "@sanny/i18n";
 ```
 
 ---

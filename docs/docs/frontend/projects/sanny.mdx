@@ -3,34 +3,44 @@ title: Sanny
 description: Information on the sanny project.
 sidebar_position: 2
 ---
+
 # Sanny
+
 ## Use cases
+
 ### Portfolio
+
 (/home, /portfolio, /projects)<br/>
 Its main purpose is to showcase my programming skills and architecture knowledge in setting up full stack applications.
 
 ### Games Archive
+
 (/games, game.sanny64.de)<br/>
 I also program a game for fun here and there and therefore it's used as a games archive as well.
 
 ### Event Organization Helper
+
 (/party, /comfort, /refreshing)<br/>
 As a private event host, it's my mission to have everyone feel as safe and welcome as possible.<br/>Which is why I introduced care kits at my parties, which will be organized through here.
 
 ---
 
 ## Special Behavior
+
 The Sanny frontend project uses two layout wrappers (`Main.tsx` and `Auxiliary.tsx`) that share the same layout baseline.
 
 Both wrappers import shared styles:
+
 - `@sanny/styles/globals.css`
 - one layout stylesheet (`@sanny/styles/main.css` or `@sanny/styles/auxiliary.css`)
 
 The difference is intentionally color-only for auxiliary routes:
+
 - `auxiliary.css` exposes route-scoped variables for background and text.
 - route styles provide values for those variables.
 
 Current auxiliary layout pattern:
+
 ```typescript
 {/* Example Auxiliary.tsx */}
 
@@ -74,6 +84,7 @@ export default function Layout() {
 ```
 
 Example `/auxiliary-page-1` route-scoped color pattern:
+
 ```css
 {/* Example: auxiliary-page-one.css (green) */}
 .auxiliary-layout--1 {

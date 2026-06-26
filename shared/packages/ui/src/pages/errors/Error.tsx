@@ -1,6 +1,6 @@
-import { useLanguage, translations } from '@sanny/i18n';
-import { SharedSetupProbe } from '@sanny/ui';
-import '@sanny/styles';
+import { useLanguage, translations } from "@sanny/i18n";
+import { SharedSetupProbe } from "@sanny/ui";
+import "@sanny/styles";
 
 export default function Error() {
   const t = translations[useLanguage().language];
