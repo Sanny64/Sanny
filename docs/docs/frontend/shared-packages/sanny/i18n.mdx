@@ -154,9 +154,8 @@ import { useLanguage, translations } from "@sanny/i18n";
 The provider depends on browser APIs such as `cookies`, `localStorage`, `document`, and `navigator`, so it is intended for client-side use.
 The translation types are derived from the English locale, which helps keep locale files aligned as the package grows.
 If you add a new locale, you must keep the exact same nested key structure as the English locale so existing `t.some.path` lookups remain valid.
-
 Shared i18n state is split across dedicated source files: `LanguageContext.tsx` for the React context, `LanguageProvider.tsx` for state and persistence, `useLanguage.ts` for consumption, `language.types.ts` for shared types, and `language.utility.ts` for the translations map and language helper.
 
 ---
 
-Last edit: 23.06.2026
+Last edit: 26.06.2026

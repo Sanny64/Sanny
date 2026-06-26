@@ -4,16 +4,38 @@ description: Explanation what the project even is.
 sidebar_position: 2
 ---
 
-The website is used as a **portfolio**, a helper for me to **host events** and for you to get some **entertainment** of it.
-
-## Project Direction
-
-- Architecture: module-based mono-repo
-- Design approach: mobile-first and user-centered design
-- Authentication: required for some actions; with a role system
-- Settings: language and appearance changes
-- Requirements: barrier-free, dark and light mode, English and German support, micro-interactions, modern and intuitive design
+This repository powers my personal website and the related login, backend, and documentation workspace. The public site is used as a **portfolio**, a helper for me to **host events**, and a place for **games, blog posts, and general content**.
 
 ---
 
-Last edit: 23.06.2026
+## What is in this mono-repo?
+
+- `sanny/` contains the public React + Vite website
+- `login/` contains the auth-focused login app
+- `backend/` contains the Fastify API that supports protected features and settings
+- `shared/packages/i18n/` handles language state and translations
+- `shared/packages/styles/` handles theme and appearance state
+- `shared/packages/ui/` provides reusable UI components and shared pages
+- `docs/` contains this documentation site
+- `games/` contains standalone mini projects and older experiments
+
+---
+
+## Project Direction
+
+The workspace follows a few core ideas:
+- Architecture: module-based mono-repo
+- Design approach: mobile-first and user-centered
+- Authentication: required for some actions, with role-based access
+- Settings: language and appearance changes across the apps
+- Requirements: barrier-free, light and dark mode, English and German support, micro-interactions, and a modern, intuitive design
+
+## Shared Focus
+
+The shared packages are there to keep the frontend apps consistent. Language, theme, settings, and shared UI should stay aligned across the public site and the login workspace instead of being reimplemented in each app.
+
+That makes the repo easier to maintain and keeps changes like accessibility, localization, and styling behavior in one place.
+
+---
+
+Last edit: 26.06.2026

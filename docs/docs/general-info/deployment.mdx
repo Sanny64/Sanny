@@ -124,6 +124,8 @@ This keeps shared code in sync with the apps that consume it.
 - After the squash merge, production deploys from `main`.
 - Frontends and docs deploy automatically.
 - Backend deployment needs a manual `workflow_dispatch` trigger in the GitHub Actions menu.
+  <br />
+  <br />
   <center>
     <img
       src="/img/release_flow.drawio.svg"
@@ -231,6 +233,19 @@ This keeps `main` tidy and produces one compact release commit.
 
 ---
 
+## Resync feature branches
+
+If feature branches drift apart and you want them to share the same working state again, use `dev` as the integration point.
+
+1. Merge all feature branches into `dev` locally (in dependency order to avoid conflicts).
+2. Push `dev`.
+3. On each feature branch, pull or merge `dev` to synchronize.
+4. Push the updated feature branches.
+
+This is a recovery step using the normal `dev` integration branch. It is useful when several branches depend on the same shared-package or workspace changes and you need local dev servers to work consistently again.
+
+---
+
 ## Production deploy behavior
 
 Production deploy starts from `main` after the squash merge.
@@ -260,4 +275,4 @@ That means:
 
 ---
 
-Last edit: 23.06.2026
+Last edit: 26.06.2026
