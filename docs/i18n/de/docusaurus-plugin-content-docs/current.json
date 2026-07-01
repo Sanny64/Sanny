@@ -1,54 +1,54 @@
 {
   "version.label": {
     "message": "Weiter",
-    "description": "The label for version current"
+    "description": "Die Bezeichnung für die aktuelle Version"
   },
   "sidebar.tutorialSidebar.category.General Info": {
     "message": "Generelle Informationen",
-    "description": "The label for category 'General Info' in sidebar 'tutorialSidebar'"
+    "description": "Die Bezeichnung für die Kategorie „Generelle Informationen“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.General Info.link.generated-index.description": {
     "message": "Die folgenden Seiten enthalten architektonische Entscheidungen, Code- und Deployment-Richtlinien sowie allgemeine Informationen.",
-    "description": "The generated-index page description for category 'General Info' in sidebar 'tutorialSidebar'"
+    "description": "Die Beschreibung der generated-index-Seite für die Kategorie „Generelle Informationen“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Frontend": {
     "message": "Frontend",
-    "description": "The label for category 'Frontend' in sidebar 'tutorialSidebar'"
+    "description": "Die Bezeichnung für die Kategorie „Frontend“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Frontend.link.generated-index.description": {
     "message": "Die folgenden Seiten enthalten Dokumentationen zum Frontend.",
-    "description": "The generated-index page description for category 'Frontend' in sidebar 'tutorialSidebar'"
+    "description": "Die Beschreibung der generated-index-Seite für die Kategorie „Frontend“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Projects": {
-    "message": "Projects",
-    "description": "The label for category 'Projects' in sidebar 'tutorialSidebar'"
+    "message": "Projekte",
+    "description": "Die Bezeichnung für die Kategorie „Projekte“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Projects.link.generated-index.description": {
     "message": "Die folgenden Seiten enthalten Dokumentationen zu allen Frontend-Projekten.",
-    "description": "The generated-index page description for category 'Projects' in sidebar 'tutorialSidebar'"
+    "description": "Die Beschreibung der generated-index-Seite für die Kategorie „Projekte“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Shared Packages": {
-    "message": "Geteilte Packages",
-    "description": "The label for category 'Shared Packages' in sidebar 'tutorialSidebar'"
+    "message": "Geteilte Pakete",
+    "description": "Die Bezeichnung für die Kategorie „Geteilte Pakete“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Shared Packages.link.generated-index.description": {
-    "message": "Die folgenden Seiten enthalten Dokumentationen zu den gemeinsam genutzten selbst erstellten npm Paketen.",
-    "description": "The generated-index page description for category 'Shared Packages' in sidebar 'tutorialSidebar'"
+    "message": "Die folgenden Seiten enthalten Dokumentationen zu den gemeinsam genutzten, selbst erstellten npm-Paketen.",
+    "description": "Die Beschreibung der generated-index-Seite für die Kategorie „Geteilte Pakete“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Sanny": {
     "message": "Sanny",
-    "description": "The label for category 'Sanny' in sidebar 'tutorialSidebar'"
+    "description": "Die Bezeichnung für die Kategorie „Sanny“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Sanny.link.generated-index.description": {
     "message": "Die folgenden Seiten enthalten Dokumentationen zu den gemeinsam genutzten Paketen.",
-    "description": "The generated-index page description for category 'Sanny' in sidebar 'tutorialSidebar'"
+    "description": "Die Beschreibung der generated-index-Seite für die Kategorie „Sanny“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Backend": {
     "message": "Backend",
-    "description": "The label for category 'Backend' in sidebar 'tutorialSidebar'"
+    "description": "Die Bezeichnung für die Kategorie „Backend“ in der Seitenleiste „tutorialSidebar“"
   },
   "sidebar.tutorialSidebar.category.Backend.link.generated-index.description": {
     "message": "Die folgenden Seiten enthalten Dokumentationen zum Backend.",
-    "description": "The generated-index page description for category 'Backend' in sidebar 'tutorialSidebar'"
+    "description": "Die Beschreibung der generated-index-Seite für die Kategorie „Backend“ in der Seitenleiste „tutorialSidebar“"
   }
 }

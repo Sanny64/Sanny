@@ -1,0 +1,87 @@
+---
+title: Einrichtung
+description: Einführung in die Dokumentation
+sidebar_position: 1
+---
+
+Klone dieses Repository, um Zugriff auf alle Anwendungen in diesem Workspace zu erhalten.<br/>Du benötigst Node.js und Git auf deinem Rechner.
+
+---
+
+### Installations- und Setup-Anweisungen
+
+Installation: npm install
+
+*Führe im Root-Verzeichnis eines der Workspace-Skripte aus:*
+
+- npm run dev:sanny
+- npm run dev:login
+- npm run dev:docs
+- npm run dev:docs-de
+
+Beim Ausführen der Dev-Skripte öffnet sich für Frontend-Projekte http://localhost:5173 und für Docusaurus http://localhost:3000, damit du die ausgewählte App im Dev-Modus im Browser ansehen kannst. Die Seite lädt sich automatisch neu, wenn du Änderungen vornimmst.
+
+*Für Qualitätsprüfungen:*
+
+- npm run lint
+- npm run build
+- npm run test (lint & build) 
+    - wird bald durch echte Tests ersetzt
+
+*Für lokale Builds:*
+
+- npm run build:sanny
+- npm run build:login
+- npm run build:docs
+- npm run serve:docs (baut die Docs vorher)
+
+---
+
+### Verzeichnisstruktur
+```
+Sanny/ (Root-Workspace)
+├── .github/ # CI/CD-Workflows & Actions
+├── backend/ # Fastify-Server-Engine
+│ └── src/
+│ ├── middleware/ # RBAC-Rollengards & Authentifizierungsprüfungen
+│ └── modules/ # Gekapselte Fastify-Logik-Plugins
+│ ├── auth/ # OAuth2- & JWT-Handler
+│ ├── blog/ # Öffentliche Handler für Beiträge
+│ ├── events/ # Geheime /party /comfort /refreshing Endpoints
+│ ├── portfolio/ # Auf Recruiter beschränkte Datenrouten
+│ └── settings/ # Settings-API für domainübergreifendes Settings-Profiling
+│
+├── games/
+│ ├── first/ # Eigenständiger Spiel-Service / Repository (meine allererste Website)
+│ └── blockrunner/ # Eigenständiger Spiel-Service (Programmier-Challenge)
+│
+├── login/ # Frontend: auth.sanny64.de (Vite + React + TS)
+│ ├── public/
+│ └── src/
+│ ├── assets/ # Frontend-projektspezifische Assets
+│ ├── components/ # Exklusive benutzerdefinierte Komponenten für dieses Frontend-Projekt
+│ └── pages/ # LoginPage
+│
+├── sanny/ # Frontend: sanny64.de (Vite + React + TS)
+│ ├── public/
+│ └── src/
+│ ├── assets/ # Frontend-projektspezifische Assets
+│ ├── components/ # Exklusive benutzerdefinierte Komponenten für dieses Frontend-Projekt
+│ └── pages/ # Hauptseiten: Home, Blog, Games, Portfolio, Projects | Zusatzseite: Party (anderer Stil)
+│
+├── shared # Gemeinsame benutzerdefinierte npm-Packages
+│ └── packages/
+│ ├── i18n/ # Gemeinsamer Sprachkontext, Typen, Utilities und Übersetzungen
+│ ├── styles/ # Gemeinsamer Theme-Kontext, Typen, Utilities und Darstellungszustand
+│ └── ui/ # Gemeinsame UI-Komponenten, Seiten und Komponenten-/Seiten-Styles
+│ ├── components/ # Buttons, TextInput usw.
+│ ├── pages/ # Settings, Errors
+│ └── styles/
+│
+├── .gitignore # Globale Regeln zum Ignorieren in Git
+└── README.md # Projekt-Roadmap & Dokumentation
+```
+
+---
+
+Letzte Bearbeitung: 29.06.2026

@@ -6,7 +6,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
   title: "Sanny64",
-  tagline: "A Documentation project for Sanny64.de",
+  tagline: "A shared documentation for the Sanny64.de workspace",
   favicon: "img/favicon.ico",
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -104,13 +104,20 @@ const config: Config = {
           title: "Sanny64",
           items: [
             {
+              label: "Website",
+              href: "https://sanny64.de",
+            },
+            {
               label: "GitHub",
               href: "https://github.com/Sanny64/Sanny",
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Sanny64, Docs. Built with Docusaurus.`,
+      copyright:
+        process.env.DOCUSAURUS_CURRENT_LOCALE === "de"
+          ? `Copyright © ${new Date().getFullYear()} Sanny64.de, Dokumentation. Erstellt mit Docusaurus.`
+          : `Copyright © ${new Date().getFullYear()} Sanny64.de, Documentation. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

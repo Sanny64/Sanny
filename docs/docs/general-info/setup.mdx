@@ -4,7 +4,7 @@ description: Introduction to the documentation
 sidebar_position: 1
 ---
 
-Clone this repository to get full access to close to all applications across this repository.<br/>You will need node.js and git installed on your machine.
+Clone this repository to get access to all applications in this workspace.<br/>You will need Node.js and Git installed on your machine.
 
 ---
 
@@ -12,26 +12,28 @@ Clone this repository to get full access to close to all applications across thi
 
 Installation: npm install
 
-In the root directory, run one of the workspace scripts:
+*In the root directory, run one of the workspace scripts:*
 
 - npm run dev:sanny
 - npm run dev:login
 - npm run dev:docs
+- npm run dev:docs-de
 
 Running the dev scripts will open http://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 
-For quality checks:
+*For quality checks:*
 
 - npm run lint
 - npm run build
-- npm run test (lint & build)
+- npm run test (lint & build) 
+    - will replaced with actual tests soon
 
-For local builds:
+*For local builds:*
 
 - npm run build:sanny
 - npm run build:login
 - npm run build:docs
-- npm run serve:docs (builds the docs preemptively)
+- npm run serve:docs (builds the docs beforehand)
 
 ---
 
@@ -51,8 +53,8 @@ Sanny/ (Root Workspace)
 │             └── settings/   # Settings API for cross domain settings profiling
 │
 ├── games/
-│   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
-│   └── blockrunner/          # Independent game service / repository (programming challenge)
+│   ├── first/                # Independent game service / repository ([first ever website of mine](https://www.sanny64.de/first#index.html))
+│   └── blockrunner/          # Independent game service (programming challenge)
 │
 ├── login/                    # Frontend: auth.sanny64.de (Vite + React + TS)
 │   ├── public/
@@ -83,4 +85,4 @@ Sanny/ (Root Workspace)
 
 ---
 
-Last edit: 24.06.2026
+Last edit: 29.06.2026

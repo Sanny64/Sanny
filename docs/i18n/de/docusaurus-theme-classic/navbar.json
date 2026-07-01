@@ -1,18 +1,18 @@
 {
   "title": {
     "message": "Sanny64",
-    "description": "The title in the navbar"
+    "description": "Der Titel der Navbar"
   },
   "logo.alt": {
     "message": "Zwei grüne Blätter, die eine Herzform bilden und das Sanny64-Logo darstellen",
-    "description": "The alt text of navbar logo"
+    "description": "Der alternative Text des Navbar-Logos"
   },
   "item.label.Documentation": {
     "message": "Dokumentation",
-    "description": "Navbar item with label Documentation"
+    "description": "Navbar-Element mit der Bezeichnung Dokumentation"
   },
   "item.label.GitHub": {
     "message": "GitHub",
-    "description": "Navbar item with label GitHub"
+    "description": "Navbar-Element mit der Bezeichnung GitHub"
   }
 }

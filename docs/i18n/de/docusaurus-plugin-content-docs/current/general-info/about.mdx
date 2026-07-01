@@ -1,0 +1,44 @@
+---
+title: Projektübersicht
+description: Erklärung, worum es in diesem Projekt überhaupt geht.
+sidebar_position: 2
+---
+
+Dieses Repository betreibt meine persönliche Website sowie den dazugehörigen Login, das Backend und die Dokumentations-Workspace. Die öffentliche Seite dient als **Portfolio**, als Hilfe zum **Hosten von Events** und als Ort für **Spiele, Blogbeiträge und allgemeine Inhalte**.
+
+---
+
+## Was ist in diesem Monorepo enthalten?
+
+- `sanny/` enthält die öffentliche React + Vite Website
+- `login/` enthält die auf Authentifizierung fokussierte Login-App
+- `backend/` enthält die Fastify-API, die geschützte Funktionen und Einstellungen unterstützt
+- `shared/packages/i18n/` verwaltet Sprachstatus und Übersetzungen
+- `shared/packages/styles/` verwaltet Theme- und Darstellungszustand
+- `shared/packages/ui/` stellt wiederverwendbare UI-Komponenten und gemeinsame Seiten bereit
+- `docs/` enthält diese Dokumentationsseite
+- `games/` enthält eigenständige Mini-Spielprojekte
+
+---
+
+## Projektausrichtung
+
+Der Workspace folgt einigen zentralen Prinzipien:
+
+- Architektur: modulbasiertes Monorepo
+- Designansatz: mobile-first und nutzerzentriert
+- Authentifizierung: für einige Aktionen erforderlich, mit rollenbasiertem Zugriff
+- Einstellungen: Sprach- und Darstellungsänderungen über alle Apps hinweg
+- Anforderungen: barrierefrei, Hell- und Dunkelmodus, Unterstützung für Englisch und Deutsch, Mikrointeraktionen sowie ein modernes, intuitives Design
+
+---
+
+## Gemeinsamer Fokus
+
+Die Shared-Packages sorgen dafür, dass die Frontend-Apps konsistent bleiben. Sprache, Theme, Einstellungen und gemeinsame UI sollen über die öffentliche Seite und den Login-Workspace hinweg abgestimmt sein, anstatt in jeder App neu implementiert zu werden.
+
+Das erleichtert die Wartung des Repos und bündelt Änderungen wie Barrierefreiheit, Lokalisierung und Styling-Verhalten an einer zentralen Stelle.
+
+---
+
+Letzte Bearbeitung: 26.06.2026

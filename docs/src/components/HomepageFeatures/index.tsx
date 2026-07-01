@@ -2,42 +2,44 @@ import type { ReactNode } from "react";
 import clsx from "clsx";
 import Heading from "@theme/Heading";
 import styles from "./styles.module.css";
+import Translate from "@docusaurus/Translate";
 
 type FeatureItem = {
-  title: string;
+  title: ReactNode;
   Svg: React.ComponentType<React.ComponentProps<"svg">>;
   description: ReactNode;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: "What is Sanny64?",
+    title: (<Translate id="homepage.features.what_is_sanny64.title">What is Sanny64?</Translate>),
     Svg: require("@site/static/img/undraw_docusaurus_mountain.svg").default,
     description: (
-      <>
+      <Translate id="homepage.features.what_is_sanny64.description">
         Sanny64 is my private website, which I mainly use as a portfolio, a
         helper for me to host events and for you to play some of my games.
-      </>
+      </Translate>
     ),
   },
   {
-    title: "Focus on What Matters",
+    title: (<Translate id="homepage.features.documentation.title">Documentation</Translate>),
     Svg: require("@site/static/img/undraw_docusaurus_tree.svg").default,
     description: (
-      <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
-      </>
+      <Translate id="homepage.features.documentation.description">
+        This is the documentation site for the Sanny64 workspace and explains 
+        how the public site, login app, shared packages, and backend fit together.
+      </Translate>
     ),
   },
   {
-    title: "Powered by React",
+    title: (<Translate id="homepage.features.docusaurus.title">Docusaurus</Translate>),
     Svg: require("@site/static/img/undraw_docusaurus_react.svg").default,
     description: (
-      <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
-      </>
+      <Translate id="homepage.features.docusaurus.description">
+        Docusaurus is a modern static website generator that helps build
+        optimized documentation pages quickly. It's built by Facebook, 
+        open-source, and React-based.
+      </Translate>
     ),
   },
 ];

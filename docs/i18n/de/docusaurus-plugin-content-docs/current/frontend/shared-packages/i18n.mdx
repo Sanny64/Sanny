@@ -1,0 +1,161 @@
+---
+title: i18n
+description: Informationen zum gemeinsam genutzten benutzerdefinierten npm-Paket @sanny/i18n.
+sidebar_position: 2
+---
+
+# @sanny/i18n
+
+`@sanny/i18n` ist ein gemeinsam genutztes npm-Paket, das den Sprachkontext, den Provider, den Hook, englische und deutsche Übersetzungen sowie unterstützende Sprachtypen und Utilities bereitstellt.<br/>
+Es speichert die ausgewählte Sprache in Cookies und localStorage und hält `<html lang="...">` mit der aktiven Sprache synchron.
+
+---
+
+## Was exportiert wird
+
+Die öffentliche API des Pakets konzentriert sich auf `LanguageProvider`, `useLanguage`, `LanguageContext` und `translations`. Zusätzlich exportiert es die TypeScript-Typen `Language`, `LanguageContextType` und `Translations` für eine sicherere Integration in Apps.
+
+- `LanguageProvider`: umschließt die App und verwaltet den Sprachzustand.
+- `useLanguage()`: liest den aktuellen Sprachkontext und wirft einen Fehler, wenn es außerhalb des Providers verwendet wird.
+- `LanguageContext`: der React-Kontext, der intern vom Hook und Provider verwendet wird.
+- `translations`: enthält die verfügbaren Locale-Dictionaries für `en` und `de`.
+- `Language` / `LanguageContextType` / `Translations`: gemeinsam genutzte Typen für Consumer und Hilfscode.
+
+---
+
+## Unterstützte Sprachen
+
+Das Paket unterstützt derzeit zwei Sprachen: Englisch (`en`) und Deutsch (`de`).<br/>
+Die englischen und deutschen Locale-Dateien müssen exakt dieselbe Struktur abdecken.<br/>
+Dazu gehören Bereiche wie `main`, `auxiliary`, `login` und `shared`, was es erleichtert, Schlüssel konsistent in der gesamten App zu referenzieren.<br/>
+Dieses Setup ermöglicht es Entwickler:innen, ausschließlich die Locale-Dateien zu aktualisieren.<br/>
+Jede abweichende Struktur würde erfordern, das `Translations`-Objekt für jede neue Übersetzung neu zu definieren.
+
+| Sprache  | Code | Hinweise                                                                                        |
+| -------- | ---- | ----------------------------------------------------------------------------------------------- |
+| Englisch | `en` | Allgemeine englische Übersetzung und Standard-Fallback, wenn keine Browserpräferenz gesetzt ist |
+| Deutsch  | `de` | Wird gewählt, wenn die Browsersprache mit `de` beginnt oder explizit ausgewählt wurde           |
+
+---
+
+## Funktionsweise
+
+Beim Initialisieren prüft der Provider zunächst das `language`-Cookie und anschließend den localStorage.<br/>
+Wenn keiner der Werte vorhanden ist, wird auf die Systemsprache des Browsers zurückgegriffen.<br/>
+Falls keine gespeicherte Browserpräferenz existiert, wird Englisch als Standard-Fallback der Website verwendet.
+
+Wenn sich die Sprache ändert, führt der Provider folgende Aktionen aus:
+
+- Speichert den Wert für 365 Tage im `language`-Cookie.
+- Spiegelt den Wert in den localStorage.
+- Aktualisiert `document.documentElement.lang`, sodass es dem aktiven Locale entspricht.
+
+---
+
+## Verwendung
+
+In `main.tsx` wird `App.tsx` in den `LanguageProvider` eingebettet:
+
+```typescript
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { LanguageProvider } from '@sanny/i18n'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    {/* Context provider */}
+    <LanguageProvider>
+        <App />
+    </LanguageProvider>
+  </StrictMode>,
+)
+```
+
+Anschließend wird auf jeder Seite, die Übersetzungen verwendet, `t` wie folgt abgeleitet:
+
+```typescript
+import { useLanguage, translations } from '@sanny/i18n';
+import { SharedSetupProbe } from '@sanny/ui';
+
+export default function Sample() {
+  const { language } = useLanguage();
+  const t = translations[language];
+  return (
+    <div className="content">
+      {t.main.sample}
+      <SharedSetupProbe />
+    </div>
+  );
+}
+```
+
+Der Hook ist so konzipiert, dass er nur innerhalb des Providers verwendet wird; andernfalls wird ein klarer Runtime-Fehler ausgelöst.
+
+---
+
+## Übersetzungsstruktur
+
+Die Locale-Dateien folgen derselben verschachtelten Struktur, was dabei hilft, UI-Texte organisiert und vorhersehbar zu halten. Die Übersetzungen enthalten sowohl einfache Strings als auch funktionsbasierte Einträge für dynamische Labels wie Theme-Umschalter und Sprachwechsel.
+
+Beispiele für übersetzte Bereiche:
+
+```ts
+// standard
+main: {
+    sample: 'Sample'
+} // aufgerufen mit {t.main.sample}
+
+// nested
+auxiliary: {
+    sample: {
+      title: 'Sample',
+      example2: {
+        title: 'example2'
+      },
+    }
+} // aufgerufen mit {t.auxiliary.sample.example2}
+
+// dynamic
+settings: {
+    title: 'Settings',
+    switchLanguageButton: (nextLanguage: string): string =>
+        nextLanguage === 'en' ? 'English' : 'German' // wechselt zwischen den Button-Texten: 'English' und 'German'
+} // aufgerufen mit {t.settings.switchLanguageButton(nextLanguage)}
+```
+
+Die dynamische Benennung könnte beispielsweise so implementiert werden:
+
+```typescript
+<Button
+  className="switch-language-button"
+  aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(nextLanguage)}
+  variant="primary" // hebt sich dadurch von regulären Buttons ab.
+  onClick={() => setLanguage(nextLanguage)}
+> // Button ist eine gemeinsam genutzte UI-Komponente aus @sanny/ui, die in allen Frontend-Projekten verfügbar ist.
+{t.shared.setupProbe.switchLanguageButton(nextLanguage)}
+</Button>
+```
+
+---
+
+## Paket-API
+
+Ein typischer Import für Consumer sieht wie folgt aus:
+
+```ts
+import { useLanguage, translations } from "@sanny/i18n";
+```
+
+---
+
+## Hinweise für Entwickler:innen
+
+Der Provider hängt von Browser-APIs wie `cookies`, `localStorage`, `document` und `navigator` ab und ist daher für die clientseitige Verwendung vorgesehen.
+Die Übersetzungstypen werden aus dem englischen Locale abgeleitet, was hilft, die Locale-Dateien konsistent zu halten, wenn das Paket wächst.
+Wenn du ein neues Locale hinzufügst, musst du exakt dieselbe verschachtelte Schlüsselstruktur wie im englischen Locale beibehalten, damit bestehende `t.some.path`-Zugriffe gültig bleiben.
+Der gemeinsame i18n-Zustand ist auf mehrere dedizierte Quelldateien aufgeteilt: `LanguageContext.tsx` für den React-Kontext, `LanguageProvider.tsx` für Zustand und Persistenz, `useLanguage.ts` für die Nutzung, `language.types.ts` für gemeinsame Typen und `language.utility.ts` für die Übersetzungszuordnung sowie Sprach-Hilfsfunktionen.
+
+---
+
+Letzte Bearbeitung: 26.06.2026

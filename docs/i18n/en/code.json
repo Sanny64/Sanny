@@ -1,6 +1,6 @@
 {
   "custom.siteConfigTagline": {
-    "message": "A Documentation project for Sanny64.de",
+    "message": "A shared documentation for the Sanny64.de workspace",
     "description": "The tagline for the homepage"
   },
   "custom.getStartedButtonLabel": {
@@ -333,5 +333,23 @@
   "theme.tags.tagsPageTitle": {
     "message": "Tags",
     "description": "The title of the tag list page"
+  },
+  "homepage.features.what_is_sanny64.title": {
+    "message": "What is Sanny64?"
+  },
+  "homepage.features.what_is_sanny64.description": {
+    "message": "Sanny64 is my private website, which I mainly use as a portfolio, a helper for me to host events and for you to play some of my games."
+  },
+  "homepage.features.documentation.title": {
+    "message": "Documentation"
+  },
+  "homepage.features.documentation.description": {
+    "message": "This is the documentation site for the Sanny64 workspace and explains how the public site, login app, shared packages, and backend fit together."
+  },
+  "homepage.features.docusaurus.title": {
+    "message": "Docusaurus"
+  },
+  "homepage.features.docusaurus.description": {
+    "message": "Docusaurus is a modern static website generator that helps build optimized documentation pages quickly. It's built by Facebook, open-source, and React-based."
   }
 }

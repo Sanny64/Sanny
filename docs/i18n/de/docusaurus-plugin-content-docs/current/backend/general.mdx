@@ -1,0 +1,24 @@
+---
+title: Allgemein
+description: Allgemeine Informationen zum Backend-Projekt.
+sidebar_position: 1
+---
+
+# Backend
+
+Das Backend befindet sich noch im Aufbau.
+
+Bis die vollständige Website fertig ist, wird das Backend nur lokal gehostet.
+
+Es wird folgende Bestandteile enthalten:
+
+- Fastify (TypeScript) + REST-API-Architektur; die API-Endpunkte für alle (Sub-)Domains werden über `_base-url_/api/v001/` geroutet
+- Nginx wird für das Traffic-Management verwendet
+- Google OAuth 2.0 (über Fastify Passport / Fastify Secure Session) + JWT
+- Role-Based Access Control (RBAC) Middleware
+- MySQL (MariaDB + HeidiSQL)
+- Cloudflare (WAF & DDoS-Schutz) + Fastify Helmet (`@fastify/helmet`)
+
+---
+
+Letzte Bearbeitung: 23.06.2026

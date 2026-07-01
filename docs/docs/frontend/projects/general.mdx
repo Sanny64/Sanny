@@ -6,14 +6,14 @@ sidebar_position: 1
 
 ## All frontend projects
 
-... have the same structure:
+... share the same structure:
 
 - ReactJS + TypeScript + Vite
-- most configs are extended versions of root configs
+- most configs are extended versions of the root configs
 - index.html remains unchanged
 - main.tsx -> context provider
-- App.tsx -> Routing component
-- All `{ children }` (sub-pages) are routed through a layout .tsx file, e.g., Main.tsx (globals.css + main layout):
+- App.tsx -> routing component
+- All `{ children }` (sub-pages) are routed through a layout .tsx file, for example Main.tsx, which loads globals.css and main.css:
 
 ```typescript
 {/* Main.tsx */}
@@ -43,8 +43,8 @@ import Main from './pages/Main';
 import Sample from './pages/sample/Sample';
 
 <BrowserRouter>
-  <Route element={<Main />}> //has the globals.css + main.css imports
-    <Route path="*" element={<Sample />} /> //therefore enforces the shared layout baseline
+  <Route element={<Main />}> // loads globals.css + main.css
+    <Route path="*" element={<Sample />} /> // keeps the shared layout baseline in place
   </Route>
 </BrowserRouter>
 ```
@@ -53,7 +53,7 @@ import Sample from './pages/sample/Sample';
 
 ## Auxiliary Route Themes
 
-More info on route-scoped color theming with the same shared layout baseline: [Click here](./sanny#special-behavior)
+More info on route-scoped color theming with the same shared layout baseline: [Learn more](./sanny#special-behavior)
 
 ---
 

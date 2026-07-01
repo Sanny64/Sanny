@@ -1,0 +1,61 @@
+---
+title: Tech Stack
+description: Erklärung, welche Technologien das Projekt verwendet.
+sidebar_position: 4
+---
+
+# Tech-Stack
+
+## Frontend
+
+- React + TypeScript + Vite
+- Routing über React Router DOM
+- Animationen über Framer Motion
+
+---
+
+## Backend
+
+- Fastify (TypeScript) + REST-API-Architektur; die API-Endpunkte für alle (Sub-)Domains sollen über `_base-url_/api/v001/` geroutet werden
+- Nginx wird für das Traffic-Management verwendet
+- Role-Based Access Control (RBAC) Middleware
+- MySQL (MariaDB + HeidiSQL)
+- Cloudflare (WAF & DDoS-Schutz) + Fastify Helmet (`@fastify/helmet`)
+
+---
+
+## Deployment
+
+- Frontend-CI/CD über [SamKirkland FTP Deploy Action](https://github.com/SamKirkland/FTP-Deploy-Action) (v4.4.0)
+- Backend-CI/CD über [Appleboy SSH Action](https://github.com/appleboy/ssh-action/tree/v1.0.3/) (v1.0.3)
+- Versionsverwaltung über [Git](https://git-scm.com) und [GitHub](https://github.com/Sanny64/Sanny)
+- Gehostet bei [Hetzner](https://www.hetzner.com) Webhosting auf [Sanny64.de](https://www.sanny64.de)
+
+---
+
+## Login
+
+Das Login ist hier gehostet: [Sanny64.de Auth Service](https://auth.sanny64.de).
+
+- Google OAuth 2.0 (über Fastify Passport / Fastify Secure Session) + JWT
+
+---
+
+## Einstellungen
+
+Die Einstellungen sind über `/settings` auf allen Subdomains erreichbar, über das npm-Paket `@sanny/ui`.
+
+- Dark-/Light-Mode (`@sanny/styles`)
+- Accessibility-Einstellungen (`@sanny/styles`)
+- Englisch/Deutsch (`@sanny/i18n`)
+- Benutzerprofile sollen geplant im Backend gespeichert werden: siehe ([/user-data](./user-data))
+
+---
+
+## Fehlerbehandlung
+
+- Die visuelle HTTP-Fehlerbehandlung erfolgt über das npm-Paket `@sanny/ui`.
+
+---
+
+Letzte Bearbeitung: 26.06.2026

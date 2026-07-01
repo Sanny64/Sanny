@@ -1,0 +1,191 @@
+---
+title: styles
+description: Informationen zum gemeinsam genutzten benutzerdefinierten npm-Paket @sanny/styles.
+sidebar_position: 1
+---
+
+# @sanny/styles
+
+`@sanny/styles` ist ein gemeinsam genutztes npm-Paket, das den Theme-Kontext, den Provider, den Hook, gemeinsame CSS-Entrypoints sowie unterstützende Theme-Typen und Utilities bereitstellt.<br/>
+Es hält das aktive Theme mit `document.documentElement` synchron und speichert das ausgewählte Theme sowohl in Cookies als auch im localStorage.
+
+---
+
+## Was exportiert wird
+
+Die öffentliche API des Pakets konzentriert sich auf `ThemeProvider`, `useTheme`, `ThemeContext` und `getThemeVariant`.<br/>
+Zusätzlich exportiert es die TypeScript-Typen `Theme` und `ThemeVariant` für eine sicherere Integration in Apps.
+
+- `ThemeProvider`: umschließt die App und verwaltet den Theme-Zustand.
+- `useTheme()`: liest den aktuellen Theme-Kontext und wirft einen Fehler, wenn es außerhalb des Providers verwendet wird.
+- `ThemeContext`: der React-Kontext, der intern vom Hook und Provider verwendet wird.
+- `getThemeVariant(theme)`: bildet das aktuelle Theme auf den gemeinsamen UI-Variant-Vertrag ab.
+- `Theme` / `ThemeVariant`: gemeinsam genutzte Typen für Consumer und Hilfscode.
+
+---
+
+## Unterstützte Themes
+
+Das Paket unterstützt derzeit zwei Themes: hell und dunkel.<br/>
+Der Theme-Wert wird als `Theme = 'light' | 'dark'` gespeichert und dient als Single Source of Truth für sämtliche themeabhängigen UI-Komponenten.
+
+| Theme  | Wert    | Hinweise                                                                                             |
+| ------ | ------- | ----------------------------------------------------------------------------------------------------- |
+| Hell   | `light` | Standardmodus, wenn keine gespeicherte Präferenz existiert und keine Systempräferenz ermittelt werden kann |
+| Dunkel | `dark`  | Wird angewendet, wenn vom Benutzer ausgewählt oder wenn das System ein dunkles Farbschema bevorzugt  |
+
+---
+
+## Funktionsweise
+
+Beim Initialisieren prüft der Provider zuerst das Theme-Cookie und anschließend den localStorage.<br/>
+Wenn keiner der Werte vorhanden ist, wird auf die Browser-Einstellung `prefers-color-scheme` zurückgegriffen.<br/>
+Falls keine Systempräferenz verfügbar ist, wird der helle Modus als Standard-Fallback verwendet.
+
+Wenn sich das Theme ändert, führt der Provider folgende Aktionen aus:
+
+- Speichert den Wert für 365 Tage im `theme`-Cookie.
+- Spiegelt den Wert in den localStorage.
+- Aktualisiert `document.documentElement` mit `data-theme="..."`.
+- Hält die `.dark`-Klasse synchron für Styles, die eine Dark-Mode-Klasse erwarten.
+
+Der Theme-Provider reagiert nur dann auf Änderungen der Systempräferenz, wenn keine gespeicherte Präferenz existiert, sodass sich die UI in diesem Fall automatisch am Browser orientiert.
+
+---
+
+## Styling-System
+
+Das Paket stellt drei relevante CSS-Entrypoints bereit:
+
+- `globals.css`: grundlegendes visuelles System und themeabhängige CSS-Variablen.
+- `main.css`: gemeinsames Layout-Grundgerüst für Seiten, die über `Main.tsx` geroutet werden.
+- `auxiliary.css`: gemeinsames Layout-Grundgerüst für Seiten, die über `Auxiliary.tsx` geroutet werden.
+
+`main.css` und `auxiliary.css` basieren auf derselben Layout-Grundlage mit identischer zentrierter Geometrie und Dimensionierung.<br/>
+Sie unterscheiden sich lediglich durch routenspezifische Farbvariablen, beispielsweise aus `party.css`.
+
+Die Theme-Variablen in `globals.css` steuern Textfarben, Hintergrundfarben, Rahmen, Code-Blöcke, Akzentfarben, Schatten und wiederverwendbare Surface-Tokens.
+
+Beispiele für gemeinsame Variablen:
+
+```css
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --accent: #aa3bff;
+  --color-text: var(--text);
+  --color-primary: var(--accent);
+}
+```
+
+Im Dark Mode werden dieselben Variablen über `html[data-theme='dark']` und `html.dark` überschrieben:
+
+```css
+html[data-theme="dark"],
+html.dark {
+  --text: #9ca3af;
+  --text-h: #f3f4f6;
+  --bg: #16171d;
+  --border: #2e303a;
+  --accent: #c084fc;
+  color-scheme: dark;
+}
+```
+
+Das Stylesheet enthält außerdem:
+
+- Basis-Styling für `body`, `#root`, Überschriften, Absätze und Code-Blöcke.
+- Responsive Typografie-Anpassungen für Tablet- und Desktop-Breiten.
+- Reduced-Motion-Unterstützung für Nutzer:innen, die weniger Animation bevorzugen.
+- Einen Dark-Mode-Fallback über `prefers-color-scheme`, wenn kein explizites Theme gespeichert wurde.
+
+Für alle Seiten, die `globals.css` importieren, wird `prefers-reduced-motion` berücksichtigt.
+Wenn Seiten über `Main.tsx` geroutet werden (siehe unten), wird ein unsichtbarer `.skip-link` zur Verbesserung der Barrierefreiheit hinzugefügt.
+
+---
+
+## Verwendung
+
+In `main.tsx` wird der Provider einmal importiert und die App damit umschlossen:
+
+```typescript
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { ThemeProvider } from '@sanny/styles'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ThemeProvider>
+      <App />
+    </ThemeProvider>
+  </StrictMode>,
+)
+```
+
+Anschließend werden `globals.css` und `main.css` in `Main.tsx` importiert, um die gemeinsame Layout-Basis auf allen gerouteten Unterseiten durchzusetzen:
+
+```typescript
+import { Outlet } from 'react-router-dom';
+import '@sanny/styles/globals.css';
+import '@sanny/styles/main.css';
+
+export default function Layout() {
+  return (
+    <div className="layout">
+      <a href="#main-content" className="skip-link">
+        Zum Hauptinhalt springen
+      </a>
+      <main id="main-content" className="main-content">
+        <Outlet />
+      </main>
+    </div>
+  );
+}
+```
+
+In `App.tsx` wird ein Routing-Setup wie folgt definiert:
+
+```typescript
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import Main from './pages/Main'
+import Sample from './pages/sample/Sample'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Main />}> // enthält den gemeinsamen Import von globals.css und main.css
+          <Route path="/" element={<Sample />} /> // erzwingt damit ebenfalls die gemeinsame Layout-Basis
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
+
+export default App
+
+```
+
+Der Hook ist so konzipiert, dass er nur innerhalb des Providers verwendet wird; andernfalls wird ein klarer Runtime-Fehler ausgelöst.
+
+---
+
+## Auxiliary Route Color Overrides
+
+Für routenspezifische Farbthemen zusätzlich zur gleichen Layout-Basis siehe [Spezialverhalten](/docs/frontend/projects/sanny#besonderes-verhalten).
+
+---
+
+## Hinweise für Entwickler:innen
+
+Der Provider hängt von Browser-APIs wie `cookies`, `localStorage`, `document`, `window` und `matchMedia` ab und ist daher für die clientseitige Verwendung vorgesehen.
+Die Theme-Persistenz wird zwischen Cookie und localStorage synchronisiert, um den aktiven Modus über Reloads und Sessions hinweg stabil zu halten.
+Da das Theme auf das Root-Dokumentelement angewendet wird, kann das Styling der gesamten App konsistent reagieren, ohne Theme-Props durch jede Komponente weiterreichen zu müssen.
+Der gemeinsame Theme-Zustand ist auf mehrere dedizierte Quelldateien aufgeteilt: `ThemeContext.tsx` für den React-Kontext, `ThemeProvider.tsx` für Zustand und Persistenz, `useTheme.ts` für die Nutzung, `theme.types.ts` für gemeinsame Typen und `theme.utils.ts` für reine Hilfsfunktionen wie `getThemeVariant`.
+
+---
+
+Letzte Bearbeitung: 24.06.2026

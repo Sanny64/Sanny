@@ -1,0 +1,32 @@
+---
+title: Login
+description: Informationen zum Login-Projekt.
+sidebar_position: 3
+---
+
+# Login
+
+Das Login-Projekt ist das auf Authentifizierung fokussierte Frontend des Monorepos. Es wurde mit React, TypeScript und Vite erstellt und ist dafür gedacht, Sign-in-bezogene Abläufe in einer dedizierten App zu verwalten, anstatt sie mit der öffentlichen Website zu vermischen.
+
+---
+
+## Zweck
+
+- Eine fokussierte Authentifizierungserfahrung bereitstellen
+- Geschützte Abläufe von den öffentlichen Portfolio-Seiten trennen
+- Sprache, Theme und UI-Verhalten mit dem Rest des Workspaces teilen
+- Durch Shared Packages klein und wartbar bleiben
+
+---
+
+## Gemeinsame Abhängigkeiten
+
+Die Login-App nutzt die gemeinsamen Workspace-Packages, um mit dem Rest des Projekts konsistent zu bleiben:
+
+- `@sanny/i18n` für Sprachverwaltung und Übersetzungen
+- `@sanny/styles` für Theme und globalen Styling-Zustand
+- `@sanny/ui` für wiederverwendbare Komponenten und gemeinsame UI-Muster
+
+---
+
+Letzte Bearbeitung: 26.06.2026
