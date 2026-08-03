@@ -59,7 +59,7 @@ Sanny/ (Root Workspace)
 │        └── modules/         # Encapsulated Fastify logic plugins
 │             ├── auth/       # OAuth2 & JWT handlers
 │             ├── blog/       # Public writing handlers
-│             ├── events/     # Secret /party /comfort /refreshing endpoints
+│             ├── events/     # Secret /party /comfort /refreshments endpoints
 │             ├── portfolio/  # Recruiter-restricted data routes
 │             └── settings/   # Settings API for cross domain settings profiling
 │
@@ -228,7 +228,7 @@ They're accessible only via QR-codes and can't be reached from the main UI.
 - What will you bring? (Form; Automated Suggestions based on "What's still needed?")
 - Song suggestions
 
-2. **Period Comfort Kit** ([/comfort](https://www.sanny64.de/comfort))
+2. **Period Comfort Kit** ([/party/comfort](https://www.sanny64.de/party/comfort))
 
 - What's inside the kit? (Dynamic Info Cards)
 - Where it's at? (Static Info Card)
@@ -238,7 +238,7 @@ They're accessible only via QR-codes and can't be reached from the main UI.
 - Spotify Integration (relaxed period comfort playlist)
 - Personal message
 
-3. **Refreshing Kit** ([/refreshing](https://www.sanny64.de/refreshing))
+3. **Refreshments Kit** ([/party/refreshments](https://www.sanny64.de/party/refreshments))
 
 - What's inside the kit? (Dynamic Info Cards)
 - Where it's at? (Static Info Card)
