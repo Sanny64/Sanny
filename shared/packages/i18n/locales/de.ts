@@ -28,8 +28,8 @@ export const de: Translations = {
   auxiliary: {
     party: {
       title: "Party",
-      refreshing: {
-        title: "Refreshing Kit",
+      refreshments: {
+        title: "Refreshments Kit",
       },
       comfort: {
         title: "Period Comfort Kit",
