@@ -12,7 +12,7 @@ Klone dieses Repository, um Zugriff auf alle Anwendungen in diesem Workspace zu 
 
 Installation: npm install
 
-*Führe im Root-Verzeichnis eines der Workspace-Skripte aus:*
+_Führe im Root-Verzeichnis eines der Workspace-Skripte aus:_
 
 - npm run dev:sanny
 - npm run dev:login
@@ -21,14 +21,14 @@ Installation: npm install
 
 Beim Ausführen der Dev-Skripte öffnet sich für Frontend-Projekte http://localhost:5173 und für Docusaurus http://localhost:3000, damit du die ausgewählte App im Dev-Modus im Browser ansehen kannst. Die Seite lädt sich automatisch neu, wenn du Änderungen vornimmst.
 
-*Für Qualitätsprüfungen:*
+_Für Qualitätsprüfungen:_
 
 - npm run lint
 - npm run build
-- npm run test (lint & build) 
-    - wird bald durch echte Tests ersetzt
+- npm run test (lint & build)
+  - wird bald durch echte Tests ersetzt
 
-*Für lokale Builds:*
+_Für lokale Builds:_
 
 - npm run build:sanny
 - npm run build:login
@@ -38,6 +38,7 @@ Beim Ausführen der Dev-Skripte öffnet sich für Frontend-Projekte http://local
 ---
 
 ### Verzeichnisstruktur
+
 ```
 Sanny/ (Root-Workspace)
 ├── .github/ # CI/CD-Workflows & Actions
@@ -47,7 +48,7 @@ Sanny/ (Root-Workspace)
 │ └── modules/ # Gekapselte Fastify-Logik-Plugins
 │ ├── auth/ # OAuth2- & JWT-Handler
 │ ├── blog/ # Öffentliche Handler für Beiträge
-│ ├── events/ # Geheime /party /comfort /refreshing Endpoints
+│ ├── events/ # Geheime /party /comfort /refreshments Endpoints
 │ ├── portfolio/ # Auf Recruiter beschränkte Datenrouten
 │ └── settings/ # Settings-API für domainübergreifendes Settings-Profiling
 │

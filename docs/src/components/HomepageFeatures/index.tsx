@@ -12,7 +12,11 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: (<Translate id="homepage.features.what_is_sanny64.title">What is Sanny64?</Translate>),
+    title: (
+      <Translate id="homepage.features.what_is_sanny64.title">
+        What is Sanny64?
+      </Translate>
+    ),
     Svg: require("@site/static/img/undraw_docusaurus_mountain.svg").default,
     description: (
       <Translate id="homepage.features.what_is_sanny64.description">
@@ -22,22 +26,29 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: (<Translate id="homepage.features.documentation.title">Documentation</Translate>),
+    title: (
+      <Translate id="homepage.features.documentation.title">
+        Documentation
+      </Translate>
+    ),
     Svg: require("@site/static/img/undraw_docusaurus_tree.svg").default,
     description: (
       <Translate id="homepage.features.documentation.description">
-        This is the documentation site for the Sanny64 workspace and explains 
-        how the public site, login app, shared packages, and backend fit together.
+        This is the documentation site for the Sanny64 workspace and explains
+        how the public site, login app, shared packages, and backend fit
+        together.
       </Translate>
     ),
   },
   {
-    title: (<Translate id="homepage.features.docusaurus.title">Docusaurus</Translate>),
+    title: (
+      <Translate id="homepage.features.docusaurus.title">Docusaurus</Translate>
+    ),
     Svg: require("@site/static/img/undraw_docusaurus_react.svg").default,
     description: (
       <Translate id="homepage.features.docusaurus.description">
         Docusaurus is a modern static website generator that helps build
-        optimized documentation pages quickly. It's built by Facebook, 
+        optimized documentation pages quickly. It's built by Facebook,
         open-source, and React-based.
       </Translate>
     ),
