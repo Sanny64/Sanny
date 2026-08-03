@@ -6,7 +6,7 @@ export default function Party() {
   return (
     <div className="content">
       {t.auxiliary.party.title}
-      <SharedSetupProbe />
+      <SharedSetupProbe className="party" />
     </div>
   );
 }

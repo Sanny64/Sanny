@@ -1,4 +1,4 @@
-.auxiliary-layout--refreshing {
+.auxiliary-layout--refreshments {
   --auxiliary-layout-bg:
     radial-gradient(circle at top, rgba(0, 0, 0, 0.06), transparent 36%),
     linear-gradient(180deg, #eaf6fb 0%, #dff3f5 100%);
@@ -13,8 +13,8 @@
   --sct-secondary-text: #005778;
 }
 
-html[data-theme="dark"] .auxiliary-layout--refreshing,
-html.dark .auxiliary-layout--refreshing {
+html[data-theme="dark"] .auxiliary-layout--refreshments,
+html.dark .auxiliary-layout--refreshments {
   --auxiliary-layout-bg:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 36%),
     linear-gradient(180deg, #012731 0%, #00363e 100%);
@@ -30,7 +30,7 @@ html.dark .auxiliary-layout--refreshing {
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .auxiliary-layout--refreshing {
+  :root:not([data-theme]) .auxiliary-layout--refreshments {
     --auxiliary-layout-bg:
       radial-gradient(
         circle at top,

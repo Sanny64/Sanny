@@ -13,7 +13,7 @@ import Blog from "./pages/blog/Blog";
 import Games from "./pages/games/Games";
 import Auxiliary from "./pages/Auxiliary";
 import Party from "./pages/party/Party";
-import Refreshing from "./pages/party/refreshing/Refreshing";
+import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
 
 function App() {
@@ -39,7 +39,7 @@ function App() {
           {/* Auxiliary routes */}
           <Route element={<Auxiliary />}>
             <Route path="/party" element={<Party />} />
-            <Route path="/party/refreshing" element={<Refreshing />} />
+            <Route path="/party/refreshments" element={<Refreshments />} />
             <Route path="/party/comfort" element={<Comfort />} />
           </Route>
           {/* Redirect any unknown routes to Error */}
