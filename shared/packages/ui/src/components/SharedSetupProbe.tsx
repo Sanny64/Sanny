@@ -5,12 +5,7 @@ import { ButtonGroup } from './ButtonGroup';
 import { Section } from './Section';
 import '../styles/sharedSetupProbe.css';
 
-
-export function SharedSetupProbe({ 
-  testId = "shared-setup-probe", className }: {
-     testId?: string;
-     className?: string 
-}) {
+export function SharedSetupProbe({ className }: { className?: string }) {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
   const nextLanguage = language === 'en' ? 'de' : 'en';
@@ -18,33 +13,52 @@ export function SharedSetupProbe({
   const t = translations[language];
 
   return (
-    <Section
-      className={`panelStyle ${className}`}
+    <div 
+      className={`shared-setup-probe ${className}`}
       aria-label="Shared setup verification"
-      variant={themeVariant}
-      data-testid={testId}
     >
-      <strong>{t.shared.setupProbe.title}</strong>
-      <div>{t.shared.setupProbe.theme}: {theme}</div>
-      <div>{t.shared.setupProbe.language}: {language}</div>
-      <ButtonGroup layout="horizontal">
-        <Button 
-          className="toggle-theme-button"
-          aria-label={t.shared.setupProbe.descriptionToggleThemeButton(theme)}
-          variant={themeVariant}
-          onClick={toggleTheme}
-        >
-          {t.shared.setupProbe.toggleThemeButton(theme)}
-        </Button>
-        <Button
-          className="switch-language-button"
-          aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(nextLanguage)}
-          variant={themeVariant}
-          onClick={() => setLanguage(nextLanguage)}
-        >
-          {t.shared.setupProbe.switchLanguageButton(nextLanguage)}
-        </Button>
-      </ButtonGroup>
-    </Section>
+    <Section
+      className={`ssp-section ${className}`}
+      variant={themeVariant}
+    >
+      <strong>
+        {t.shared.setupProbe.title}
+      </strong>
+      <div>
+        {t.shared.setupProbe.theme}: {theme}
+      </div>
+      <div>
+        {t.shared.setupProbe.language}: {language}
+      </div>
+      {/* Test global provider state changes */}
+      <ButtonGroup
+        className={`ssp-button-group ${className}`}
+        layout="horizontal"
+      >
+      {/* Test global theme provider state changes */}
+      <Button
+        className={`ssp-toggle-theme-button ${className}`}
+        aria-label={t.shared.setupProbe.descriptionToggleThemeButton(theme)}
+        data-testid={`ssp-toggle-theme-button ${className}`}
+        variant={themeVariant}
+        onClick={toggleTheme}
+      >
+        {t.shared.setupProbe.toggleThemeButton(theme)}
+      </Button>
+          {/* Test global language provider state changes */}
+          <Button
+            className={`ssp-switch-language-button ${className}`}
+            aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(
+              nextLanguage,
+            )}
+            data-testid={`ssp-switch-language-button ${className}`}
+            variant={themeVariant}
+            onClick={() => setLanguage(nextLanguage)}
+          >
+            {t.shared.setupProbe.switchLanguageButton(nextLanguage)}
+          </Button>
+        </ButtonGroup>
+      </Section>
+    </div>
   );
 }
