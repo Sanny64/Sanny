@@ -350,6 +350,6 @@
     "message": "Docusaurus"
   },
   "homepage.features.docusaurus.description": {
-    "message": "Docusaurus ist ein moderner Generator für statische Websites, mit dem sich optimierte Dokumentationsseiten schnell erstellen lassen. Er ist von Facebook entwickelt, Open Source und basiert auf React."
+    "message": "Docusaurus ist ein Generator für statische Websites, mit dem sich optimierte Dokumentationsseiten schnell erstellen lassen. Er ist von Facebook entwickelt, Open Source und basiert auf React."
   }
 }
