@@ -1,4 +1,5 @@
 export { Button } from "./components/Button";
+export { ButtonGroup } from "./components/ButtonGroup";
 export { Section } from "./components/Section";
 export { SharedSetupProbe } from "./components/SharedSetupProbe";
 export { default as Error } from "./pages/errors/Error";
