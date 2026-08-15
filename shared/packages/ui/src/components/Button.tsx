@@ -10,15 +10,16 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 export function Button({
   children,
   className = "",
-  variant = "ghost",
+  variant = "primary",
   ...props
 }: ButtonProps) {
-  return (
-      <button
-        className={`btn btn--${variant} ${className}`}
-        {...props}
-      >
-        {variant === "ghost" ? null : children}
-      </button>
-    );
+  if (variant === "ghost") {
+    return null;
   }
+
+  return (
+    <button className={`btn btn--${variant} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+}

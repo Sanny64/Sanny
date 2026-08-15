@@ -1,5 +1,3 @@
-1. Add content to HompageFeatures/index.tsx 
-2. Add content to docusaurus pages: /about, /frontend/login, /backend/general
 3. Wrap all visible docusaurus components without translations in Translation components and create English and German translations for them.
 4. Replace all missing translations with fitting ones.
 5. Translate the documentation pages too.
