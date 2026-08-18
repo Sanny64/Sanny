@@ -10,6 +10,15 @@ if (!databaseUrl) {
 
 const adapter = new PrismaMariaDb(databaseUrl);
 
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ 
+  adapter,
+  omit: {
+    user: {
+      password: true,
+    }
+  }
+ });
+
+
 
 export default prisma;

@@ -1,8 +1,6 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type { CreateUserInput, LoginInput } from "../types/inputs.js";
-import { createUser, findUserByEmail, findUsers } from "../services/user.service.js";
-import { verifyPassword } from "../utils/hash.js";
-import { server } from "../server.js";
+import type { CreateUserInput } from "../types/inputs.js";
+import { createUser, findUsers } from "../services/user.service.js";
 
 export async function registerUserHandler(
     request: FastifyRequest<{
@@ -22,37 +20,6 @@ export async function registerUserHandler(
         const message = err instanceof Error ? err.message : "Unknown error";
         return reply.code(400).send({ error: message }); // replace with appropriate error handling
 
-    }
-}
-
-export async function loginHandler(request: FastifyRequest<{
-    Body: LoginInput
-}>, 
-reply: FastifyReply
-) {
-    const body = request.body;
-
-    // find user by email 
-    const user = await findUserByEmail(body.email);
-
-    if (!user) {
-        return reply.code(401).send({
-            error: "Invalid email or password"
-        })
-    }
-
-    // verify password
-    const correctPassword = await verifyPassword(body.password, user.password);
-
-    // generate and return JWT token
-    if (correctPassword) {
-        const { password, ...rest } = user;
-        const accessToken = server.jwt.sign(rest, { expiresIn: "1h" });
-        return reply.code(200).send({ accessToken });
-    } else {
-        return reply.code(401).send({
-            error: "Invalid email or password"
-        })
     }
 }
 

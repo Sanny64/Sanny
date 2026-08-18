@@ -1,8 +1,4 @@
-import { 
-    getUsersHandler, 
-    loginHandler, 
-    registerUserHandler 
-} from "../controllers/user.controller.js";
+import { loginHandler } from "../controllers/auth.controller.js";
 import {
     loginSchema,
     loginResponseSchema

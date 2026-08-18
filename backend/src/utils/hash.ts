@@ -14,8 +14,11 @@ export async function hashPassword(password: string) {
 
 export async function verifyPassword(candidatePassword: string, hash: string) {
   if (await argon2.verify(hash, candidatePassword)) {
+
     console.log("Password is valid!");
+    
   } else {
+
     console.log("Password is invalid!");
   }
   return await argon2.verify(hash, candidatePassword);
