@@ -1,14 +1,17 @@
+  import { Section } from "../../components/Section";
 import { useLanguage, translations } from "@sanny/i18n";
-import { SharedSetupProbe } from "@sanny/ui";
-import "@sanny/styles";
 
-export default function Error() {
+export default function ErrorPage() {
   const t = translations[useLanguage().language];
   return (
-    <div className="content">
-      {/* TODO: Add dynamic error message display based on the HTTP error with consistent styling */}
-      {t.shared.errors.title}
-      <SharedSetupProbe />
-    </div>
+    <>
+      <h1>{t.shared.errors.title}</h1>
+      <Section className="error-section" variant="primary">
+        <h1>
+          {t.shared.errors[500]?.title}
+        </h1>
+        <p>{t.shared.errors[500]?.message}</p>
+      </Section>
+    </>
   );
 }

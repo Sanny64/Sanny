@@ -17,6 +17,7 @@ import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
 
 function App() {
+
   return (
     <>
       {/* Routing */}
@@ -44,7 +45,7 @@ function App() {
           </Route>
           {/* Redirect any unknown routes to Error */}
           <Route element={<Main />}>
-            <Route path="*" element={<Error />} />
+            <Route path="*" element={<Error statusCode={404} />} />
           </Route>
         </Routes>
       </BrowserRouter>

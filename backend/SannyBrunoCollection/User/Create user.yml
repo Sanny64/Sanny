@@ -1,0 +1,31 @@
+info:
+  name: Create user
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{host}}/api/v001/users/create"
+  body:
+    type: json
+    data: |-
+      {
+          "email": "{{email}}",
+          "name": "{{name}}",
+          "password": "{{password}}"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setEnvVar("name", `Test User`)
+        bru.setEnvVar("password", "v3ry|S3cUr3|P4ssword")
+        bru.setEnvVar("email", `test.user@example.com`)
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -56,6 +56,26 @@
     },
     errors: {
       title: "Error Handler",
+      404: {
+        title: "Page Not Found",
+        message: "The requested page could not be found.",
+      },
+      403: {
+        title: "Access Denied",
+        message: "You do not have the necessary permissions to access this page.",
+      },
+      401: {
+        title: "Not Authorized",
+        message: "You must be logged in to access this page.",
+      },
+      500: {
+        title: "Server Error",
+        message: "Our backend is having trouble. Please try again later.",
+      },
+      503: {
+        title: "Service Unavailable",
+        message: "The service is currently unavailable. Please try again later.",
+      }
     },
   },
 };

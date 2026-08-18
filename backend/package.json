@@ -1,6 +1,35 @@
 {
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "Backend for the Sanny64 workspace",
+  "license": "ISC",
+  "author": "Sanny64",
   "type": "module",
+  "main": "server.ts",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx src/server.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
-    "fastify": "^5.8.5"
+    "@fastify/jwt": "^10.2.2",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
+    "@prisma/adapter-mariadb": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "argon2": "^0.45.1",
+    "dotenv": "^17.4.2",
+    "fastify": "^5.12.0",
+    "fastify-type-provider-zod": "^7.0.0",
+    "mariadb": "^3.5.3",
+    "uuid": "^14.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "prisma": "^7.9.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "~6.0.2"
   }
 }

@@ -22,6 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.agents
+.claude
+.windsurf
 
 # Additional files to ignore
 AGENTS.md

@@ -1,6 +1,6 @@
+import type { Theme, ThemeVariant } from "./theme.types";
 import Cookies from "js-cookie";
 import { themeCookieOptions, themeStorageKey } from "./theme.config";
-import type { Theme, ThemeVariant } from "./theme.types";
 
 export function resolveStoredTheme(): Theme | null {
   const storedCookieTheme = Cookies.get(themeStorageKey) as Theme | undefined;

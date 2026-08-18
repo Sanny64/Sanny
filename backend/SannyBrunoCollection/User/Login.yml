@@ -1,0 +1,33 @@
+info:
+  name: Login
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{host}}/api/v001/auth"
+  body:
+    type: json
+    data: |-
+      {
+          "email": "{{email}}",
+          "password": "{{password}}"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        bru.setEnvVar("email", "test.user@example.com")
+        bru.setEnvVar("password", "v3ry|S3cUr3|P4ssword")
+    - type: after-response
+      code: |-
+        var jsonData = res.getBody();
+        bru.setEnvVar("accessToken", jsonData.accessToken);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

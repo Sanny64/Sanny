@@ -1,6 +1,6 @@
+import type { Language } from "./language.types";
 import { languageCookieOptions, languageStorageKey } from "./language.config";
 import Cookies from "js-cookie";
-import type { Language } from "./language.types";
 
 export function resolveSystemLanguage(): Language {
   if (typeof navigator === "undefined") return "en";

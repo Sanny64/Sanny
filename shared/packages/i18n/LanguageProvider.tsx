@@ -1,4 +1,10 @@
-import { useState, useEffect, useLayoutEffect } from "react";
+import type { ReactNode } from "react";
+import type { Language } from "./language.types";
+import { 
+  useState, 
+  useEffect, 
+  useLayoutEffect 
+} from "react";
 import {
   resolveStoredLanguage,
   resolveSystemLanguage,
@@ -7,8 +13,6 @@ import {
 } from "./language.utils";
 import { LanguageContext } from "./LanguageContext";
 import { translations } from "./locales/index";
-import type { ReactNode } from "react";
-import type { Language } from "./language.types";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;

@@ -60,6 +60,26 @@ export const de: Translations = {
     },
     errors: {
       title: "Error Handler",
+      404: {
+        title: "Seite nicht gefunden",
+        message: "Die angeforderte Seite konnte nicht gefunden werden.",
+      },
+      403: {
+        title: "Zugriff verweigert",
+        message: "Sie haben nicht die notwendigen Rechte, um auf diese Seite zuzugreifen.",
+      },
+      401: {
+        title: "Nicht autorisiert",
+        message: "Sie müssen sich anmelden, um auf diese Seite zuzugreifen.",
+      },
+      500: {
+        title: "Serverfehler",
+        message: "Unser Backend hat Probleme. Bitte versuchen Sie es später erneut.",
+      },
+      503: {
+        title: "Dienst nicht verfügbar",
+        message: "Der Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+      }
     },
   },
 };

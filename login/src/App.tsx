@@ -10,7 +10,7 @@ function App() {
       <Routes>
         <Route element={<Main />}>
           <Route path="/" element={<LoginPage />} />
-          <Route path="*" element={<Error />} />
+          <Route path="*" element={<Error statusCode={404} />} />
         </Route>
       </Routes>
     </BrowserRouter>
