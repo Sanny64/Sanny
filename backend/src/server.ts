@@ -11,8 +11,6 @@ import {
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import cors from "@fastify/cors";
-import cookie from "@fastify/cookie";
-import { requireCsrf } from "./utils/session.js";
 import packageJson from "../package.json" with { type: "json" };
 import authRoutes from "./routes/auth.route.js";
 
@@ -44,10 +42,6 @@ const corsOrigins = (process.env.CORS_ORIGINS ?? defaultCorsOrigins.join(","))
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-if (corsOrigins.includes("*")) {
-  throw new Error("CORS_ORIGINS must contain exact origins; wildcard origins are not allowed");
-}
-
 // server
 export const server = Fastify({
   logger: true,
@@ -65,11 +59,6 @@ server.get("/healthcheck", async function () {
 async function main() {
   await server.register(cors, {
     origin: corsOrigins,
-    credentials: true,
-  });
-  await server.register(cookie);
-  server.addHook("onRequest", async (request, reply) => {
-    if (["POST", "PATCH", "PUT", "DELETE"].includes(request.method) && !request.url.includes("/auth")) await requireCsrf(request, reply);
   });
 
   // swagger registration

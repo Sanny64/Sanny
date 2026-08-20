@@ -1,31 +1,44 @@
 import { useLanguage, translations } from "@sanny/i18n";
+import { useAuth0 } from "@auth0/auth0-react";
 import { useEffect, useState } from "react";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export default function LoginPage() {
   const t = translations[useLanguage().language];
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const {
+    error,
+    getAccessTokenSilently,
+    isAuthenticated,
+    isLoading,
+    logout,
+    loginWithRedirect,
+  } = useAuth0();
   const [userSyncError, setUserSyncError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     let cancelled = false;
 
     async function syncUser() {
       try {
+        const accessToken = await getAccessTokenSilently();
+
         const authResponse = await fetch(`${apiUrl}/api/v001/auth/me`, {
           method: "GET",
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
-        if (authResponse.status === 401) return;
         if (!authResponse.ok) {
           throw new Error(`Authentication check failed (${authResponse.status})`);
         }
 
         if (!cancelled) {
-          setIsAuthenticated(true);
           setUserSyncError(null);
         }
       } catch (syncError) {
@@ -36,8 +49,6 @@ export default function LoginPage() {
               : "User synchronization failed",
           );
         }
-      } finally {
-        if (!cancelled) setIsLoading(false);
       }
     }
 
@@ -46,40 +57,25 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  function getCsrfToken() {
-    return document.cookie
-      .split("; ")
-      .find((cookie) => cookie.startsWith("sanny_csrf="))
-      ?.split("=")[1];
-  }
-
-  async function logout() {
-    await fetch(`${apiUrl}/api/v001/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "x-csrf-token": getCsrfToken() ?? "" },
-    });
-    setIsAuthenticated(false);
-  }
+  }, [getAccessTokenSilently, isAuthenticated]);
 
   return (
     <div className="content">
       {t.login.LoginPage}
       {!isLoading && !isAuthenticated && (
-        <button type="button" onClick={() => { window.location.href = `${apiUrl}/api/v001/auth`; }}>
+        <button type="button" onClick={() => void loginWithRedirect()}>
           Log in
         </button>
       )}
       {!isLoading && isAuthenticated && (
         <button
           type="button"
-          onClick={() => void logout()}
+          onClick={() => void logout({ logoutParams: { returnTo: window.location.origin } })}
         >
           Log out
         </button>
       )}
+      {error && <p>{error.message}</p>}
       {userSyncError && <p>{userSyncError}</p>}
     </div>
   );
