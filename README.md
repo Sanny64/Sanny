@@ -114,8 +114,8 @@ Sanny/ (Root Workspace)
 
 - Fastify (TypeScript) + REST API Architecture + Prisma Schemas; The api endpoints for all (sub)-domains are routed via _base-url_/api/v001/
 - Nginx is used for traffic management
-- Google OAuth 2.0 (via Fastify-Passport / Fastify-Secure-Session) + JWT
-- Role-Based Access Control (RBAC) Middleware
+- Auth0 custom database authentication + JWT access tokens
+- Role-Based Access Control (RBAC) Middleware in the Fastify backend
 - MySQL (MariaDB + HeidiSQL)
 - Cloudflare (WAF & DDoS Protection) + Fastify-Helmet (@fastify/helmet)
 
@@ -131,9 +131,9 @@ Sanny/ (Root Workspace)
 
 - Language and theme settings are handled by the shared i18n and styles packages, saved in cookies and mirrored in localStorage only on user change.
   - If no cookie value is set for either language or theme the website falls back to browser preferences
-- JWT and OAuth2-based authentication routed via sub-domain to main-domain
+- Auth0 authentication routed via sub-domain to the protected Fastify API
 - RBAC
-- User-(login)-data storage in MySQL database
+- Auth0 credentials and application-user data share the MySQL user store without a second signup
 - Cloudflare security features
 
 ### Integrations

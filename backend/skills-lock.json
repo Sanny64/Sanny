@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "auth0": {
+      "source": "auth0/agent-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/auth0/skills/auth0/SKILL.md",
+      "computedHash": "e84503b160b0b17fcf7540e2547a18c5484924342cabdd67867972ddd0d422bf"
+    },
     "prisma-cli": {
       "source": "prisma/skills",
       "sourceType": "github",

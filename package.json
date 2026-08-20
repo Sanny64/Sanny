@@ -27,6 +27,7 @@
   },
   "scripts": {
     "dev:backend": "npm run dev -w backend",
+    "start:backend": "npm run start -w backend",
     "dev:login": "npm run dev -w login",
     "dev:sanny": "npm run dev -w sanny",
     "dev:docs": "npm run start -w docs",
@@ -43,7 +44,6 @@
     "lint:login": "npm run lint -w login",
     "lint:sanny": "npm run lint -w sanny",
     "lint:shared": "npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui",
-    "start:backend": "npm run start -w backend",
     "build": "npm run build:login && npm run build:sanny && npm run build:docs",
     "lint": "npm run lint:login && npm run lint:sanny && npm run lint:shared",
     "test": "npm run lint && npm run build"

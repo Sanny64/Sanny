@@ -1,6 +1,12 @@
-import type { createUserSchema } from "../schemas/user.schema.js";
-import type { loginSchema } from "../schemas/auth.schema.js";
+import type { createSelfUserSchema } from "../schemas/user.schema.js";
+import type { updateSelfUserSchema } from "../schemas/user.schema.js";
+import type { updateUserRolesSchema } from "../schemas/user.schema.js";
+import type { updateUserSchema } from "../schemas/user.schema.js";
+import type { userIdParamSchema } from "../schemas/user.schema.js";
 import { z } from "zod";
 
-export type CreateUserInput = z.infer<typeof createUserSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
+export type CreateSelfUserInput = z.infer<typeof createSelfUserSchema>;
+export type UpdateSelfUserInput = z.infer<typeof updateSelfUserSchema>;
+export type UpdateUserRolesInput = z.infer<typeof updateUserRolesSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type UserIdParamInput = z.infer<typeof userIdParamSchema>;

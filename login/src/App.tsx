@@ -1,7 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Main from "./pages/Main";
 import LoginPage from "./pages/loginPage/LoginPage";
-import { Error } from "@sanny/ui";
 
 function App() {
   return (
@@ -10,7 +9,6 @@ function App() {
       <Routes>
         <Route element={<Main />}>
           <Route path="/" element={<LoginPage />} />
-          <Route path="*" element={<Error statusCode={404} />} />
         </Route>
       </Routes>
     </BrowserRouter>

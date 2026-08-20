@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Error, Settings } from "@sanny/ui";
+import { Settings } from "@sanny/ui";
 import Main from "./pages/Main";
 import Home from "./pages/home/Home";
 import Portfolio from "./pages/portfolio/Portfolio";
@@ -45,7 +45,7 @@ function App() {
           </Route>
           {/* Redirect any unknown routes to Error */}
           <Route element={<Main />}>
-            <Route path="*" element={<Error statusCode={404} />} />
+            {/* error route */}
           </Route>
         </Routes>
       </BrowserRouter>

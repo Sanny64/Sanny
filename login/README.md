@@ -1,5 +1,9 @@
 # React + TypeScript + Vite
 
+## Local Auth0 configuration
+
+The Auth0 application must allow `http://localhost:5173` as a callback URL, logout URL, and web origin.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -1,16 +1,13 @@
 import { z } from "zod";
-import { emailSchema, passwordSchema } from "./schemas.js";
 
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: passwordSchema,
-});
-
-export const loginResponseSchema = z.object({
-  accessToken: z.string(),
+export const meResponseSchema = z.object({
+  sub: z.string(),
+  email: z.string().nullable(),
+  name: z.string().nullable(),
+  roles: z.array(z.string()),
+  permissions: z.array(z.string()),
 });
 
 export const authSchemas = {
-    loginSchema,
-    loginResponseSchema,
+    meResponseSchema,
 }
