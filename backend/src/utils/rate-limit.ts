@@ -81,7 +81,9 @@ export function getRateLimitConfig(
     };
   }
   if (
-    route === "/api/v001/users/me" &&
+    ["/api/v001/users/me", "/api/v001/users/me/password-reset"].includes(
+      route,
+    ) &&
     ["POST", "PATCH", "DELETE"].includes(normalizedMethod)
   ) {
     return {

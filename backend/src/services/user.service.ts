@@ -97,6 +97,24 @@ export async function findUserById(userId: number) {
   });
 }
 
+export async function findUserByEmail(email: string) {
+  return prisma.user.findUnique({
+    where: { email: normalizeEmail(email) },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+    },
+  });
+}
+
+export async function findUserByIdWithAuth0Sub(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, auth0Sub: true },
+  });
+}
+
 export async function findUserDeletionTarget(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },

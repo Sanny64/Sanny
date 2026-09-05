@@ -87,6 +87,31 @@ test("social-connection users get their resolved display name, not the email-der
   assert.equal(claims["https://sanny64.app/name"], "Test User");
 });
 
+test("social primary users prefer the managed username after account linking", async () => {
+  const action = await loadAction();
+  const { api, claims } = createApi();
+
+  await action.onExecutePostLogin(
+    {
+      connection: { strategy: "google-oauth2" },
+      user: {
+        email: "user@example.com",
+        name: "Google Profile Name",
+        user_metadata: { username: "managed-username" },
+        email_verified: true,
+      },
+      authorization: { roles: [] },
+      secrets: {
+        AUTH0_CLAIM_NAMESPACE: "https://sanny64.app",
+        AUTH0_EMAIL_VERIFIED_CLAIM: "https://sanny64.app/email_verified",
+      },
+    },
+    api,
+  );
+
+  assert.equal(claims["https://sanny64.app/name"], "managed-username");
+});
+
 test("social-connection users fall back to nickname only when no display name is available", async () => {
   const action = await loadAction();
   const { api, claims } = createApi();

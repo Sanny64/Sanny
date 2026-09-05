@@ -20,12 +20,12 @@ function remove(id, callback) {
     ssl: { ca: sslCa, rejectUnauthorized: true },
   });
 
-  // id is the user's email address from Auth0 custom database mapping
-  if (typeof id !== "string" || !id.trim()) {
-    return callback(new Error("Invalid email"));
+  const userId = Number(id);
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return callback(new Error(`Invalid id: "${id}"`));
   }
 
-  const normalizedEmail = id.trim().toLowerCase();
+  console.log(`Deleting user with id: ${userId}`);
 
   function finish(err, result) {
     connection.end(function () {
@@ -63,8 +63,8 @@ function remove(id, callback) {
       }
 
       connection.query(
-        "DELETE FROM User WHERE LOWER(email) = ?",
-        [normalizedEmail],
+        "DELETE FROM User WHERE id = ?",
+        [userId],
         function (deleteError) {
           if (deleteError) {
             return rollbackAndFinish(deleteError);
@@ -76,6 +76,5 @@ function remove(id, callback) {
     });
   });
 }
-
 
 // This script is a mirror of it's original counterpart used within the Auth0 platform. It is not used within this backend and only provided as context.

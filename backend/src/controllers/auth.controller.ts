@@ -26,6 +26,7 @@ export async function getProfileHandler(
   const profile = {
     sub: identity.sub,
     email: identity.email,
+    email_verified: identity.emailVerified,
     name: identity.name,
     roles: identity.roles,
     permissions: identity.permissions,

@@ -96,11 +96,6 @@ function login(emailInput, passwordInput, callback) {
                 email: rows[0].email,
                 username: rows[0].username,
                 name: rows[0].username,
-                // Explicitly coerce: some MySQL driver/connection configs
-                // return TINYINT(1) as 1/0 rather than true/false. Auth0
-                // persists whatever this callback returns verbatim, and
-                // downstream Post Login Actions compare this with strict
-                // `=== true`, so a numeric 1 would silently fail that check.
                 email_verified: Boolean(rows[0].emailVerified),
               });
             },

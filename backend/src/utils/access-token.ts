@@ -106,6 +106,24 @@ export type AccessTokenIdentity = {
   audiences: string[];
 };
 
+export async function verifyIdTokenMfa(idToken: string): Promise<boolean> {
+  const domain = process.env.AUTH0_DOMAIN;
+  const clientId = process.env.AUTH0_CLIENT_ID;
+  if (!domain || !clientId) {
+    throw new AccessTokenValidationError(
+      "Auth0 ID token verification is not configured",
+    );
+  }
+
+  const issuer = `https://${domain}/`;
+  const jwks = createRemoteJWKSet(new URL(`${issuer}.well-known/jwks.json`));
+  const { payload } = await jwtVerify(idToken, jwks, {
+    issuer,
+    audience: clientId,
+  });
+  return Array.isArray(payload.amr) && payload.amr.includes("mfa");
+}
+
 export class AccessTokenValidationError extends Error {
   constructor(message: string) {
     super(message);

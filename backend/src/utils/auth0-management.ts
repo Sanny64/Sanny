@@ -272,6 +272,30 @@ export async function syncAuth0UserRolesByName(
   };
 }
 
+export async function sendAuth0PasswordResetEmail(email: string) {
+  const domain = getRequiredEnv("AUTH0_DOMAIN");
+  const response = await fetch(
+    `https://${domain}/dbconnections/change_password`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_id: getRequiredEnv("AUTH0_CLIENT_ID"),
+        connection: getRequiredEnv("AUTH0_DATABASE_CONNECTION"),
+        email,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Auth0ManagementError(
+      `Failed to request Auth0 password reset: ${text || response.statusText}`,
+      response.status,
+    );
+  }
+}
+
 export async function deleteAuth0UserBySub(auth0Sub: string): Promise<void> {
   for (let attempt = 0; attempt < deletionRetryCount; attempt += 1) {
     const response = await auth0ManagementRequest(
@@ -298,6 +322,34 @@ export async function deleteAuth0UserBySub(auth0Sub: string): Promise<void> {
         ? Math.min(retryAfter * 1000, 5_000)
         : deletionRetryDelayMs * 2 ** attempt;
     await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+}
+
+export async function updateAuth0UsernameBySub(
+  auth0Sub: string,
+  username: string,
+): Promise<void> {
+  const data: Record<string, unknown> = {
+    user_metadata: { username },
+  };
+  if (auth0Sub.startsWith("auth0|")) {
+    data.name = username;
+  }
+
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(auth0Sub)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Auth0ManagementError(
+      `Failed to update Auth0 username: ${text || response.statusText}`,
+      response.status,
+    );
   }
 }
 

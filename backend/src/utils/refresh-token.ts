@@ -1,5 +1,12 @@
 export function buildAuthorizationScope() {
-  return ["openid", "profile", "email", "offline_access"].join(" ");
+  return [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "update:me",
+    "delete:me",
+  ].join(" ");
 }
 
 export function buildRefreshTokenRequest({

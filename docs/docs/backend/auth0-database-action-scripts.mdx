@@ -30,6 +30,14 @@ In Auth0 Dashboard:
 
 Auth0 executes these functions with specific arguments and expects the callback contract documented below.
 
+## Delete scope and social-connection users
+
+`delete.js` is only invoked for users of this custom database connection. Deleting a
+`google-oauth2|...` user from the Auth0 Dashboard never calls it, so those local rows
+are never cleaned up this way. `backend/src/utils/orphaned-social-user-cleanup.ts`
+runs hourly, checks local social-connection rows against the Auth0 Management API, and
+deletes any whose Auth0 identity no longer exists.
+
 ## Script contract summary
 
 | File                | Exported function                              | Purpose                                            | Success callback                                                     | Not found behavior                                                          |
@@ -38,7 +46,7 @@ Auth0 executes these functions with specific arguments and expects the callback 
 | `create.js`         | `create(user, callback)`                       | Create a user if email is not in use               | `callback(null)`                                                     | `ValidationError("user_exists", ...)` when duplicate                        |
 | `verify.js`         | `verify(email, callback)`                      | Check if email exists                              | `callback(null, true/false)`                                         | Returns `false` (not an error)                                              |
 | `changePassword.js` | `changePassword(email, newPassword, callback)` | Update password hash for an existing user          | `callback(null, true)`                                               | `ValidationError("invalid_request", ...)` if user missing or no row updated |
-| `delete.js`         | `remove(id, callback)`                         | Delete existing user by integer id                 | `callback(null)`                                                     | `Error("User not found")`                                                   |
+| `delete.js`         | `remove(id, callback)`                         | Delete the local row (`WHERE id = ?`) for users    | `callback(null)`                                                     | `Error("Invalid id")` for a non-numeric/non-positive id                     |
 | `getUser.js`        | `getByEmail(email, callback)`                  | Look up a user profile by email for Auth0 Get User | `callback(null, { user_id, username, email, name, email_verified })` | `callback(null)` when no user exists                                        |
 
 ## Per-script details

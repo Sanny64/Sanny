@@ -13,7 +13,9 @@ import {
   deleteUserById,
   findUserDeletionTarget,
   findSelfUserBySub,
+  findUserByEmail,
   findUserById,
+  findUserByIdWithAuth0Sub,
   findUsers,
   updateSelfUserBySub,
   updateUserById,
@@ -27,11 +29,15 @@ import {
 import {
   Auth0ManagementError,
   deleteAuth0UserBySub,
+  updateAuth0UsernameBySub,
   getAllowedRoleNames,
   isRoleSyncEnabled,
+  sendAuth0PasswordResetEmail,
+  syncAuth0UserRolesByName,
 } from "../utils/auth0-management.js";
 import { destroySessionsForSubject } from "../utils/session.js";
 import { createSafeErrorResponse } from "../utils/safe-error.js";
+import { logSecurityEvent } from "../utils/security-audit.js";
 
 function getIdentityOrReplyUnauthorized(
   request: FastifyRequest,
@@ -112,6 +118,30 @@ export async function getUserByIdHandler(
 
   try {
     const user = await findUserById(userId);
+    if (!user) {
+      const safe = createSafeErrorResponse(new Error("User not found"), 404);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+
+    return reply.code(200).send(user);
+  } catch (err) {
+    const safe = createSafeErrorResponse(err, 500);
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+}
+
+export async function getUserByEmailHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const query = request.query as { email?: string };
+
+  try {
+    const user = await findUserByEmail(query.email ?? "");
     if (!user) {
       const safe = createSafeErrorResponse(new Error("User not found"), 404);
       return reply
@@ -213,9 +243,16 @@ export async function updateSelfUserHandler(
   const body = request.body as UpdateSelfUserInput;
 
   try {
+    await updateAuth0UsernameBySub(identity.sub, body.username.trim());
     const user = await updateSelfUserBySub(identity.sub, body.username.trim());
     return reply.code(200).send(user);
   } catch (err) {
+    if (err instanceof Auth0ManagementError) {
+      const safe = createSafeErrorResponse(err, err.statusCode);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2025"
@@ -275,6 +312,33 @@ export async function deleteSelfUserHandler(
   }
 }
 
+export async function requestSelfPasswordResetHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const identity = getIdentityOrReplyUnauthorized(request, reply);
+  if (!identity) return;
+
+  try {
+    const user = await findSelfUserBySub(identity.sub);
+    if (!user) {
+      const safe = createSafeErrorResponse(new Error("User not found"), 404);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+    await sendAuth0PasswordResetEmail(user.email);
+    return reply.code(204).send();
+  } catch (err) {
+    const statusCode =
+      err instanceof Auth0ManagementError ? err.statusCode : 400;
+    const safe = createSafeErrorResponse(err, statusCode);
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+}
+
 export async function updateUserHandler(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -294,9 +358,30 @@ export async function updateUserHandler(
   const body = request.body as UpdateUserInput;
 
   try {
+    const target = await findUserByIdWithAuth0Sub(userId);
+    if (!target) {
+      const safe = createSafeErrorResponse(new Error("User not found"), 404);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+    if (target.auth0Sub) {
+      await updateAuth0UsernameBySub(target.auth0Sub, body.username.trim());
+    }
     const user = await updateUserById(userId, body);
     return reply.code(200).send(user);
   } catch (err) {
+    if (err instanceof Auth0ManagementError) {
+      logSecurityEvent("admin_user_update_failed", {
+        userId,
+        statusCode: err.statusCode,
+        reason: err.message,
+      });
+      const safe = createSafeErrorResponse(err, err.statusCode);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2025"
@@ -402,17 +487,17 @@ export async function updateUserRolesHandler(
   }
 
   try {
-    const user = await findUserById(userId);
-    if (!user) {
+    const user = await findUserByIdWithAuth0Sub(userId);
+    if (!user || !user.auth0Sub) {
       const safe = createSafeErrorResponse(new Error("User not found"), 404);
       return reply
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
     }
 
-    return reply.code(501).send({
-      error: "Auth0 role synchronization requires an Auth0 subject",
-    });
+    return reply
+      .code(200)
+      .send(await syncAuth0UserRolesByName(user.auth0Sub, requestedRoles));
   } catch (err) {
     if (err instanceof Auth0ManagementError) {
       const statusCode =
@@ -424,6 +509,41 @@ export async function updateUserRolesHandler(
     }
 
     const safe = createSafeErrorResponse(err, 400);
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+}
+
+export async function requestUserPasswordResetHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const userId = parseUserId(request);
+  if (!userId) {
+    const safe = createSafeErrorResponse(
+      new Error("Invalid userId parameter"),
+      400,
+    );
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+
+  try {
+    const user = await findUserById(userId);
+    if (!user) {
+      const safe = createSafeErrorResponse(new Error("User not found"), 404);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+    await sendAuth0PasswordResetEmail(user.email);
+    return reply.code(204).send();
+  } catch (err) {
+    const statusCode =
+      err instanceof Auth0ManagementError ? err.statusCode : 400;
+    const safe = createSafeErrorResponse(err, statusCode);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });

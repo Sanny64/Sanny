@@ -309,22 +309,28 @@ async function deleteUser(event, managementToken, userId) {
 }
 
 /**
+ * @param {string} event
+ * @param {Record<string, any>} details
+ */
+function logLinkDetection(event, details) {
+  const detailsString =
+    details && typeof details === "object" ? JSON.stringify(details) : "";
+  console.log(`post-login account link detection: ${event}`, {
+    details: detailsString,
+  });
+}
+
+/**
  * @param {PostLoginEvent} event
  * @param {PostLoginApi} api
  */
 async function detectAndPromptForLinking(event, api) {
-  const email = event.user.email;
-  if (!email || event.user.email_verified !== true) {
-    logLinkDetection("email_missing_or_unverified", {
-      hasEmail: Boolean(email),
-      emailVerified: event.user.email_verified,
-    });
+  const query = event.request && event.request.query ? event.request.query : {};
+  if (query.link_proof === "true") {
+    logLinkDetection("secondary_proof_login_passthrough");
     return;
   }
 
-  // Already durably decided (confirmed), or a pending prompt from the last
-  // few minutes is still in flight — don't nag on every login. A "pending"
-  // decision older than the TTL is treated as abandoned and re-detected.
   const alreadyDecided =
     event.user.app_metadata &&
     event.user.app_metadata[LINK_DECISION_METADATA_KEY];
@@ -339,6 +345,11 @@ async function detectAndPromptForLinking(event, api) {
   }
 
   const allowedProviders = getAllowedProviders(event);
+  const email = event.user.email;
+  if (typeof email !== "string" || !email.trim()) {
+    logLinkDetection("no_email");
+    return;
+  }
   const usersByEmail = await fetchUsersByEmail(event, managementToken, email);
   logLinkDetection("fetched_users_by_email", {
     userIds: usersByEmail.map((u) => u.user_id),
@@ -444,9 +455,6 @@ async function handleLinkDecision(event, api) {
     if (temporaryUserId && temporaryUserId === event.user.user_id) {
       await deleteUser(event, managementToken, temporaryUserId);
     } else {
-      // An existing (non-first-login) Google user actively cancelled; clear
-      // the block immediately instead of waiting out the pending-decision
-      // TTL, so the user isn't stuck if they want to retry right away.
       await recordLinkDecision(
         event,
         managementToken,

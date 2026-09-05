@@ -2,7 +2,10 @@ import { getProfileHandler } from "../controllers/auth.controller.js";
 import { meResponseSchema } from "../schemas/auth.schema.js";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createHash, randomBytes } from "node:crypto";
-import { verifyAccessTokenIdentity } from "../utils/access-token.js";
+import {
+  verifyAccessTokenIdentity,
+  verifyIdTokenMfa,
+} from "../utils/access-token.js";
 import {
   getCallbackUrl,
   getAccountLinkProofCallbackUrl,
@@ -24,6 +27,7 @@ import {
   destroySession,
   getLoginStates,
   getSessionStoreClient,
+  pendingAccountLinkTtlMs,
   requireSession,
   setSessionCookies,
   setLoginStates,
@@ -62,6 +66,7 @@ async function exchangeCode(
   const tokens = (await response.json()) as {
     access_token?: string;
     refresh_token?: string;
+    id_token?: string;
     expires_in?: number;
   };
   if (!tokens.access_token)
@@ -69,6 +74,9 @@ async function exchangeCode(
   const identity = await verifyAccessTokenIdentity(tokens.access_token);
   return {
     identity,
+    mfaAuthenticated: tokens.id_token
+      ? await verifyIdTokenMfa(tokens.id_token)
+      : false,
     refreshToken: tokens.refresh_token,
     expiresAt: Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
   };
@@ -136,6 +144,12 @@ async function accountLinkingConfirmationHandler(
       temporaryUserId,
     });
   }
+  logSecurityEvent("account_link_started", {
+    primaryUserId,
+    secondaryUserId,
+    temporaryUserId: temporaryUserId ?? null,
+    expiryCleanupScheduled: Boolean(temporaryUserId),
+  });
 
   const frontendUrl = new URL(getAccountLinkFrontendUrl());
   frontendUrl.searchParams.set("primaryUserId", primaryUserId);
@@ -145,17 +159,28 @@ async function accountLinkingConfirmationHandler(
   }
   frontendUrl.searchParams.set("continuationState", state);
   frontendUrl.searchParams.set("proofState", proofState);
+  frontendUrl.searchParams.set(
+    "expiresAt",
+    String(Date.now() + pendingAccountLinkTtlMs),
+  );
 
   return reply.redirect(frontendUrl.toString());
 }
 
 async function authRoutes(server: FastifyInstance) {
-  server.get("/", async (request, reply) => {
+  server.get<{
+    Querystring: { reauthenticate?: string; mfa?: string; returnTo?: string };
+  }>("/", async (request, reply) => {
     const codeVerifier = randomBytes(64).toString("base64url");
     const codeChallenge = createHash("sha256")
       .update(codeVerifier)
       .digest("base64url");
-    const state = await createLoginState(codeVerifier);
+    const returnTo = request.query.returnTo;
+    const safeReturnTo =
+      returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
+        ? returnTo
+        : undefined;
+    const state = await createLoginState(codeVerifier, safeReturnTo);
     setLoginStates(reply, [...getLoginStates(request), state]);
     const params = new URLSearchParams({
       response_type: "code",
@@ -167,6 +192,16 @@ async function authRoutes(server: FastifyInstance) {
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
     });
+    if (request.query.reauthenticate === "true") {
+      params.set("prompt", "login");
+      params.set("max_age", "0");
+    }
+    if (request.query.mfa === "true") {
+      params.set(
+        "acr_values",
+        "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
+      );
+    }
     return reply.redirect(
       `https://${requiredEnv("AUTH0_DOMAIN")}/authorize?${params}`,
     );
@@ -289,9 +324,19 @@ async function authRoutes(server: FastifyInstance) {
       }
     }
 
-    const session = await createSession(auth.identity, auth.refreshToken);
+    const session = await createSession(
+      auth.identity,
+      auth.refreshToken,
+      auth.mfaAuthenticated,
+    );
     setSessionCookies(reply, session.sessionId, session.csrfToken);
-    return reply.redirect(getSuccessRedirectUrl());
+    const redirectUrl = new URL(getSuccessRedirectUrl());
+    if (state.returnTo) {
+      redirectUrl.pathname = state.returnTo;
+      redirectUrl.search = "";
+      redirectUrl.hash = "";
+    }
+    return reply.redirect(redirectUrl.toString());
   });
 
   server.get("/confirm-account-linking", async (request, reply) => {

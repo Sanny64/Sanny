@@ -97,7 +97,23 @@ TRUST_PROXY=false
    - Trigger: `Post-Login`
    - Stamps custom claims (roles, email_verified) on access tokens
 
-6. **Management API Configuration**:
+6. **Create an MFA step-up Action**:
+   - Name: `mfaStepUp`
+   - Trigger: `Post-Login`
+   - Deploy `backend/auth0/post-login/mfaStepUp.js`
+   - Enable TOTP and/or WebAuthn in **Security > Multi-factor Auth** before
+     binding the Action. It challenges only authorization requests carrying
+     the standard MFA `acr_values` request.
+
+7. **Create a Post User Registration Action**:
+   - Name: `assignDefaultUserRole`
+   - Trigger: `Post User Registration`
+   - Deploy `backend/auth0/post-user-registration/assignDefaultUserRole.js`
+   - Add Action secrets: `AUTH0_DOMAIN`, `AUTH0_M2M_CLIENT_ID`,
+     `AUTH0_M2M_CLIENT_SECRET`, `AUTH0_MGMT_AUDIENCE`, and
+     `AUTH0_DEFAULT_ROLE_ID` (the Auth0 `user` role ID)
+
+8. **Management API Configuration**:
    - Grant read/write permissions for roles and users
    - Scopes needed:
      - `read:users`
@@ -106,6 +122,8 @@ TRUST_PROXY=false
      - `update:user_app_metadata`
      - `create:user_identities`
      - `delete:users`
+   - The M2M application used by `assignDefaultUserRole` only needs
+     `update:users`.
 
 ### Frontend Service URLs (Development)
 

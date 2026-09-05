@@ -70,15 +70,9 @@ function getByEmail(emailInput, callback) {
           return commitAndFinish({
             id: String(rows[0].id),
             email: rows[0].email,
-            username: rows[0].username,
-            // Keep parity with login.js: Auth0 normalizes the profile's
-            // display "Name" and persisted email_verified flag from these
-            // return values, not from our custom DB directly. Coerce
-            // explicitly since some MySQL driver/connection configs return
-            // TINYINT(1) as 1/0 rather than true/false, and downstream Post
-            // Login Actions compare this with strict `=== true`.
-            name: rows[0].username,
             email_verified: Boolean(rows[0].emailVerified),
+            username: rows[0].username,
+            name: rows[0].username,
           });
         },
       );

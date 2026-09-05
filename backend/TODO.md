@@ -4,8 +4,10 @@
 
 1. [] Address gaps
 
-- Account-link-cleanup.ts seems to not trigger after 10mins only on manual abort -> add event when account linking process is started.
-- User deletion in auth0 dashboard doesn't work for google users
+- "Load all users" returns "http://localhost:3000/api/v001/users/list"; Request Method: GET; Status Code: 500 Internal Server Error
+- "Update user roles" returns "http://localhost:3000/api/v001/users/4/roles; Request Method: PATCH; Status Code: 403 Forbidden"
+- "Password reset" returns "http://localhost:3000/api/v001/users/4/password-reset; Request Method: POST; Status Code: 401 Unauthorized"
+- same goes for "self password reset"
 - Full Fastify hook/pre-handler integration, including cookie replacement during rotation.
 - Redis-backed session rotation, refresh expiry, malformed records, concurrent refresh, and atomic replacement.
 - Proof that refresh-token fields survive session-ID rotation.
@@ -28,7 +30,6 @@
 **Remaining:** Complete and verify the live management API sync flow before exposing the endpoint.
 
 ## Open tasks
-
 
 3. [] Verify the deployed Auth0 tenant and claim contract **!! OP-TASK !!**
 

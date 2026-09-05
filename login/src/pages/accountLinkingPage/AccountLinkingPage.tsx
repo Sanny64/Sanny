@@ -85,11 +85,16 @@ export default function AccountLinkingPage() {
   const temporaryUserId = searchParams.get("temporaryUserId");
   const continuationState = searchParams.get("continuationState");
   const proofState = searchParams.get("proofState");
+  const expiresAtParam = searchParams.get("expiresAt");
+  const expiresAt = expiresAtParam ? Number(expiresAtParam) : null;
 
   const [authWindowOpen, setAuthWindowOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [proof, setProof] = useState<string | null>(null);
+  const [isExpired, setIsExpired] = useState(
+    () => expiresAt !== null && Date.now() >= expiresAt,
+  );
   const hasCompletedProof = useRef(false);
 
   const primaryParsed = primaryUserId && parseAuth0UserId(primaryUserId);
@@ -100,6 +105,20 @@ export default function AccountLinkingPage() {
   const validationError = !hasValidParams
     ? "Invalid request: missing account-linking parameters"
     : null;
+
+  useEffect(() => {
+    if (expiresAt === null || isExpired) return;
+    const remainingMs = expiresAt - Date.now();
+    const timeout = setTimeout(
+      () => {
+        setIsExpired(true);
+        setAuthWindowOpen(false);
+        setIsProcessing(false);
+      },
+      Math.max(remainingMs, 0),
+    );
+    return () => clearTimeout(timeout);
+  }, [expiresAt, isExpired]);
 
   useEffect(() => {
     const channel = new BroadcastChannel(proofChannelName);
@@ -185,6 +204,8 @@ export default function AccountLinkingPage() {
   }
 
   function handleConfirm() {
+    if (isExpired) return;
+
     if (proof) {
       continueLinking("confirm", proof);
       return;
@@ -258,7 +279,14 @@ export default function AccountLinkingPage() {
           </div>
         </div>
 
-        {!authWindowOpen && !error && !proof && (
+        {isExpired && (
+          <div className="error-banner">
+            This linking request has expired. Please return to login and try
+            again.
+          </div>
+        )}
+
+        {!isExpired && !authWindowOpen && !error && !proof && (
           <div className="warning">
             <strong>Security:</strong> To confirm linking, you will need to
             re-authenticate with your {secondaryProvider} account. This is a
@@ -266,7 +294,7 @@ export default function AccountLinkingPage() {
           </div>
         )}
 
-        {proof && (
+        {!isExpired && proof && (
           <div className="success-banner">
             ✓ You've successfully authenticated with your {secondaryProvider}{" "}
             account. Now confirm to complete the linking.
@@ -275,7 +303,7 @@ export default function AccountLinkingPage() {
 
         {error && <div className="error-banner">{error}</div>}
 
-        {authWindowOpen && (
+        {!isExpired && authWindowOpen && (
           <div className="auth-modal">
             <h2>Completing Authentication</h2>
             <p>
@@ -302,14 +330,16 @@ export default function AccountLinkingPage() {
           </button>
           <button
             onClick={handleConfirm}
-            disabled={isProcessing}
+            disabled={isProcessing || isExpired}
             className="primary"
           >
-            {isProcessing
-              ? "Processing..."
-              : proof
-                ? "Confirm & Complete Linking"
-                : "Authenticate & Continue"}
+            {isExpired
+              ? "Request expired"
+              : isProcessing
+                ? "Processing..."
+                : proof
+                  ? "Confirm & Complete Linking"
+                  : "Authenticate & Continue"}
           </button>
         </div>
 

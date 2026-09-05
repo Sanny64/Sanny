@@ -1,8 +1,11 @@
 import {
   getSelfUserHandler,
   deleteSelfUserHandler,
+  requestSelfPasswordResetHandler,
+  requestUserPasswordResetHandler,
   deleteUserHandler,
   getUserByIdHandler,
+  getUserByEmailHandler,
   getUsersHandler,
   registerSelfUserHandler,
   updateSelfUserHandler,
@@ -18,12 +21,14 @@ import {
   updateSelfUserSchema,
   updateUserSchema,
   userIdParamSchema,
+  userEmailQuerySchema,
   linkUserAccountsSchema,
 } from "../schemas/user.schema.js";
 import type { FastifyInstance } from "fastify";
 import { requirePermissions, requireRoles } from "../utils/auth0-guards.js";
 import {
   requireRecentAuthentication,
+  requireMfaAuthentication,
   requireSession,
 } from "../utils/session.js";
 
@@ -63,11 +68,7 @@ async function userRoutes(server: FastifyInstance) {
   server.patch(
     "/me",
     {
-      preHandler: [
-        requireSession,
-        requirePermissions(["update:me"]),
-        requireRecentAuthentication(),
-      ],
+      preHandler: [requireSession, requirePermissions(["update:me"])],
       schema: {
         body: updateSelfUserSchema,
         security: [{ sessionCookie: [] }],
@@ -86,13 +87,24 @@ async function userRoutes(server: FastifyInstance) {
       preHandler: [
         requireSession,
         requirePermissions(["delete:me"]),
-        requireRecentAuthentication(),
+        requireMfaAuthentication(),
       ],
       schema: {
         security: [{ sessionCookie: [] }],
       },
     },
     deleteSelfUserHandler,
+  );
+
+  server.post(
+    "/me/password-reset",
+    {
+      preHandler: [requireSession],
+      schema: {
+        security: [{ sessionCookie: [] }],
+      },
+    },
+    requestSelfPasswordResetHandler,
   );
 
   // link secondary account into primary
@@ -109,6 +121,25 @@ async function userRoutes(server: FastifyInstance) {
       },
     },
     linkUserAccountsHandler,
+  );
+
+  server.get(
+    "/lookup",
+    {
+      preHandler: [
+        requireSession,
+        requirePermissions(["read:users"]),
+        requireRoles(["admin"]),
+      ],
+      schema: {
+        querystring: userEmailQuerySchema,
+        security: [{ sessionCookie: [] }],
+        response: {
+          200: createUserResponseSchema,
+        },
+      },
+    },
+    getUserByEmailHandler,
   );
 
   server.get(
@@ -162,7 +193,6 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["write:users"]),
         requireRoles(["admin"]),
-        requireRecentAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
@@ -184,7 +214,7 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["write:users"]),
         requireRoles(["admin"]),
-        requireRecentAuthentication(),
+        requireMfaAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
@@ -198,6 +228,23 @@ async function userRoutes(server: FastifyInstance) {
     updateUserRolesHandler,
   );
 
+  server.post(
+    "/:userId/password-reset",
+    {
+      preHandler: [
+        requireSession,
+        requirePermissions(["write:users"]),
+        requireRoles(["admin"]),
+        requireMfaAuthentication(),
+      ],
+      schema: {
+        params: userIdParamSchema,
+        security: [{ sessionCookie: [] }],
+      },
+    },
+    requestUserPasswordResetHandler,
+  );
+
   server.delete(
     "/:userId",
     {
@@ -205,7 +252,7 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["delete:users"]),
         requireRoles(["admin"]),
-        requireRecentAuthentication(),
+        requireMfaAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,

@@ -1,10 +1,6 @@
 /**
  * Handler that sets custom role/profile claims during Post Login.
- *
- * @param {Event} event - Details about the user and the context in which they are logging in.
- */
-
-/**
+ * 
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {String} name - Name of the action secret to retrieve.
  */
@@ -30,17 +26,15 @@ exports.onExecutePostLogin = async (event, api) => {
     api.accessToken.setCustomClaim(`${namespace}/email`, event.user.email);
   }
 
-  // Database-connection users chose a `username` at signup (mapped from our
-  // custom DB via create.js/login.js/getUser.js), so it always takes
-  // priority when present. Social connections (e.g. Google) don't populate
-  // a meaningful `username`, so prefer Auth0's resolved display `name`
-  // there; only fall back to `nickname` (often just the email local-part)
-  // if neither is available.
   const isDatabaseConnection =
     event.connection && event.connection.strategy === "auth0";
+  const managedUsername = event.user.user_metadata?.username;
   const name = isDatabaseConnection
     ? (event.user.username ?? event.user.name ?? event.user.nickname)
-    : (event.user.name ?? event.user.username ?? event.user.nickname);
+    : (managedUsername ??
+      event.user.name ??
+      event.user.username ??
+      event.user.nickname);
   if (name) {
     api.accessToken.setCustomClaim(`${namespace}/name`, name);
   }

@@ -11,6 +11,8 @@ test("login requests offline access so a refresh token can be issued", () => {
   assert.match(scope, /offline_access/);
   assert.match(scope, /openid/);
   assert.match(scope, /profile/);
+  assert.match(scope, /update:me/);
+  assert.match(scope, /delete:me/);
 });
 
 test("refresh requests include the refresh token grant and credentials", () => {

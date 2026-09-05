@@ -28,7 +28,7 @@ const sessionIdleTtlMs = 30 * 60 * 1000;
 const stateTtlSeconds = 10 * 60;
 const maxOutstandingLoginStates = 4;
 const refreshLockTtlMs = 10_000;
-const pendingAccountLinkTtlMs = 10 * 60 * 1000;
+export const pendingAccountLinkTtlMs = 10 * 60 * 1000;
 
 type Session = {
   identity: AccessTokenIdentity;
@@ -36,11 +36,12 @@ type Session = {
   createdAt: number;
   lastTouchedAt: number;
   authenticatedAt: number;
+  mfaAuthenticatedAt?: number | undefined;
   refreshToken?: string | undefined;
   previousRefreshTokens?: string[] | undefined;
   expiresAt?: number | undefined;
 };
-type LoginState = { codeVerifier: string };
+export type LoginState = { codeVerifier: string; returnTo?: string };
 export type AccountLinkProofState = {
   codeVerifier: string;
   continuationState: string;
@@ -120,15 +121,18 @@ export type PendingAccountLink = {
   temporaryUserId: string;
 };
 
-export async function schedulePendingAccountLink(link: PendingAccountLink) {
+export async function schedulePendingAccountLink(
+  link: PendingAccountLink,
+  ttlMs = pendingAccountLinkTtlMs,
+) {
   const key = pendingAccountLinkRecordKey(
     link.primaryUserId,
     link.secondaryUserId,
   );
-  const expiresAt = Date.now() + pendingAccountLinkTtlMs;
+  const expiresAt = Date.now() + ttlMs;
   await getRedis()
     .multi()
-    .set(key, JSON.stringify(link), { PX: pendingAccountLinkTtlMs * 2 })
+    .set(key, JSON.stringify(link), { PX: ttlMs * 2 })
     .zAdd(pendingAccountLinkKey, { score: expiresAt, value: key })
     .exec();
 }
@@ -164,6 +168,7 @@ export async function claimExpiredPendingAccountLinks(now = Date.now()) {
 export async function createSession(
   identity: AccessTokenIdentity,
   refreshToken?: string,
+  mfaAuthenticated = false,
 ) {
   const sessionId = randomUUID();
   const csrfToken = randomBytes(32).toString("base64url");
@@ -174,6 +179,7 @@ export async function createSession(
     createdAt: now,
     lastTouchedAt: now,
     authenticatedAt: now,
+    mfaAuthenticatedAt: mfaAuthenticated ? now : undefined,
     refreshToken: refreshToken ?? undefined,
     previousRefreshTokens: [],
     expiresAt: refreshToken ? now + 60 * 60 * 1000 : undefined,
@@ -232,6 +238,7 @@ export async function getSession(
       ...rotated,
       lastTouchedAt: now,
       authenticatedAt: session.authenticatedAt ?? rotated.createdAt,
+      mfaAuthenticatedAt: session.mfaAuthenticatedAt,
     };
 
     await getRedis()
@@ -391,6 +398,7 @@ export async function refreshSessionIdentity(
       expiresAt: Date.now() + Number(payload.expires_in ?? 3600) * 1000,
       lastTouchedAt: Date.now(),
       authenticatedAt: session.authenticatedAt ?? Date.now(),
+      mfaAuthenticatedAt: session.mfaAuthenticatedAt,
     };
 
     await getRedis().set(sessionKey(sessionId), JSON.stringify(nextSession), {
@@ -488,11 +496,42 @@ export function requireRecentAuthentication(maxAgeMs = 15 * 60 * 1000) {
   };
 }
 
-export async function createLoginState(codeVerifier: string) {
+export function requireMfaAuthentication(maxAgeMs = 15 * 60 * 1000) {
+  return async function mfaAuthenticationGuard(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
+    const session = request.sannySessionRecord ?? (await getSession(request));
+    const mfaAuthenticatedAt = session?.mfaAuthenticatedAt;
+    if (
+      !session ||
+      !mfaAuthenticatedAt ||
+      Date.now() - mfaAuthenticatedAt >= maxAgeMs
+    ) {
+      logSecurityEvent("mfa_authentication_required", {
+        sessionId: session?.sessionId,
+        maxAgeMs,
+        mfaAuthenticatedAt: mfaAuthenticatedAt ?? null,
+      });
+      return reply.code(401).send({
+        error: "Unauthorized",
+        message: "MFA authentication required",
+      });
+    }
+  };
+}
+
+export async function createLoginState(
+  codeVerifier: string,
+  returnTo?: string,
+) {
   const state = randomBytes(32).toString("base64url");
   await getRedis().set(
     stateKey(state),
-    JSON.stringify({ codeVerifier } satisfies LoginState),
+    JSON.stringify({
+      codeVerifier,
+      ...(returnTo ? { returnTo } : {}),
+    } satisfies LoginState),
     { EX: stateTtlSeconds },
   );
   return state;

@@ -165,23 +165,66 @@ http://localhost:5173
 http://localhost:5174
 ```
 
-## Testing Checklist
+## Manual Testing Suite
 
-Before deploying to production, verify:
+Before deploying to production, verify each area below against a local Auth0
+tenant and backend/frontend instances.
 
-- [ ] Email verification works on signup (emailVerified=true in database and Auth0)
-- [ ] Account linking page appears for duplicate emails
-- [ ] Secondary authentication popup opens and completes successfully
-- [ ] Accounts merge correctly in the database (one record with both identities)
-- [ ] Failed merge attempt accounts get deleted from auth0 after 10mins (they never get written into the db)
-- [ ] email_verified claim appears in tokens after linking
-- [ ] Users can log in with either linked credential
-- [ ] CORS errors do not appear in browser console
-- [ ] Backend logs show successful account merge
-- [ ] All backend tests pass
-- [ ] ESLint passes without errors
-- [ ] TypeScript type-check passes without errors
-- [ ] Prettier formatting is clean
+### Account linking
+
+- [x] Email verification works on signup (emailVerified=true in database and Auth0)
+- [x] Account linking page appears for duplicate emails
+- [x] Secondary authentication popup opens and completes successfully
+- [x] Accounts merge correctly in the database (one record with both identities)
+- [x] Failed merge attempt accounts get deleted from auth0 after 10mins (they never get written into the db)
+- [x] After a google user has been deleted via the auth0 dashboard, after 60mins it is being deleted from the database. 
+- [x] email_verified claim appears in tokens after linking
+- [x] Users can log in with either linked credential
+
+### Login, session, and CSRF
+
+- [x] Login redirects through Auth0 and completes the callback with PKCE
+- [x] `GET /api/v001/auth/me` reflects the authenticated identity after login
+- [x] `GET /api/v001/users/me` returns the local profile (email/username) after login
+- [x] Refresh flow rotates the session/refresh token without logging the user out
+- [x] Logout clears session cookies and Auth0 session
+- [x] Requests without a valid CSRF token are rejected on mutating routes
+- [x] Sensitive routes (e.g. profile update) require a recent authentication and reject stale sessions
+- [x] CORS errors do not appear in browser console
+
+### User profile and deletion
+
+- [x] `POST /api/v001/users/me` creates the local profile row after first login
+- [x] `PATCH /api/v001/users/me` updates the username in the db and auth0 userstore
+- [x] Self deletion (`DELETE /api/v001/users/me`) removes the local row and is idempotent when already absent
+- [x] Admin deletion of another user (auth0|... row) removes the local row and is idempotent when already absent
+- [ ] Admin role updates update auth0 users roles
+- [ ] Admin PATCH username works
+- [x] Deleting a `google-oauth2|...` user from the Auth0 Dashboard does **not** invoke `delete.js`; confirm the local row is instead removed by the hourly `orphaned-social-user-cleanup` job (or by triggering `cleanUpOrphanedSocialUsers()` manually in a local run)
+- [ ] Admin user list pagination returns stable ordering and clamps invalid page/limit values
+
+### Auth0 custom database scripts
+
+- [x] `login.js` accepts correct credentials and rejects wrong password/unknown email
+- [x] `create.js` rejects duplicate email/Google signups with the documented validation errors
+- [ ] `verify.js` and `changePassword.js` behave per the documented callback contract
+- [x] `getUser.js` returns a profile for an existing email and `callback(null)` otherwise
+
+### Security and rate limiting
+
+- [ ] Auth routes (`/api/v001/auth/*`) are rate limited after the configured threshold
+- [ ] OTP and verification emails are not spammable by bots
+- [ ] Sensitive user mutation routes are rate limited independently of auth routes
+- [ ] Role sync stays disabled unless `AUTH0_ROLE_SYNC_ENABLED=true`, and only assigns configured roles
+- [ ] Security logs (`logSecurityEvent`) never contain tokens, cookies, or passwords
+
+### Quality gates
+
+- [x] Backend logs show successful account merge
+- [x] All backend tests pass (`npm run test` in `backend/`)
+- [x] ESLint passes without errors
+- [x] TypeScript type-check passes without errors
+- [x] Prettier formatting is clean
 
 ## Documentation
 

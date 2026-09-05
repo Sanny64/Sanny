@@ -29,6 +29,7 @@ import {
 import { applyRateLimit } from "./utils/rate-limit.js";
 import { applySecurityHeaders } from "./utils/security-headers.js";
 import { startPendingAccountLinkCleanup } from "./utils/account-link-cleanup.js";
+import { startOrphanedSocialUserCleanup } from "./utils/orphaned-social-user-cleanup.js";
 
 const version = packageJson.version;
 
@@ -67,6 +68,7 @@ async function main() {
   await server.register(cors, {
     origin: corsOrigins,
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
   });
   await server.register(cookie);
   await server.register(helmet, {
@@ -90,9 +92,6 @@ async function main() {
         ? { maxAge: 31536000, includeSubDomains: true }
         : false,
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  });
-  server.addHook("onRequest", async () => {
-    startPendingAccountLinkCleanup();
   });
   server.addHook("onSend", async (request, reply) => {
     applySecurityHeaders(request, reply);
@@ -146,8 +145,13 @@ async function main() {
   await server.register(userRoutes, { prefix: "/api/v001/users" });
   await server.register(authRoutes, { prefix: "/api/v001/auth" });
 
+  let stopPendingAccountLinkCleanup: (() => void) | null = null;
+  let stopOrphanedSocialUserCleanup: (() => void) | null = null;
+
   // disconnect from the database when the server is closed
   server.addHook("onClose", async () => {
+    stopPendingAccountLinkCleanup?.();
+    stopOrphanedSocialUserCleanup?.();
     await closeSessionStore();
     await prisma.$disconnect();
   });
@@ -155,6 +159,8 @@ async function main() {
   // start the server
   try {
     await initializeSessionStore();
+    stopPendingAccountLinkCleanup = startPendingAccountLinkCleanup();
+    stopOrphanedSocialUserCleanup = startOrphanedSocialUserCleanup();
     await prisma.$connect();
     await prisma.$queryRawUnsafe("SELECT 1");
     await server.listen({ port: 3000, host: "0.0.0.0" });

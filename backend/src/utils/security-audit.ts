@@ -46,6 +46,8 @@ export function logSecurityEvent<T extends Record<string, unknown>>(
     ...sanitized,
   };
 
-  console.warn(JSON.stringify(payload));
+  // console.warn writes to stderr, which log collectors that only capture
+  // stdout (like fastify's default pino logger) would silently drop.
+  console.log(JSON.stringify(payload));
   return payload;
 }

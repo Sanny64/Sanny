@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Settings } from "@sanny/ui";
+import AccountSettings from "./pages/settings/AccountSettings";
+import AdminSettings from "./pages/settings/AdminSettings";
 import Main from "./pages/Main";
 import Home from "./pages/home/Home";
 import Portfolio from "./pages/portfolio/Portfolio";
@@ -34,7 +35,8 @@ function App() {
             <Route path="/projects/sm.now" element={<SMNow />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/games" element={<Games />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings" element={<AccountSettings />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
           </Route>
           {/* Auxiliary routes */}
           <Route element={<Auxiliary />}>
