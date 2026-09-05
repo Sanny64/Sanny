@@ -10,7 +10,6 @@
 later:
 
 10. add content to the frontend pages
-11. Login
-12. finish the backend
-13. setup docker
-14. setup vps and deploy backend
+11. finish the backend
+12. setup docker
+13. setup vps and deploy backend

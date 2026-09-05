@@ -1,0 +1,37 @@
+---
+title: Auth0 Tenant Contract
+description: Non-secret Auth0 settings required by the backend.
+sidebar_position: 2
+---
+
+# Auth0 tenant contract
+
+Tenant configuration is managed in Auth0 and must be checked separately from source code. Do not store client secrets, database passwords, certificates, private keys, or access tokens in this document.
+
+## Verification status
+
+The backend source and its automated tests verify the local OAuth and token-handling contract. The deployed Auth0 tenant still requires an operator-led staging verification. Mark each item complete only after checking it in the intended tenant and recording the date and tenant name in the deployment runbook.
+
+## Browser authentication
+
+- Source: the backend generates a per-login PKCE verifier and `S256` challenge. Tenant: use Authorization Code Flow with PKCE and `S256`.
+- Allow only the deployed HTTPS callback, success redirect, and logout redirect URLs.
+- Enable refresh-token rotation for the application.
+- Allow the `offline_access` scope.
+- Keep the database connection actions deployed and connected to the intended MariaDB instance.
+
+## API and claims
+
+- Configure the API identifier to match `AUTH0_AUDIENCE`.
+- Tokens must have the configured issuer, the API audience, a non-empty `sub`, and valid expiry/signature.
+- Permissions are read from the `permissions` claim, or from OAuth `scope` when the explicit claim is absent.
+- Roles are read from `https://sanny64.app/roles` unless `AUTH0_ROLES_CLAIM` overrides it.
+- Email and name are read from `https://sanny64.app/email` and `https://sanny64.app/name` unless their environment overrides are configured; standard `email` and `name` claims are fallback values.
+- Local account creation requires `email_verified === true`.
+- Missing required permissions or roles must deny the request; email or name must never grant authorization.
+
+## Privileged management API
+
+- Keep role synchronization disabled unless `AUTH0_ROLE_SYNC_ENABLED=true` is intentional.
+- `AUTH0_ASSIGNABLE_ROLES` must contain only reviewed, exact role names.
+- Grant the machine-to-machine client only the least-privilege Management API scopes required by the enabled operation.

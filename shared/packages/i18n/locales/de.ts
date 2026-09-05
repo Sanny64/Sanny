@@ -37,7 +37,13 @@ export const de: Translations = {
     },
   },
   login: {
-    LoginPage: "Login Seite",
+    loginButton: "Anmelden",
+    logoutButton: "Abmelden",
+    userSyncError: "Benutzersynchronisierung fehlgeschlagen",
+    authenticationFailed:
+      "Authentifizierung fehlgeschlagen. Bitte versuche es erneut.",
+    emailVerificationRequired:
+      "Bitte verifiziere deine E-Mail-Adresse, bevor du dich anmeldest.",
   },
   shared: {
     setupProbe: {
@@ -66,7 +72,8 @@ export const de: Translations = {
       },
       403: {
         title: "Zugriff verweigert",
-        message: "Sie haben nicht die notwendigen Rechte, um auf diese Seite zuzugreifen.",
+        message:
+          "Sie haben nicht die notwendigen Rechte, um auf diese Seite zuzugreifen.",
       },
       401: {
         title: "Nicht autorisiert",
@@ -74,12 +81,14 @@ export const de: Translations = {
       },
       500: {
         title: "Serverfehler",
-        message: "Unser Backend hat Probleme. Bitte versuchen Sie es später erneut.",
+        message:
+          "Unser Backend hat Probleme. Bitte versuchen Sie es später erneut.",
       },
       503: {
         title: "Dienst nicht verfügbar",
-        message: "Der Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
-      }
+        message:
+          "Der Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
+      },
     },
   },
 };

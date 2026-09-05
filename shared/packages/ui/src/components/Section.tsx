@@ -13,10 +13,9 @@ export function Section({
   variant = "primary",
   ...props
 }: SectionProps) {
-  return (
-    variant === "ghost" ? null : ( 
-      <button className={`sct sct--${variant} ${className}`} {...props}>
-        {children}
-      </button>
-  ))
+  return variant === "ghost" ? null : (
+    <section className={`sct sct--${variant} ${className}`} {...props}>
+      {children}
+    </section>
+  );
 }

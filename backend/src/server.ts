@@ -11,8 +11,24 @@ import {
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
 import cors from "@fastify/cors";
+import cookie from "@fastify/cookie";
+import helmet from "@fastify/helmet";
+import {
+  closeSessionStore,
+  initializeSessionStore,
+  requireCsrf,
+} from "./utils/session.js";
 import packageJson from "../package.json" with { type: "json" };
 import authRoutes from "./routes/auth.route.js";
+import {
+  getCorsOrigins,
+  getTrustProxy,
+  isSwaggerEnabled,
+  validateProductionConfig,
+} from "./utils/config.js";
+import { applyRateLimit } from "./utils/rate-limit.js";
+import { applySecurityHeaders } from "./utils/security-headers.js";
+import { startPendingAccountLinkCleanup } from "./utils/account-link-cleanup.js";
 
 const version = packageJson.version;
 
@@ -29,22 +45,13 @@ const auth0Config: { domain: string; audience: string } = {
   audience: getRequiredEnv("AUTH0_AUDIENCE"),
 };
 
-const defaultCorsOrigins = [
-  "https://sanny64.de",
-  "https://auth.sanny64.de",
-  "https://www.sanny64.de",
-  "http://localhost:5173",
-  "http://localhost:5174",
-];
-
-const corsOrigins = (process.env.CORS_ORIGINS ?? defaultCorsOrigins.join(","))
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+validateProductionConfig();
+const corsOrigins = getCorsOrigins();
 
 // server
 export const server = Fastify({
   logger: true,
+  trustProxy: getTrustProxy(),
 });
 
 // create a type provider for Zod
@@ -59,6 +66,47 @@ server.get("/healthcheck", async function () {
 async function main() {
   await server.register(cors, {
     origin: corsOrigins,
+    credentials: true,
+  });
+  await server.register(cookie);
+  await server.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        formAction: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", "https://*.auth0.com"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    frameguard: { action: "deny" },
+    hsts:
+      process.env.NODE_ENV === "production"
+        ? { maxAge: 31536000, includeSubDomains: true }
+        : false,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  });
+  server.addHook("onRequest", async () => {
+    startPendingAccountLinkCleanup();
+  });
+  server.addHook("onSend", async (request, reply) => {
+    applySecurityHeaders(request, reply);
+  });
+  server.addHook("onRequest", async (request, reply) => {
+    const rateLimitDecision = await applyRateLimit(request, reply);
+    if (!rateLimitDecision.allowed) {
+      return reply.code(429).send({
+        error: "Too Many Requests",
+        message: "Rate limit exceeded. Please retry later.",
+      });
+    }
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(request.method))
+      return requireCsrf(request, reply);
   });
 
   // swagger registration
@@ -71,10 +119,10 @@ async function main() {
       },
       components: {
         securitySchemes: {
-          bearerAuth: {
-            type: "http",
-            scheme: "bearer",
-            bearerFormat: "JWT",
+          sessionCookie: {
+            type: "apiKey",
+            in: "cookie",
+            name: "__Secure-sanny_session",
           },
         },
       },
@@ -82,9 +130,11 @@ async function main() {
     transform: jsonSchemaTransform,
   });
 
-  await server.register(swaggerUI, {
-    routePrefix: "/api/v001/swagger",
-  });
+  if (isSwaggerEnabled()) {
+    await server.register(swaggerUI, {
+      routePrefix: "/api/v001/swagger",
+    });
+  }
 
   // auth0 api registration
   await server.register(fastifyAuth0Api, {
@@ -98,11 +148,13 @@ async function main() {
 
   // disconnect from the database when the server is closed
   server.addHook("onClose", async () => {
+    await closeSessionStore();
     await prisma.$disconnect();
   });
 
   // start the server
   try {
+    await initializeSessionStore();
     await prisma.$connect();
     await prisma.$queryRawUnsafe("SELECT 1");
     await server.listen({ port: 3000, host: "0.0.0.0" });

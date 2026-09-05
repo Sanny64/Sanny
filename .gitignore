@@ -25,6 +25,7 @@ dist-ssr
 .agents
 .claude
 .windsurf
+.secret
 
 # Additional files to ignore
 AGENTS.md

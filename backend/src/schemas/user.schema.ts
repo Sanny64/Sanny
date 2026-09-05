@@ -1,21 +1,25 @@
 import { z } from "zod";
-import { emailSchema } from "./schemas.js";
+
+export const emailSchema = z.email({
+  error: (issue) =>
+    issue.input === undefined ? "Email is required" : "Invalid email address",
+});
 
 export const userCoreSchema = z.object({
   email: emailSchema,
-  name: z.string().min(1).max(100),
+  username: z.string().min(1).max(100),
 });
 
 export const createSelfUserSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
+  username: z.string().min(1).max(100).optional(),
 });
 
 export const updateSelfUserSchema = z.object({
-  name: z.string().min(1).max(100),
+  username: z.string().min(1).max(100),
 });
 
 export const updateUserSchema = z.object({
-  name: z.string().min(1).max(100),
+  username: z.string().min(1).max(100),
 });
 
 export const userIdParamSchema = z.object({
@@ -34,6 +38,11 @@ export const createUserResponseSchema = userCoreSchema.extend({
   id: z.number(),
 });
 
+export const linkUserAccountsSchema = z.object({
+  primaryAuth0Sub: z.string().min(1),
+  secondaryAuth0Sub: z.string().min(1),
+});
+
 export const userSchemas = {
   createSelfUserSchema,
   updateSelfUserSchema,
@@ -42,4 +51,5 @@ export const userSchemas = {
   updateUserRolesSchema,
   updateUserRolesResponseSchema,
   createUserResponseSchema,
+  linkUserAccountsSchema,
 };

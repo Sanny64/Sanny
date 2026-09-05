@@ -1,0 +1,184 @@
+# Account Linking Local Development Setup
+
+This guide explains how to test the account linking flow locally with localhost URLs.
+
+## Architecture Overview
+
+### Development Environment
+
+- **Login Frontend**: http://localhost:5174 (auth UI)
+- **Main Frontend**: http://localhost:5173 (application)
+- **Backend**: http://localhost:3000 (API server)
+
+### Production Environment
+
+- **Login Frontend**: https://auth.sanny64.de
+- **Main Frontend**: https://sanny64.de
+- **Backend**: https://api.sanny64.de
+
+## Auth0 Configuration for Local Testing
+
+### Step 1: Register Callback URIs in Auth0 Dashboard
+
+For local development testing, you must configure your Auth0 application to accept localhost redirect URIs:
+
+1. Go to **Auth0 Dashboard** → **Applications** → Your Application
+2. Under **Application URIs**, set:
+   - **Allowed Callback URLs**:
+     ```
+     http://localhost:3000/api/v001/auth/callback,
+     http://localhost:5174/,
+     http://localhost:5173/
+     ```
+   - **Allowed Logout URLs**:
+     ```
+     http://localhost:5173/,
+     http://localhost:5174/
+     ```
+
+3. Under **Cross-Origin Authentication (CORS)**:
+   - Add `http://localhost:5173` and `http://localhost:5174`
+
+### Step 2: Verify Environment Variables
+
+#### Backend (`backend/.env`)
+
+Already has defaults for development. Verify or set:
+
+```
+AUTH0_CALLBACK_URL=http://localhost:3000/api/v001/auth/callback
+AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
+AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:5174
+```
+
+#### Login Frontend (`login/.env.local`)
+
+The file is already configured for localhost. For local testing:
+
+```
+VITE_AUTH0_DOMAIN=tenant.locaction.auth0.com
+VITE_AUTH0_CLIENT_ID=<your-client-id>
+VITE_AUTH0_AUDIENCE=https://api.sanny64.de
+VITE_API_URL=http://localhost:3000
+```
+
+#### Main Frontend (`sanny/.env.local`)
+
+Create or update to match:
+
+```
+VITE_AUTH0_DOMAIN=tenant.location.auth0.com
+VITE_AUTH0_CLIENT_ID=<your-client-id>
+VITE_AUTH0_AUDIENCE=https://api.sanny64.de
+VITE_API_URL=http://localhost:3000
+VITE_LOGIN_URL=http://localhost:5174
+```
+
+## Running the Account Linking Flow Locally
+
+### Step 1: Start All Services
+
+```bash
+# Terminal 1: Backend
+cd backend
+npm run dev
+
+# Terminal 2: Login Frontend
+cd login
+npm run dev
+
+# Terminal 3: Main Frontend
+cd sanny
+npm run dev
+```
+
+### Step 2: Test the Flow
+
+1. **Create Primary Account**:
+   - Go to http://localhost:5174
+   - Create an account with email: `test+primary@example.com` and password
+   - Verify successful signup and redirect
+
+2. **Trigger Account Linking**:
+   - Go to http://localhost:5174
+   - Log in with the primary account
+   - Log out
+   - On login page, click "Continue with Google" (or other OAuth provider) using the same email address
+   - You should see the account linking confirmation page
+
+3. **Confirm Linking**:
+   - You'll be presented with a two-step flow:
+     - Step 1: View the accounts being linked
+     - Step 2: Re-authenticate with the secondary provider
+   - Complete the secondary authentication in the popup window
+   - The accounts should link and you'll be redirected back
+
+4. **Verify Results**:
+   - Check the database to ensure accounts were merged
+   - Verify `email_verified` claim is in the access token
+   - Confirm user can log in with either credential
+
+## Troubleshooting
+
+### "Invalid redirect_uri" Error
+
+- Ensure localhost callback URLs are registered in Auth0 dashboard
+- Verify `VITE_API_URL` is correct in frontend .env files
+- Check backend `AUTH0_CALLBACK_URL` matches registered URL
+
+### Account Linking Page Not Appearing
+
+- Verify the secondary account has the same email as the primary
+- Check Auth0 post-login Action is enabled and has correct detection logic
+- Verify backend is running and `/api/v001/auth/callback` is accessible
+
+### "email_verified" Claim Missing
+
+- Ensure both `linkAccount.js` and `roleClaims.js` Actions are deployed in Auth0
+- Verify claim namespace is correct (should be `https://sanny64.de/email_verified`)
+- Check token includes custom claims by decoding at jwt.io
+
+### CORS Errors
+
+- Verify `CORS_ORIGINS` includes both localhost frontends in backend config
+- Check backend is started before frontends
+- Ensure browser console shows origin URL matches registered CORS origin
+
+## Transitioning to Production
+
+When ready to deploy to production:
+
+1. **Update Auth0 Configuration**:
+   - Replace localhost URLs with production domains
+   - Set Allowed Callback URLs to:
+     ```
+     https://api.sanny64.de/api/v001/auth/callback,
+     https://auth.sanny64.de/,
+     https://sanny64.de/
+     ```
+   - Update CORS to use production domains
+
+2. **Update Environment Variables**:
+   - Backend: Use HTTPS URLs for `AUTH0_CALLBACK_URL`, `AUTH0_SUCCESS_REDIRECT`, `AUTH0_LOGOUT_REDIRECT`
+   - Login Frontend: Update `VITE_AUTH0_DOMAIN` if using a production tenant
+   - Main Frontend: Update `VITE_LOGIN_URL` to `https://auth.sanny64.de`
+
+3. **Database Deployment**:
+   - Run `npm run migrate:prod` in backend before deploying
+   - Verify custom database connection scripts are active in Auth0
+
+## Key URLs for Testing
+
+| Component      | Dev URL                                      | Prod URL                                      |
+| -------------- | -------------------------------------------- | --------------------------------------------- |
+| Login          | http://localhost:5174                        | https://auth.sanny64.de                       |
+| Main App       | http://localhost:5173                        | https://sanny64.de                            |
+| Backend        | http://localhost:3000                        | https://api.sanny64.de                        |
+| Auth0 Callback | http://localhost:3000/api/v001/auth/callback | https://api.sanny64.de/api/v001/auth/callback |
+
+## Reference Documentation
+
+- [Auth0 Account Linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking)
+- [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
+- [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)

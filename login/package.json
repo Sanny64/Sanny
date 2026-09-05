@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@auth0/auth0-react": "^2.24.1",
     "@sanny/i18n": "*",
     "@sanny/styles": "*",
     "@sanny/ui": "*",

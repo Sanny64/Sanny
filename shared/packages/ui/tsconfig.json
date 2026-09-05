@@ -1,7 +1,11 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "."
   },
-  "include": ["src", "vite.config.ts", "../../../global.d.ts"]
+  "include": ["index.ts", "../../../global.d.ts"]
 }

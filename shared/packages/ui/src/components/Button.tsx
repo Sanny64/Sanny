@@ -13,10 +13,9 @@ export function Button({
   variant = "primary",
   ...props
 }: ButtonProps) {
-  return (
-    variant === "ghost" ? null : ( 
-      <button className={`btn btn--${variant} ${className}`} {...props}>
-        {children}
-      </button>
-  ))
+  return variant === "ghost" ? null : (
+    <button className={`btn btn--${variant} ${className}`} {...props}>
+      {children}
+    </button>
+  );
 }

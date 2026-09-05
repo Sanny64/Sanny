@@ -6,7 +6,7 @@ export default function Games() {
   return (
     <div className="content">
       {t.main.games}
-      <SharedSetupProbe />
+      <SharedSetupProbe className="games-setup-probe" />
     </div>
   );
 }

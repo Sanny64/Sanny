@@ -17,7 +17,6 @@ import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
 
 function App() {
-
   return (
     <>
       {/* Routing */}
@@ -44,9 +43,7 @@ function App() {
             <Route path="/party/comfort" element={<Comfort />} />
           </Route>
           {/* Redirect any unknown routes to Error */}
-          <Route element={<Main />}>
-            {/* error route */}
-          </Route>
+          <Route element={<Main />}>{/* error route */}</Route>
         </Routes>
       </BrowserRouter>
     </>

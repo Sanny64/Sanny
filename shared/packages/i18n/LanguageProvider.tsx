@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
 import type { Language } from "./language.types";
-import { 
-  useState, 
-  useEffect, 
-  useLayoutEffect 
-} from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import {
   resolveStoredLanguage,
   resolveSystemLanguage,

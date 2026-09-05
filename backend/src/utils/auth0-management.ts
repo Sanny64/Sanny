@@ -9,6 +9,55 @@ type Auth0Role = {
   name: string;
 };
 
+type Auth0VerificationJobResponse = {
+  id?: string;
+  status?: string;
+  type?: string;
+};
+
+type Auth0UserVerificationResponse = {
+  email_verified?: boolean;
+};
+
+type Auth0UserIdentitiesResponse = {
+  identities?: Array<{ provider?: string; user_id?: string }>;
+};
+
+const deletionRetryCount = 3;
+const deletionRetryDelayMs = 250;
+
+export function isRoleSyncEnabled(): boolean {
+  const value = process.env.AUTH0_ROLE_SYNC_ENABLED?.trim().toLowerCase();
+  return value === "true";
+}
+
+export function getAllowedRoleNames(): string[] {
+  const configured = process.env.AUTH0_ASSIGNABLE_ROLES?.trim();
+  if (!configured) return [];
+
+  return [
+    ...new Set(
+      configured
+        .split(",")
+        .map((role) => role.trim())
+        .filter(Boolean),
+    ),
+  ];
+}
+
+/**
+ * Build the Auth0 Management API user search query used by purge/cleanup
+ * tooling. Defaults to the Auth0 database connection provider; an operator
+ * can scope it to a specific connection via AUTH0_PURGE_CONNECTION.
+ */
+export function getAuth0PurgeUserSearchQuery(): string {
+  const connection = process.env.AUTH0_PURGE_CONNECTION?.trim();
+  if (connection) {
+    return `identities.connection:"${connection}"`;
+  }
+  return 'identities.provider:"auth0"';
+}
+
 export class Auth0ManagementError extends Error {
   statusCode: number;
 
@@ -22,7 +71,10 @@ export class Auth0ManagementError extends Error {
 function getRequiredEnv(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) {
-    throw new Auth0ManagementError(`${name} environment variable must be set`, 500);
+    throw new Auth0ManagementError(
+      `${name} environment variable must be set`,
+      500,
+    );
   }
   return value;
 }
@@ -32,7 +84,7 @@ function getManagementConfig() {
   const clientId = getRequiredEnv("AUTH0_M2M_CLIENT_ID");
   const clientSecret = getRequiredEnv("AUTH0_M2M_CLIENT_SECRET");
   const audience =
-    process.env.AUTH0_MANAGEMENT_AUDIENCE?.trim() || `https://${domain}/api/v2/`;
+    process.env.AUTH0_MGMT_AUDIENCE?.trim() || `https://${domain}/api/v2/`;
 
   return {
     domain,
@@ -68,7 +120,10 @@ async function getManagementAccessToken(): Promise<string> {
 
   const json = (await response.json()) as Auth0TokenResponse;
   if (!json.access_token) {
-    throw new Auth0ManagementError("Auth0 Management API token response missing access_token", 500);
+    throw new Auth0ManagementError(
+      "Auth0 Management API token response missing access_token",
+      500,
+    );
   }
 
   return json.access_token;
@@ -112,7 +167,9 @@ async function getAllRoles(): Promise<Auth0Role[]> {
 }
 
 async function getUserRoles(auth0Sub: string): Promise<Auth0Role[]> {
-  const response = await auth0ManagementRequest(`/users/${encodeAuth0Sub(auth0Sub)}/roles`);
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(auth0Sub)}/roles`,
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -130,10 +187,13 @@ async function assignRoles(auth0Sub: string, roleIds: string[]): Promise<void> {
     return;
   }
 
-  const response = await auth0ManagementRequest(`/users/${encodeAuth0Sub(auth0Sub)}/roles`, {
-    method: "POST",
-    body: JSON.stringify({ roles: roleIds }),
-  });
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(auth0Sub)}/roles`,
+    {
+      method: "POST",
+      body: JSON.stringify({ roles: roleIds }),
+    },
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -149,10 +209,13 @@ async function removeRoles(auth0Sub: string, roleIds: string[]): Promise<void> {
     return;
   }
 
-  const response = await auth0ManagementRequest(`/users/${encodeAuth0Sub(auth0Sub)}/roles`, {
-    method: "DELETE",
-    body: JSON.stringify({ roles: roleIds }),
-  });
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(auth0Sub)}/roles`,
+    {
+      method: "DELETE",
+      body: JSON.stringify({ roles: roleIds }),
+    },
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -163,12 +226,22 @@ async function removeRoles(auth0Sub: string, roleIds: string[]): Promise<void> {
   }
 }
 
-export async function syncAuth0UserRolesByName(auth0Sub: string, requestedRoleNames: string[]) {
-  const desiredRoleNames = [...new Set(requestedRoleNames.map((role) => role.trim()).filter(Boolean))];
-  const [allRoles, currentRoles] = await Promise.all([getAllRoles(), getUserRoles(auth0Sub)]);
+export async function syncAuth0UserRolesByName(
+  auth0Sub: string,
+  requestedRoleNames: string[],
+) {
+  const desiredRoleNames = [
+    ...new Set(requestedRoleNames.map((role) => role.trim()).filter(Boolean)),
+  ];
+  const [allRoles, currentRoles] = await Promise.all([
+    getAllRoles(),
+    getUserRoles(auth0Sub),
+  ]);
 
   const roleByName = new Map(allRoles.map((role) => [role.name, role]));
-  const missingRoles = desiredRoleNames.filter((roleName) => !roleByName.has(roleName));
+  const missingRoles = desiredRoleNames.filter(
+    (roleName) => !roleByName.has(roleName),
+  );
 
   if (missingRoles.length > 0) {
     throw new Auth0ManagementError(
@@ -184,8 +257,12 @@ export async function syncAuth0UserRolesByName(auth0Sub: string, requestedRoleNa
 
   const currentRoleIds = currentRoles.map((role) => role.id);
 
-  const rolesToAdd = desiredRoleIds.filter((id) => !currentRoleIds.includes(id));
-  const rolesToRemove = currentRoleIds.filter((id) => !desiredRoleIds.includes(id));
+  const rolesToAdd = desiredRoleIds.filter(
+    (id) => !currentRoleIds.includes(id),
+  );
+  const rolesToRemove = currentRoleIds.filter(
+    (id) => !desiredRoleIds.includes(id),
+  );
 
   await assignRoles(auth0Sub, rolesToAdd);
   await removeRoles(auth0Sub, rolesToRemove);
@@ -196,19 +273,138 @@ export async function syncAuth0UserRolesByName(auth0Sub: string, requestedRoleNa
 }
 
 export async function deleteAuth0UserBySub(auth0Sub: string): Promise<void> {
-  const response = await auth0ManagementRequest(`/users/${encodeAuth0Sub(auth0Sub)}`, {
-    method: "DELETE",
-  });
+  for (let attempt = 0; attempt < deletionRetryCount; attempt += 1) {
+    const response = await auth0ManagementRequest(
+      `/users/${encodeAuth0Sub(auth0Sub)}`,
+      {
+        method: "DELETE",
+      },
+    );
 
-  if (response.status === 404) {
-    return;
+    if (response.status === 404 || response.ok) return;
+
+    const retryable = response.status === 429 || response.status >= 500;
+    if (!retryable || attempt === deletionRetryCount - 1) {
+      const text = await response.text();
+      throw new Auth0ManagementError(
+        `Failed to delete Auth0 user: ${text || response.statusText}`,
+        response.status,
+      );
+    }
+
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const delay =
+      Number.isFinite(retryAfter) && retryAfter >= 0
+        ? Math.min(retryAfter * 1000, 5_000)
+        : deletionRetryDelayMs * 2 ** attempt;
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
+}
+
+export async function sendAuth0VerificationEmail(
+  userId: string,
+  clientId?: string,
+): Promise<void> {
+  const payload: Record<string, string> = {
+    user_id: userId,
+  };
+
+  if (clientId?.trim()) {
+    payload.client_id = clientId.trim();
+  }
+
+  const response = await auth0ManagementRequest("/jobs/verification-email", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 
   if (!response.ok) {
     const text = await response.text();
     throw new Auth0ManagementError(
-      `Failed to delete Auth0 user: ${text || response.statusText}`,
+      `Failed to trigger Auth0 verification email: ${text || response.statusText}`,
       response.status,
     );
   }
+
+  const body = (await response.json()) as Auth0VerificationJobResponse;
+  if (!body.id) {
+    throw new Auth0ManagementError(
+      "Auth0 verification job response missing id",
+      500,
+    );
+  }
+}
+
+export async function isAuth0UserEmailVerified(
+  auth0Sub: string,
+): Promise<boolean> {
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(auth0Sub)}?fields=email_verified&include_fields=true`,
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Auth0ManagementError(
+      `Failed to read Auth0 user verification status: ${text || response.statusText}`,
+      response.status,
+    );
+  }
+
+  const body = (await response.json()) as Auth0UserVerificationResponse;
+  return body.email_verified === true;
+}
+
+/**
+ * Check whether a user still exists in Auth0. Used to reconcile local DB
+ * rows for social-connection users (e.g. Google) whose Auth0 identity was
+ * removed directly through the Auth0 Dashboard/Management API — a path that
+ * never invokes our custom database connection's delete.js script, since
+ * that script is only called for users of the database connection itself.
+ */
+export async function auth0UserExists(auth0Sub: string): Promise<boolean> {
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(auth0Sub)}?fields=user_id&include_fields=true`,
+  );
+
+  if (response.status === 404) return false;
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Auth0ManagementError(
+      `Failed to check Auth0 user existence: ${text || response.statusText}`,
+      response.status,
+    );
+  }
+
+  return true;
+}
+
+export async function isAuth0IdentityLinked(
+  primarySub: string,
+  secondarySub: string,
+): Promise<boolean> {
+  const response = await auth0ManagementRequest(
+    `/users/${encodeAuth0Sub(primarySub)}?fields=identities&include_fields=true`,
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Auth0ManagementError(
+      `Failed to read Auth0 linked identities: ${text || response.statusText}`,
+      response.status,
+    );
+  }
+
+  const body = (await response.json()) as Auth0UserIdentitiesResponse;
+  const separatorIndex = secondarySub.indexOf("|");
+  if (separatorIndex <= 0 || separatorIndex === secondarySub.length - 1)
+    return false;
+
+  const provider = secondarySub.slice(0, separatorIndex);
+  const userId = secondarySub.slice(separatorIndex + 1);
+  return (
+    body.identities?.some(
+      (identity) =>
+        identity.provider === provider && identity.user_id === userId,
+    ) === true
+  );
 }

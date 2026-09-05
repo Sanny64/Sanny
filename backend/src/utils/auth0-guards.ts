@@ -6,7 +6,10 @@ import {
 } from "./access-token.js";
 
 export function requirePermissions(requiredPermissions: string[]) {
-  return async function permissionGuard(request: FastifyRequest, reply: FastifyReply) {
+  return async function permissionGuard(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
     let identity: AccessTokenIdentity;
 
     try {
@@ -37,7 +40,10 @@ export function requirePermissions(requiredPermissions: string[]) {
 }
 
 export function requireRoles(requiredRoles: string[]) {
-  return async function roleGuard(request: FastifyRequest, reply: FastifyReply) {
+  return async function roleGuard(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) {
     let identity: AccessTokenIdentity;
 
     try {

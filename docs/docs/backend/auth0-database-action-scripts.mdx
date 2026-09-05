@@ -1,0 +1,243 @@
+---
+title: Auth0 Database Action Scripts
+description: Functionality and invocation contract for Auth0 custom database scripts.
+sidebar_position: 3
+---
+
+# Auth0 database action scripts
+
+These scripts are used by the Auth0 custom database connection runtime.
+They are not called by the Fastify API directly.
+
+Source folder:
+
+- `backend/auth0/database-action-scripts/`
+
+## Where they are called
+
+In Auth0 Dashboard:
+
+1. Go to Authentication -> Database.
+2. Open your custom database connection.
+3. Enable Custom Database.
+4. Configure each script under the matching action:
+   - Login
+   - Get User
+   - Create
+   - Verify
+   - Change Password
+   - Delete
+
+Auth0 executes these functions with specific arguments and expects the callback contract documented below.
+
+## Script contract summary
+
+| File                | Exported function                              | Purpose                                            | Success callback                                                     | Not found behavior                                                          |
+| ------------------- | ---------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `login.js`          | `login(identifierValue, password, callback)`   | Validate credentials by email and password hash    | `callback(null, { user_id, username, email, name, email_verified })` | `WrongUsernameOrPasswordError`                                              |
+| `create.js`         | `create(user, callback)`                       | Create a user if email is not in use               | `callback(null)`                                                     | `ValidationError("user_exists", ...)` when duplicate                        |
+| `verify.js`         | `verify(email, callback)`                      | Check if email exists                              | `callback(null, true/false)`                                         | Returns `false` (not an error)                                              |
+| `changePassword.js` | `changePassword(email, newPassword, callback)` | Update password hash for an existing user          | `callback(null, true)`                                               | `ValidationError("invalid_request", ...)` if user missing or no row updated |
+| `delete.js`         | `remove(id, callback)`                         | Delete existing user by integer id                 | `callback(null)`                                                     | `Error("User not found")`                                                   |
+| `getUser.js`        | `getByEmail(email, callback)`                  | Look up a user profile by email for Auth0 Get User | `callback(null, { user_id, username, email, name, email_verified })` | `callback(null)` when no user exists                                        |
+
+## Per-script details
+
+### Login.js
+
+- Normalize SSL Certificate.
+- Trim and lowercase emailInput.
+- Trim passwordInput.
+- Begin a transaction.
+- Get user object.
+- Check if user exists.
+- Compare passwordInput against currentHash.
+
+Expected callback on success:
+
+```js
+callback(null, {
+  id: rows[0].id,
+  email: rows[0].email,
+  username: rows[0].username,
+  // Auth0 normalizes the profile's display "Name" from this return value;
+  // without it, Auth0 falls back to the email.
+  name: rows[0].username,
+  // Auth0 does not automatically sync our custom DB's emailVerified flag
+  // onto its own persisted user profile; it must be reported here so
+  // Post Login Actions (role claims, account linking) see the correct
+  // verification status.
+  email_verified: rows[0].emailVerified,
+});
+```
+
+Expected callback if user not found:
+
+```js
+callback(
+  new ValidationError("user_not_found", `No user found for email: "${email}"`),
+);
+```
+
+Expected callback if wrong password or invalid user:
+
+```js
+callback(
+  new WrongUsernameOrPasswordError(
+    "invalid_password",
+    `Invalid password for ${email}`,
+  ),
+);
+```
+
+### Create.js
+
+- Normalize SSL Certificate.
+- Trim and lowercase `user.email`.
+- Begin a transaction.
+- Look up any existing user by email (`SELECT ... FOR UPDATE`) to lock the row.
+- Hash `user.password` (or a random fallback) with bcrypt regardless of outcome, to avoid timing side-channel attacks.
+- Determine which of the 8 cases applies based on whether a row exists, whether it has a password, whether it has a Google `auth0Sub`, and whether the incoming `user` has a `password` or a Google `auth0Sub`.
+- On a conflict case (1–5), roll back the transaction and return a `ValidationError`.
+- On a new-user case (6–7), insert the new `User` row (email/password or email/auth0Sub), commit the transaction, and return success.
+- On an unmatched case (8), roll back and return a generic `ValidationError`.
+- Always end the connection before invoking the callback.
+
+Expected callback on success (Case 6):
+
+```js
+callback(null, {
+  id: String(user.id),
+  email: email,
+  username: user.username,
+});
+```
+
+Expected callback on success (Case 7):
+
+```js
+callback(null, {
+  id: String(user.id),
+  email: user.email,
+  username: user.username,
+  auth0Sub: user.auth0Sub,
+});
+```
+
+Expected callback on error — Case 1 (email/password user already exists):
+
+```js
+callback(
+  new ValidationError(
+    "email_user_exists",
+    `A user with the email "${email}" already exists.`,
+  ),
+);
+```
+
+Expected callback on error — Case 2 (Google user already exists):
+
+```js
+callback(
+  new ValidationError(
+    "google_user_exists",
+    `A user with the google connection for "${user.email}" already exists.`,
+  ),
+);
+```
+
+Expected callback on error — Case 3 (both password and Google user exist, shouldn't happen in practice):
+
+```js
+callback(
+  new ValidationError(
+    "user_exists",
+    `A user with the email "${email}" and google connection already exists.`,
+  ),
+);
+```
+
+Expected callback on error — Case 4 (existing password user attempts Google signup):
+
+```js
+callback(
+  new ValidationError(
+    "use_email_login",
+    `Please use email/password login for the user with email: "${email}".`,
+  ),
+);
+```
+
+Expected callback on error — Case 5 (existing Google user attempts password signup):
+
+```js
+callback(
+  new ValidationError(
+    "use_google_login",
+    `Please use "Login with Google" for the user with email: "${email}".`,
+  ),
+);
+```
+
+Expected callback on error — Case 8 (validation error, should not happen unless more social logins are added):
+
+```js
+callback(
+  new ValidationError(
+    "unexpected_case",
+    `Your create request for the email: "${email}" didn't match any known patterns: Please reach out to the support team at \`*insert support email\` for further assistance.`,
+  ),
+);
+```
+
+### Verify.js
+
+- Normalize SSL Certificate.
+- Trim and lowercase `user.email`.
+- Begin a transaction.
+- Run `UPDATE User SET emailVerified = true WHERE emailVerified = false AND email = ? LIMIT 1` for the given email.
+- Commit the transaction and return whether the update actually affected a row (`result.affectedRows`), not the length of the (non-array) update result.
+- Always end the connection before invoking the callback.
+  Expected callback on success (user found and verified):
+
+```js
+callback(null, true);
+```
+
+Expected callback if no matching unverified user was found:
+
+```js
+callback(null, false);
+```
+
+### Shared error handling:
+
+Expected callback on query or connection error:
+
+```js
+callback(err);
+```
+
+## How to call them in Auth0 tests
+
+Use the built-in Try button for each script in the Auth0 custom database connection editor and provide the matching inputs.
+
+Example inputs by action:
+
+- Login: `email` (emailInput), `password` (passwordInput)
+- Create: `user` object containing at least `email` and `password` or oauth2-sub
+- Verify: `email`
+- Get User: `email`
+- Change Password: `email`, `newPassword`
+- Delete: `id` (numeric string or number)
+
+The script must always finish via the provided `callback`:
+
+- Success: `callback(null, ...)`
+- Failure: `callback(error)`
+
+## Local development notes
+
+- Scripts rely on Auth0 runtime globals like `configuration`, `ValidationError`, and `WrongUsernameOrPasswordError`.
+- To test locally outside Auth0, you must mock those globals and provide a test database connection.
+- Do not commit secrets or `.env` values to docs or source.

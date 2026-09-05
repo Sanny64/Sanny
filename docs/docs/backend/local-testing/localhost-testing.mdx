@@ -1,0 +1,213 @@
+# Localhost Testing Configuration for Account Linking
+
+This document summarizes the configuration changes made to enable local development and testing of the account linking feature on localhost.
+
+## Changes Made
+
+### 1. Frontend Environment Configuration
+
+#### Login App (`login/.env.local`)
+
+Updated with clearer comments and added `VITE_LOGIN_URL` for consistency:
+
+```env
+VITE_AUTH0_DOMAIN="sanny64.eu.auth0.com"
+VITE_AUTH0_CLIENT_ID="AZm6md09tLEv43byJSSkf6uLTsH9JzR0"
+VITE_AUTH0_AUDIENCE="https://api.sanny64.de"
+VITE_API_URL="http://localhost:3000"
+VITE_LOGIN_URL="http://localhost:5174"
+```
+
+#### Main App (`sanny/.env.local`)
+
+Updated with clearer comments and added `VITE_LOGIN_URL`:
+
+```env
+VITE_AUTH0_DOMAIN="sanny64.eu.auth0.com"
+VITE_AUTH0_CLIENT_ID="AZm6md09tLEv43byJSSkf6uLTsH9JzR0"
+VITE_AUTH0_AUDIENCE="https://api.sanny64.de"
+VITE_API_URL="http://localhost:3000"
+VITE_LOGIN_URL="http://localhost:5174"
+```
+
+### 2. Backend Configuration
+
+#### Backend Environment (`backend/.env`)
+
+Updated `ACCOUNT_LINK_CONFIRMATION_URL` to use localhost for development:
+
+```env
+ACCOUNT_LINK_CONFIRMATION_URL="http://localhost:5174"
+```
+
+**Note**: The existing configuration already supported localhost for:
+
+- `AUTH0_CALLBACK_URL="http://localhost:3000/api/v001/auth/callback"`
+- `AUTH0_SUCCESS_REDIRECT="http://localhost:5173/"`
+- `AUTH0_LOGOUT_REDIRECT="http://localhost:5173/"`
+- `CORS_ORIGINS` includes both localhost frontends
+
+### 3. Frontend Code Changes
+
+#### AccountLinkingPage.tsx
+
+- Added `getCallbackUrl()` function to dynamically determine HTTP vs HTTPS based on environment
+- Development: Uses `http://localhost:3000/api/v001/auth/callback`
+- Production: Uses `https://` URL format
+- Updated `handleConfirm()` to use the new callback URL function
+
+This ensures the component works correctly in both development and production environments without hardcoding URLs.
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Auth0 Tenant                          │
+│                   (sanny64.eu.auth0.com)                        │
+├─────────────────────────────────────────────────────────────┤
+│  Post-Login Actions:                                        │
+│  • linkAccount.js (detects & redirects to linking page)    │
+│  • roleClaims.js (stamps email_verified claim)             │
+│  • verifyEmail.js (marks email as verified)                │
+└─────────────────────────────────────────────────────────────┘
+              ↓                          ↑
+              │                          │
+        [OAuth Code]              [/continue redirect]
+              │                          │
+    ┌─────────▼──────────┐  ┌───────────┴─────────┐
+    │ Backend API        │  │ Login Frontend      │
+    │ (localhost:3000)   │  │ (localhost:5174)    │
+    │                    │  │                     │
+    │ • /auth/callback   │  │ • AccountLinking    │
+    │ • /account-linking │  │   Page              │
+    │ • /user endpoints  │  │ • Re-auth popup     │
+    └────────┬───────────┘  └───────────┬─────────┘
+             │                          │
+             └──────────────┬───────────┘
+                            │
+                   ┌────────▼────────┐
+                   │ Main Frontend   │
+                   │ (localhost:5173)│
+                   │                 │
+                   │ • User dashboard│
+                   │ • Profile page  │
+                   └─────────────────┘
+
+Localhost Development Flow:
+1. User logs in at localhost:5174
+2. If duplicate email found, Auth0 redirects to AccountLinkingPage
+3. User confirms linking + authenticates with secondary provider
+4. Backend merges accounts and returns tokens with email_verified claim
+5. User redirected to main app (localhost:5173)
+```
+
+## Environment File Structure
+
+### Development Environment
+
+```
+frontend (localhost:5173)
+├── VITE_API_URL = "http://localhost:3000"
+└── VITE_LOGIN_URL = "http://localhost:5174"
+
+login (localhost:5174)
+├── VITE_API_URL = "http://localhost:3000"
+└── VITE_LOGIN_URL = "http://localhost:5174"
+
+backend (localhost:3000)
+├── AUTH0_CALLBACK_URL = "http://localhost:3000/api/v001/auth/callback"
+├── AUTH0_SUCCESS_REDIRECT = "http://localhost:5173/"
+├── ACCOUNT_LINK_CONFIRMATION_URL = "http://localhost:5174"
+└── CORS_ORIGINS = "...http://localhost:5173,http://localhost:5174..."
+```
+
+### Production Environment (Future)
+
+```
+frontend (sanny64.de)
+├── VITE_API_URL = "https://api.sanny64.de"
+└── VITE_LOGIN_URL = "https://auth.sanny64.de"
+
+login (auth.sanny64.de)
+├── VITE_API_URL = "https://api.sanny64.de"
+└── VITE_LOGIN_URL = "https://auth.sanny64.de"
+
+backend (api.sanny64.de)
+├── AUTH0_CALLBACK_URL = "https://api.sanny64.de/api/v001/auth/callback"
+├── AUTH0_SUCCESS_REDIRECT = "https://sanny64.de/"
+├── ACCOUNT_LINK_CONFIRMATION_URL = "https://auth.sanny64.de"
+└── CORS_ORIGINS = "https://sanny64.de,https://auth.sanny64.de,https://www.sanny64.de"
+```
+
+## Required Auth0 Configuration
+
+For localhost testing to work, the Auth0 application must be configured with:
+
+### Allowed Callback URLs
+
+```
+http://localhost:3000/api/v001/auth/callback,
+http://localhost:5174/,
+http://localhost:5173/
+```
+
+### Allowed Logout URLs
+
+```
+http://localhost:5173/,
+http://localhost:5174/
+```
+
+### Cross-Origin Authentication (CORS)
+
+```
+http://localhost:5173
+http://localhost:5174
+```
+
+## Testing Checklist
+
+Before deploying to production, verify:
+
+- [ ] Email verification works on signup (emailVerified=true in database and Auth0)
+- [ ] Account linking page appears for duplicate emails
+- [ ] Secondary authentication popup opens and completes successfully
+- [ ] Accounts merge correctly in the database (one record with both identities)
+- [ ] Failed merge attempt accounts get deleted from auth0 after 10mins (they never get written into the db)
+- [ ] email_verified claim appears in tokens after linking
+- [ ] Users can log in with either linked credential
+- [ ] CORS errors do not appear in browser console
+- [ ] Backend logs show successful account merge
+- [ ] All backend tests pass
+- [ ] ESLint passes without errors
+- [ ] TypeScript type-check passes without errors
+- [ ] Prettier formatting is clean
+
+## Documentation
+
+For detailed setup and troubleshooting instructions, see:
+
+- [Quickstart: Testing Account Linking Locally](./quickstart_local_testing.mdx) - Step-by-step testing guide
+- [Account Linking Local Setup](./account-linking-local-setup.mdx) - Architecture and troubleshooting
+
+## Files Modified
+
+1. **login/.env.local** - Added VITE_LOGIN_URL, updated comments
+2. **sanny/.env.local** - Added VITE_LOGIN_URL, updated comments
+3. **backend/.env** - Updated ACCOUNT_LINK_CONFIRMATION_URL to localhost
+4. **login/src/pages/accountLinkingPage/AccountLinkingPage.tsx** - Added getCallbackUrl() function
+
+## No Breaking Changes
+
+All changes are backward-compatible:
+
+- Existing environment variable defaults remain unchanged
+- Production behavior is not affected
+- All 20 backend tests continue to pass
+- ESLint and TypeScript validation passes
+
+## Next Steps
+
+1. **For Testing**: Follow [Quickstart: Testing Account Linking Locally](./quickstart_local_testing.mdx)
+2. **For Production**: Update environment files with production domain names
+3. **For Deployment**: Configure production Auth0 callback URLs before going live

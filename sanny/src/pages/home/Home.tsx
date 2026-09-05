@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="content">
       {t.main.home}
-      <SharedSetupProbe />
+      <SharedSetupProbe className="home-setup-probe" />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   updateSelfUserHandler,
   updateUserRolesHandler,
   updateUserHandler,
+  linkUserAccountsHandler,
 } from "../controllers/user.controller.js";
 import {
   createSelfUserSchema,
@@ -17,18 +18,23 @@ import {
   updateSelfUserSchema,
   updateUserSchema,
   userIdParamSchema,
+  linkUserAccountsSchema,
 } from "../schemas/user.schema.js";
 import type { FastifyInstance } from "fastify";
 import { requirePermissions, requireRoles } from "../utils/auth0-guards.js";
+import {
+  requireRecentAuthentication,
+  requireSession,
+} from "../utils/session.js";
 
 async function userRoutes(server: FastifyInstance) {
   // self read
   server.get(
     "/me",
     {
-      preHandler: [server.requireAuth()],
+      preHandler: [requireSession],
       schema: {
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
         response: {
           200: createUserResponseSchema,
         },
@@ -41,10 +47,10 @@ async function userRoutes(server: FastifyInstance) {
   server.post(
     "/me",
     {
-      preHandler: [server.requireAuth()],
+      preHandler: [requireSession],
       schema: {
         body: createSelfUserSchema,
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
         response: {
           201: createUserResponseSchema, // user created
         },
@@ -57,10 +63,14 @@ async function userRoutes(server: FastifyInstance) {
   server.patch(
     "/me",
     {
-      preHandler: [server.requireAuth(), requirePermissions(["update:me"])],
+      preHandler: [
+        requireSession,
+        requirePermissions(["update:me"]),
+        requireRecentAuthentication(),
+      ],
       schema: {
         body: updateSelfUserSchema,
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
         response: {
           200: createUserResponseSchema,
         },
@@ -73,25 +83,45 @@ async function userRoutes(server: FastifyInstance) {
   server.delete(
     "/me",
     {
-      preHandler: [server.requireAuth(), requirePermissions(["delete:me"])],
+      preHandler: [
+        requireSession,
+        requirePermissions(["delete:me"]),
+        requireRecentAuthentication(),
+      ],
       schema: {
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
       },
     },
     deleteSelfUserHandler,
+  );
+
+  // link secondary account into primary
+  server.post(
+    "/link-account",
+    {
+      preHandler: [requireSession, requireRecentAuthentication()],
+      schema: {
+        body: linkUserAccountsSchema,
+        security: [{ sessionCookie: [] }],
+        response: {
+          200: createUserResponseSchema,
+        },
+      },
+    },
+    linkUserAccountsHandler,
   );
 
   server.get(
     "/:userId",
     {
       preHandler: [
-        server.requireAuth(),
+        requireSession,
         requirePermissions(["read:users"]),
         requireRoles(["admin"]),
       ],
       schema: {
         params: userIdParamSchema,
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
         response: {
           200: createUserResponseSchema,
         },
@@ -105,12 +135,20 @@ async function userRoutes(server: FastifyInstance) {
     "/list",
     {
       preHandler: [
-        server.requireAuth(),
+        requireSession,
         requirePermissions(["read:users"]),
         requireRoles(["admin"]),
       ],
       schema: {
-        security: [{ bearerAuth: [] }],
+        querystring: {
+          type: "object",
+          properties: {
+            page: { type: "integer", minimum: 1 },
+            limit: { type: "integer", minimum: 1, maximum: 50 },
+          },
+          additionalProperties: false,
+        },
+        security: [{ sessionCookie: [] }],
       },
     },
     getUsersHandler,
@@ -121,14 +159,15 @@ async function userRoutes(server: FastifyInstance) {
     "/:userId",
     {
       preHandler: [
-        server.requireAuth(),
+        requireSession,
         requirePermissions(["write:users"]),
         requireRoles(["admin"]),
+        requireRecentAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
         body: updateUserSchema,
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
         response: {
           200: createUserResponseSchema,
         },
@@ -142,14 +181,15 @@ async function userRoutes(server: FastifyInstance) {
     "/:userId/roles",
     {
       preHandler: [
-        server.requireAuth(),
+        requireSession,
         requirePermissions(["write:users"]),
         requireRoles(["admin"]),
+        requireRecentAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
         body: updateUserRolesSchema,
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
         response: {
           200: updateUserRolesResponseSchema,
         },
@@ -162,13 +202,14 @@ async function userRoutes(server: FastifyInstance) {
     "/:userId",
     {
       preHandler: [
-        server.requireAuth(),
+        requireSession,
         requirePermissions(["delete:users"]),
         requireRoles(["admin"]),
+        requireRecentAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
-        security: [{ bearerAuth: [] }],
+        security: [{ sessionCookie: [] }],
       },
     },
     deleteUserHandler,

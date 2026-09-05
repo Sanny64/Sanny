@@ -1,0 +1,100 @@
+---
+title: Backend Operations
+description: Secure setup, deployment, monitoring, and verification guidance for the backend.
+sidebar_position: 4
+---
+
+# Backend operations
+
+This guide describes the operational contract for the Fastify backend. It contains configuration names and procedures only. Never put passwords, client secrets, private keys, certificates, access tokens, refresh tokens, or database URLs containing credentials in documentation.
+
+## Environment configuration
+
+Use a separate secret store for each environment. Keep `.env` files out of version control and do not copy development values into production.
+
+| Variable                                  | Development                                       | Production                                             |
+| ----------------------------------------- | ------------------------------------------------- | ------------------------------------------------------ |
+| `NODE_ENV`                                | `development`                                     | `production`                                           |
+| `DATABASE_URL`                            | Local MariaDB URL                                 | Private/TLS database URL from the secret store         |
+| `REDIS_URL`                               | `redis://127.0.0.1:6379`                          | Authenticated `rediss://` endpoint                     |
+| `AUTH0_DOMAIN`                            | Auth0 tenant or configured custom domain          | The deployed Auth0 domain used consistently by the app |
+| `AUTH0_AUDIENCE`                          | The local API identifier                          | The deployed API identifier                            |
+| `AUTH0_CLIENT_ID` / `AUTH0_CLIENT_SECRET` | Auth0 application credentials                     | Production confidential application credentials        |
+| `AUTH0_CALLBACK_URL`                      | Usually the local callback fallback               | Exact deployed HTTPS callback URL                      |
+| `AUTH0_SUCCESS_REDIRECT`                  | Usually the local frontend URL                    | Exact deployed HTTPS frontend URL                      |
+| `AUTH0_LOGOUT_REDIRECT`                   | Usually the local frontend URL                    | Exact deployed HTTPS frontend URL                      |
+| `CORS_ORIGINS`                            | Exact local origins plus any approved test origin | Exact HTTPS origins only                               |
+| `ENABLE_SWAGGER`                          | `true` when needed locally                        | `false` unless separately protected                    |
+| `TRUST_PROXY`                             | `false`                                           | `true` or a hop count only behind a trusted proxy      |
+| `AUTH0_ROLE_SYNC_ENABLED`                 | `false`                                           | `false` until the role-sync controls are approved      |
+
+Production startup rejects missing Auth0 credentials, insecure redirect URLs, missing CORS configuration, and non-TLS Redis URLs. A Redis endpoint may be localhost when Redis runs on the same server; otherwise use a private hostname or private network address. Do not expose Redis directly to the public internet.
+
+## Auth0 tenant verification
+
+Complete this checklist in the intended staging tenant before marking the tenant task complete:
+
+- Confirm the application uses Authorization Code Flow with PKCE and `S256`.
+- Register only the exact HTTPS callback, success, and logout URLs used by the deployment.
+- Confirm refresh-token rotation and reuse detection are enabled according to the tenant policy.
+- Confirm the `offline_access` scope is allowed for the application.
+- Confirm the database connection actions are deployed and point to the intended database.
+- Confirm the API identifier equals `AUTH0_AUDIENCE`.
+- Confirm the API and application use the intended Auth0 domain consistently.
+- Confirm the M2M client has only the Management API scopes required by an explicitly enabled operation.
+- Obtain a representative staging access token and verify issuer, audience, subject, expiry, email/name, email verification, permissions, and roles.
+- Verify missing authorization claims deny access; email and name must never grant privileges.
+
+Record the tenant name, environment, verification date, tester, and result in the deployment runbook. Do not record the token itself or any secret value.
+
+## Reverse proxy and TLS
+
+Fastify should listen on a private interface or protected host behind NGINX. The proxy terminates TLS, forwards only the required traffic, and overwrites forwarding headers rather than trusting client-supplied values.
+
+The deployment must provide:
+
+- HTTPS for all public application traffic.
+- HTTP to HTTPS redirection at the proxy.
+- Forwarded host and protocol headers set by the trusted proxy.
+- Firewall rules preventing direct public access to the Fastify port.
+- Proxy limits for authentication, callback, logout, and sensitive user routes.
+- `TRUST_PROXY` configured to match the actual proxy chain.
+
+Do not enable application proxy trust before the proxy is known to sanitize `X-Forwarded-For` and `X-Forwarded-Proto`.
+
+## Monitoring and alerting
+
+Monitor both the proxy and application. Logs must be sanitized and must not contain access tokens, refresh tokens, session IDs, CSRF tokens, authorization codes, client secrets, or database credentials.
+
+At minimum, alert on:
+
+- Repeated `429` responses by route group or source.
+- OAuth initiation and callback spikes.
+- Redis connection failures and fallback limiter use.
+- Session refresh reuse detection and rotation failures.
+- Auth0 Management API failures and repeated deletion divergence.
+- Fastify process restarts, health-check failures, and elevated 5xx responses.
+- Database connection failures and abnormal query latency.
+
+Prometheus can scrape a protected metrics endpoint or proxy exporter. Keep metrics endpoints private and avoid labels containing raw URLs, query strings, user identifiers, tokens, or unbounded input. Useful counters include request totals by normalized route group and status, rate-limit rejections, OAuth state rejections, refresh reuse events, and upstream failure classes.
+
+## Staging release checklist
+
+1. Load staging secrets from the deployment secret store.
+2. Confirm the database and Redis endpoints are private and reachable by the backend.
+3. Start the backend and verify `/healthcheck`.
+4. Verify security headers, no-store API responses, CORS, and HTTPS behavior through NGINX.
+5. Complete an interactive login and logout.
+6. Confirm the callback state is single-use and a replay is rejected.
+7. Confirm refresh works and refresh-token reuse is rejected.
+8. Verify self-service profile, mutation, and deletion flows.
+9. Verify admin authorization, pagination, rate limits, and safe error responses.
+10. Confirm proxy forwarding-header behavior and direct Fastify access is blocked.
+11. Review logs and alerts for secrets or personal data before approving promotion.
+12. Record results, residual risks, and rollback steps.
+
+## Incident response basics
+
+For suspected credential or token exposure, revoke the affected Auth0 client or tokens, rotate the relevant secret in the deployment store, invalidate affected sessions, preserve sanitized event timestamps, and investigate before restoring service. Never paste the exposed value into an issue, commit, log, or chat message.
+
+For Redis or database failure, keep the backend unavailable rather than weakening production encryption or authentication requirements. For repeated Auth0 or rate-limit failures, preserve the generic client error contract and investigate using sanitized server-side telemetry.

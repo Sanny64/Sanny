@@ -1,44 +1,113 @@
-function login(identifierValue, password, callback) {
+/*
+This script will be executed each time a user attempts to login. The two parameters: email and password, are used to validate the authenticity of the user.
+*/
+
+function login(emailInput, passwordInput, callback) {
   const mysql = require("mysql");
   const bcrypt = require("bcrypt");
+
+  const sslCa = configuration.DB_SSL_CA.replace(/\\n/g, "\n")
+    .replace(/\s+/g, "")
+    .replace("-----BEGINCERTIFICATE-----", "-----BEGIN CERTIFICATE-----\n")
+    .replace("-----ENDCERTIFICATE-----", "\n-----END CERTIFICATE-----\n");
+
   const connection = mysql.createConnection({
     host: configuration.DB_HOST,
     port: Number(configuration.DB_PORT || 3306),
     user: configuration.DB_USER,
     password: configuration.DB_PASSWORD,
     database: configuration.DB_NAME,
+    connectTimeout: 10000,
+    ssl: { ca: sslCa, rejectUnauthorized: true },
   });
-  const email = identifierValue.trim().toLowerCase();
-  connection.connect(function (connectError) {
-    if (connectError) return callback(connectError);
-    connection.query(
-      "SELECT id, name, email, password FROM User WHERE email = ? LIMIT 1",
-      [email],
-      function (err, results) {
-        if (err) {
-          connection.end();
-          return callback(err);
-        }
-        if (results.length === 0) {
-          connection.end();
-          return callback(new WrongUsernameOrPasswordError(identifierValue));
-        }
-        const user = results[0];
-        bcrypt.compare(password, user.password, function (err, isValid) {
-          connection.end();
-          if (err || !isValid)
-            return callback(
-              err || new WrongUsernameOrPasswordError(identifierValue),
-            );
 
-          callback(null, {
-            user_id: String(user.id),
-            username: user.name,
-            email: user.email,
-          });
+  const email = emailInput.trim().toLowerCase();
+  const password = passwordInput.trim();
+
+  function finish(err, result) {
+    connection.end(function () {
+      if (err) return callback(err);
+      return callback(null, result);
+    });
+  }
+
+  function rollbackAndFinish(err) {
+    connection.rollback(function () {
+      finish(err, null);
+    });
+  }
+
+  function commitAndFinish(result) {
+    connection.commit(function (commitError) {
+      if (commitError) {
+        return connection.rollback(function () {
+          finish(commitError);
         });
-      },
-    );
+      }
+      finish(null, result);
+    });
+  }
+
+  connection.connect(function (connectError) {
+    if (connectError) {
+      connection.destroy();
+      return callback(connectError);
+    }
+
+    connection.beginTransaction(function (txError) {
+      if (txError) {
+        return finish(txError);
+      }
+
+      connection.query(
+        "SELECT id, username, email, password, emailVerified FROM User WHERE email = ? LIMIT 1 FOR UPDATE",
+        [email],
+        function (lookupError, rows) {
+          if (lookupError) {
+            return rollbackAndFinish(lookupError);
+          }
+
+          if (rows.length === 0) {
+            return rollbackAndFinish(
+              new ValidationError(
+                "user_not_found",
+                `No user found for email: "${email}"`,
+              ),
+            );
+          }
+
+          bcrypt.compare(
+            password,
+            rows[0].password,
+            function (compareError, isMatch) {
+              if (compareError) {
+                return rollbackAndFinish(compareError);
+              }
+              if (!isMatch) {
+                return rollbackAndFinish(
+                  new WrongUsernameOrPasswordError(
+                    "invalid_credentials",
+                    `Invalid username or password for email: "${email}"`,
+                  ),
+                );
+              }
+              return commitAndFinish({
+                id: String(rows[0].id),
+                email: rows[0].email,
+                username: rows[0].username,
+                name: rows[0].username,
+                // Explicitly coerce: some MySQL driver/connection configs
+                // return TINYINT(1) as 1/0 rather than true/false. Auth0
+                // persists whatever this callback returns verbatim, and
+                // downstream Post Login Actions compare this with strict
+                // `=== true`, so a numeric 1 would silently fail that check.
+                email_verified: Boolean(rows[0].emailVerified),
+              });
+            },
+          );
+        },
+      );
+    });
   });
 }
 

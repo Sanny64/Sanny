@@ -35,7 +35,11 @@
     },
   },
   login: {
-    LoginPage: "Login Page",
+    loginButton: "Login",
+    logoutButton: "Logout",
+    userSyncError: "User synchronization failed",
+    authenticationFailed: "Authentication failed. Please try again.",
+    emailVerificationRequired: "Please verify your email before signing in.",
   },
   shared: {
     setupProbe: {
@@ -62,7 +66,8 @@
       },
       403: {
         title: "Access Denied",
-        message: "You do not have the necessary permissions to access this page.",
+        message:
+          "You do not have the necessary permissions to access this page.",
       },
       401: {
         title: "Not Authorized",
@@ -74,8 +79,9 @@
       },
       503: {
         title: "Service Unavailable",
-        message: "The service is currently unavailable. Please try again later.",
-      }
+        message:
+          "The service is currently unavailable. Please try again later.",
+      },
     },
   },
 };

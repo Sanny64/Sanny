@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Main from "./pages/Main";
-import LoginPage from "./pages/loginPage/LoginPage";
+import AccountLinkingPage from "./pages/accountLinkingPage/AccountLinkingPage";
+import AccountLinkingProofPage from "./pages/accountLinkingPage/AccountLinkingProofPage";
 
 function App() {
   return (
@@ -8,7 +9,11 @@ function App() {
       {/* Main routes */}
       <Routes>
         <Route element={<Main />}>
-          <Route path="/" element={<LoginPage />} />
+          <Route path="/confirm-linking" element={<AccountLinkingPage />} />
+          <Route
+            path="/account-link-proof-complete"
+            element={<AccountLinkingProofPage />}
+          />
         </Route>
       </Routes>
     </BrowserRouter>

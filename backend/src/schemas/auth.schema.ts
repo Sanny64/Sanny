@@ -9,5 +9,5 @@ export const meResponseSchema = z.object({
 });
 
 export const authSchemas = {
-    meResponseSchema,
-}
+  meResponseSchema,
+};

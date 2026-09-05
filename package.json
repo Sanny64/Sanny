@@ -45,7 +45,8 @@
     "lint:sanny": "npm run lint -w sanny",
     "lint:shared": "npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui",
     "build": "npm run build:login && npm run build:sanny && npm run build:docs",
-    "lint": "npm run lint:login && npm run lint:sanny && npm run lint:shared",
+    "lint": "npm run lint:login && npm run lint:sanny && npm run lint:shared && npm run type-check",
+    "type-check": "npm run type-check -w backend",
     "test": "npm run lint && npm run build"
   }
 }

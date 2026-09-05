@@ -1,61 +1,40 @@
----
-title: Tech Stack
-description: Erklärung, welche Technologien das Projekt verwendet.
-sidebar_position: 4
----
+## Tech-Stack
 
-# Tech-Stack
+### Frontend
 
-## Frontend
+- React + Typescript + Vite
+- Routing via React-Router-Dom
+- Animations via Framer-Motion
 
-- React + TypeScript + Vite
-- Routing über React Router DOM
-- Animationen über Framer Motion
+### Backend
 
----
-
-## Backend
-
-- Fastify (TypeScript) + REST-API-Architektur; die API-Endpunkte für alle (Sub-)Domains sollen über `_base-url_/api/v001/` geroutet werden
-- Nginx wird für das Traffic-Management verwendet
+- Fastify (TypeScript) + REST API Architecture; The api endpoints for all (sub)-domains are routed via _base-url_/api/v001/
+- Nginx is used for traffic management
+- Google OAuth 2.0 (via Fastify-Passport / Fastify-Secure-Session) + JWT
 - Role-Based Access Control (RBAC) Middleware
 - MySQL (MariaDB + HeidiSQL)
-- Cloudflare (WAF & DDoS-Schutz) + Fastify Helmet (`@fastify/helmet`)
+- Cloudflare (WAF & DDoS Protection) + Fastify-Helmet (@fastify/helmet)
 
----
+### Deployment
 
-## Deployment
-
-- Frontend-CI/CD über [SamKirkland FTP Deploy Action](https://github.com/SamKirkland/FTP-Deploy-Action) (v4.4.0)
-- Backend-CI/CD über [Appleboy SSH Action](https://github.com/appleboy/ssh-action/tree/v1.0.3/) (v1.0.3)
-- Versionsverwaltung über [Git](https://git-scm.com) und [GitHub](https://github.com/Sanny64/Sanny)
-- Gehostet bei [Hetzner](https://www.hetzner.com) Webhosting auf [Sanny64.de](https://www.sanny64.de)
-
----
+- CI/CD via [SamKirkland FTP-Deploy-Action](https://github.com/SamKirkland/FTP-Deploy-Action)
+- Version control via Git and [Github](https://github.com/Sanny64/Sanny)
+- Hosted at Hetzner Webhosting on [Sanny64](https://www.sanny64.de)
 
 ## Login
 
-Das Login ist hier gehostet: [Sanny64.de Auth Service](https://auth.sanny64.de).
+Login is hosted at https://auth.sanny64.de
 
-- Google OAuth 2.0 (über Fastify Passport / Fastify Secure Session) + JWT
+## Settings
 
----
+The settings can be accessed with /settings across all subdomains
 
-## Einstellungen
+- Dark/Light mode
+- English/German
+- Accessibility settings
+- User profiles will be
 
-Die Einstellungen sind über `/settings` auf allen Subdomains erreichbar, über das npm-Paket `@sanny/ui`.
+## Error-Handling
 
-- Dark-/Light-Mode (`@sanny/styles`)
-- Accessibility-Einstellungen (`@sanny/styles`)
-- Englisch/Deutsch (`@sanny/i18n`)
-- Benutzerprofile sollen geplant im Backend gespeichert werden: siehe ([/user-data](./user-data))
-
----
-
-## Fehlerbehandlung
-
-- Die visuelle HTTP-Fehlerbehandlung erfolgt über das npm-Paket `@sanny/ui`.
-
----
-
-Letzte Bearbeitung: 26.06.2026
+- Visual HTTP Error handling is done via npm package @sanny/ui
+- Excepetions are caught via
