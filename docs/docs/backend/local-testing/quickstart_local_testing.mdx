@@ -19,7 +19,7 @@ Before starting the local services, register the callback URIs in Auth0:
 3. Scroll to **Application URIs** section
 4. Update **Allowed Callback URLs** to include:
    ```
-   http://localhost:3000/api/v001/auth/callback,
+   https://localhost:8443/api/v001/auth/callback,
    http://localhost:5174/,
    http://localhost:5173/
    ```
@@ -45,7 +45,7 @@ npm install  # if needed
 npm run dev
 ```
 
-Expected output: Server starts on `http://localhost:3000`
+Expected output: Server starts on `https://localhost:8443`
 
 ### Terminal 2: Login Frontend (port 5174)
 
@@ -127,7 +127,7 @@ SELECT * FROM users WHERE email = 'test+primary@example.com';
 
 - **Cause**: Callback URL not registered in Auth0 dashboard
 - **Fix**: Re-check Auth0 Application Settings → Allowed Callback URLs
-- **Verify**: `http://localhost:3000/api/v001/auth/callback` is listed
+- **Verify**: `https://localhost:8443/api/v001/auth/callback` is listed
 
 ### Account Linking Page Not Appearing
 
@@ -172,7 +172,7 @@ SELECT * FROM users WHERE email = 'test+primary@example.com';
 
 ```
 ACCOUNT_LINK_CONFIRMATION_URL="http://localhost:5174"  # Login app URL
-AUTH0_CALLBACK_URL="http://localhost:3000/api/v001/auth/callback"  # Backend callback
+AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"  # Backend callback
 AUTH0_SUCCESS_REDIRECT="http://localhost:5173/"  # Main app after login
 CORS_ORIGINS="...http://localhost:5173,http://localhost:5174..."  # CORS whitelist
 ```
@@ -180,14 +180,14 @@ CORS_ORIGINS="...http://localhost:5173,http://localhost:5174..."  # CORS whiteli
 ### Login App (`login/.env.local`)
 
 ```
-VITE_API_URL="http://localhost:3000"  # Backend
+VITE_API_URL="https://localhost:8443"  # Backend
 VITE_LOGIN_URL="http://localhost:5174"  # Self
 ```
 
 ### Main App (`sanny/.env.local`)
 
 ```
-VITE_API_URL="http://localhost:3000"  # Backend
+VITE_API_URL="https://localhost:8443"  # Backend
 VITE_LOGIN_URL="http://localhost:5174"  # Login app
 ```
 

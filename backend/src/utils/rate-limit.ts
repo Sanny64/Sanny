@@ -27,6 +27,11 @@ type RateLimitRequest = Pick<
 const rateLimitKeyPrefix = "sanny:rate-limit:";
 const fallbackMaxKeys = 10_000;
 const fallbackBuckets = new Map<string, { count: number; expiresAt: number }>();
+const auth0GlobalKey = `${rateLimitKeyPrefix}global:auth0-authentication-api`;
+const auth0GlobalWindowMs = 60_000;
+const auth0GlobalBudgetPerMin = Number(
+  process.env.AUTH0_GLOBAL_BUDGET_PER_MIN ?? 200,
+); // margin below Auth0's free-tier limit of 300/min
 
 const incrementScript = `
   local current = redis.call("INCR", KEYS[1])
@@ -159,6 +164,19 @@ function fallbackIncrement(
   return { count: entry.count, ttl: Math.max(entry.expiresAt - now, 0) };
 }
 
+async function checkAuth0GlobalBudget(): Promise<boolean> {
+  try {
+    const result = (await getSessionStoreClient().eval(incrementScript, {
+      keys: [auth0GlobalKey],
+      arguments: [String(auth0GlobalWindowMs)],
+    })) as [number, number];
+    return Number(result[0]) <= auth0GlobalBudgetPerMin;
+  } catch {
+    const fallback = fallbackIncrement(auth0GlobalKey, auth0GlobalWindowMs);
+    return fallback.count <= auth0GlobalBudgetPerMin;
+  }
+}
+
 export async function applyRateLimit(
   request: RateLimitRequest,
   reply: Pick<FastifyReply, "header">,
@@ -193,13 +211,23 @@ export async function applyRateLimit(
     retryAfterMs = fallback.ttl;
   }
 
-  if (count <= config.max) return { allowed: true, retryAfterMs: 0 };
+  if (count > config.max) {
+    reply.header(
+      "Retry-After",
+      String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
+    );
+    reply.header("X-RateLimit-Limit", String(config.max));
+    reply.header("X-RateLimit-Remaining", "0");
+    return { allowed: false, retryAfterMs, status: 429 };
+  }
 
-  reply.header(
-    "Retry-After",
-    String(Math.max(1, Math.ceil(retryAfterMs / 1000))),
-  );
-  reply.header("X-RateLimit-Limit", String(config.max));
-  reply.header("X-RateLimit-Remaining", "0");
-  return { allowed: false, retryAfterMs, status: 429 };
+  if (config.group === "oauth-callback") {
+    const withinGlobalBudget = await checkAuth0GlobalBudget();
+    if (!withinGlobalBudget) {
+      reply.header("Retry-After", "60");
+      return { allowed: false, retryAfterMs: auth0GlobalWindowMs, status: 429 };
+    }
+  }
+
+  return { allowed: true, retryAfterMs: 0 };
 }

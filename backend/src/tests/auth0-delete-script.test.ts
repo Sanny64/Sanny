@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const scriptPath = fileURLToPath(
-  new URL("../../auth0/database-action-scripts/delete.js", import.meta.url),
+  new URL("../../auth0/database-action/delete.js", import.meta.url),
 );
 
 type RemoveCallback = (err: unknown, result?: unknown) => void;

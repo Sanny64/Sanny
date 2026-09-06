@@ -52,6 +52,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
+          file: ./backend/docker/Dockerfile
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/backend:latest
@@ -70,8 +71,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            cd /var/www/sanny
+            cd /var/www/sanny/backend/docker
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker image prune -f

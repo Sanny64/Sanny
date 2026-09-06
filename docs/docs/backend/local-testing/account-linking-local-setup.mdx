@@ -8,7 +8,7 @@ This guide explains how to test the account linking flow locally with localhost 
 
 - **Login Frontend**: http://localhost:5174 (auth UI)
 - **Main Frontend**: http://localhost:5173 (application)
-- **Backend**: http://localhost:3000 (API server)
+- **Backend**: https://localhost:8443 (API server)
 
 ### Production Environment
 
@@ -26,7 +26,7 @@ For local development testing, you must configure your Auth0 application to acce
 2. Under **Application URIs**, set:
    - **Allowed Callback URLs**:
      ```
-     http://localhost:3000/api/v001/auth/callback,
+     https://localhost:8443/api/v001/auth/callback,
      http://localhost:5174/,
      http://localhost:5173/
      ```
@@ -46,10 +46,10 @@ For local development testing, you must configure your Auth0 application to acce
 Already has defaults for development. Verify or set:
 
 ```
-AUTH0_CALLBACK_URL=http://localhost:3000/api/v001/auth/callback
+AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
 AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
 AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:5174
+CORS_ORIGINS=https://localhost:8443,http://localhost:5173,http://localhost:5174
 ```
 
 #### Login Frontend (`login/.env.local`)
@@ -60,7 +60,7 @@ The file is already configured for localhost. For local testing:
 VITE_AUTH0_DOMAIN=tenant.locaction.auth0.com
 VITE_AUTH0_CLIENT_ID=<your-client-id>
 VITE_AUTH0_AUDIENCE=https://api.sanny64.de
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=https://localhost:8443
 ```
 
 #### Main Frontend (`sanny/.env.local`)
@@ -71,7 +71,7 @@ Create or update to match:
 VITE_AUTH0_DOMAIN=tenant.location.auth0.com
 VITE_AUTH0_CLIENT_ID=<your-client-id>
 VITE_AUTH0_AUDIENCE=https://api.sanny64.de
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=https://localhost:8443
 VITE_LOGIN_URL=http://localhost:5174
 ```
 
@@ -174,8 +174,8 @@ When ready to deploy to production:
 | -------------- | -------------------------------------------- | --------------------------------------------- |
 | Login          | http://localhost:5174                        | https://auth.sanny64.de                       |
 | Main App       | http://localhost:5173                        | https://sanny64.de                            |
-| Backend        | http://localhost:3000                        | https://api.sanny64.de                        |
-| Auth0 Callback | http://localhost:3000/api/v001/auth/callback | https://api.sanny64.de/api/v001/auth/callback |
+| Backend        | https://localhost:8443                        | https://api.sanny64.de                        |
+| Auth0 Callback | https://localhost:8443/api/v001/auth/callback | https://api.sanny64.de/api/v001/auth/callback |
 
 ## Reference Documentation
 

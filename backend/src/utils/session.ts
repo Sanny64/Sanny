@@ -5,7 +5,6 @@ import type { AccessTokenIdentity } from "./access-token.js";
 import { verifyAccessTokenIdentity } from "./access-token.js";
 import {
   getCorsOrigins,
-  getEnvironmentSpecificVariable,
   isProduction,
   requiredEnv,
   requiredEnvironmentSpecificEnv,
@@ -19,6 +18,7 @@ import {
   shouldRequireReauthentication,
   shouldRotateSession,
 } from "./session-rotation.js";
+import { readFileSync } from "node:fs";
 
 export const SESSION_COOKIE = "__Host-sanny_session";
 export const STATE_COOKIE = "__Host-sanny_auth_state";
@@ -73,15 +73,14 @@ export async function getSessionSubject(sessionId: string) {
 
 export async function initializeSessionStore() {
   if (redis) return;
-  const redisUrl = getEnvironmentSpecificVariable("REDIS_URL");
-  if (!redisUrl) {
-    const prefix = isProduction() ? "PROD" : "DEV";
-    throw new Error(`${prefix}_REDIS_URL environment variable must be set`);
-  }
-  if (isProduction() && redisUrl && !redisUrl.startsWith("rediss://")) {
-    throw new Error("REDIS_URL must use rediss:// in production");
-  }
-  const client = createClient({ url: redisUrl });
+    const redisUrl = `rediss://:${requiredEnv("REDIS_PASSWORD")}@redis:6379`
+    const client = createClient({
+    url: redisUrl,
+    socket: {
+      tls: true,
+      ca: readFileSync("/app/redis-ca.crt")
+    },
+  });
   client.on("error", (error: Error) =>
     console.error("Redis session store error", error),
   );
@@ -271,7 +270,7 @@ export function setSessionCookies(
 ) {
   const options = {
     secure: true,
-    sameSite: "lax" as const,
+    sameSite: "none" as const,
     path: "/",
   };
   reply.setCookie(SESSION_COOKIE, sessionId, { ...options, httpOnly: true });
@@ -282,9 +281,9 @@ export function clearSessionCookies(reply: FastifyReply) {
   reply.clearCookie(SESSION_COOKIE, {
     path: "/",
     secure: true,
-    sameSite: "lax",
+    sameSite: "none",
   });
-  reply.clearCookie(CSRF_COOKIE, { path: "/", secure: true, sameSite: "lax" });
+  reply.clearCookie(CSRF_COOKIE, { path: "/", secure: true, sameSite: "none" });
 }
 
 export function getLoginStates(request: FastifyRequest) {
@@ -302,7 +301,7 @@ export function setLoginStates(reply: FastifyReply, states: string[]) {
   reply.setCookie(STATE_COOKIE, value, {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
+    sameSite: "none",
     path: "/",
   });
 }

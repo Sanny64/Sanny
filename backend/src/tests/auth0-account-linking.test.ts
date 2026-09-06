@@ -44,7 +44,7 @@ function actionEvent(users: Array<Record<string, unknown>>) {
       ACCOUNT_LINK_ALLOWED_PROVIDERS: "auth0,google-oauth2",
       ACCOUNT_LINK_PROOF_SECRET: "proof-secret",
       NODE_ENV: "development",
-      DEV_ACCOUNT_LINK_CONFIRMATION_URL: "http://localhost:3000/confirm",
+      DEV_ACCOUNT_LINK_CONFIRMATION_URL: "https://localhost:8443/confirm",
     },
     users,
   };

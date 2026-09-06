@@ -14,7 +14,7 @@ Updated with clearer comments and added `VITE_LOGIN_URL` for consistency:
 VITE_AUTH0_DOMAIN="sanny64.eu.auth0.com"
 VITE_AUTH0_CLIENT_ID="AZm6md09tLEv43byJSSkf6uLTsH9JzR0"
 VITE_AUTH0_AUDIENCE="https://api.sanny64.de"
-VITE_API_URL="http://localhost:3000"
+VITE_API_URL="https://localhost:8443"
 VITE_LOGIN_URL="http://localhost:5174"
 ```
 
@@ -26,7 +26,7 @@ Updated with clearer comments and added `VITE_LOGIN_URL`:
 VITE_AUTH0_DOMAIN="sanny64.eu.auth0.com"
 VITE_AUTH0_CLIENT_ID="AZm6md09tLEv43byJSSkf6uLTsH9JzR0"
 VITE_AUTH0_AUDIENCE="https://api.sanny64.de"
-VITE_API_URL="http://localhost:3000"
+VITE_API_URL="https://localhost:8443"
 VITE_LOGIN_URL="http://localhost:5174"
 ```
 
@@ -42,7 +42,7 @@ ACCOUNT_LINK_CONFIRMATION_URL="http://localhost:5174"
 
 **Note**: The existing configuration already supported localhost for:
 
-- `AUTH0_CALLBACK_URL="http://localhost:3000/api/v001/auth/callback"`
+- `AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"`
 - `AUTH0_SUCCESS_REDIRECT="http://localhost:5173/"`
 - `AUTH0_LOGOUT_REDIRECT="http://localhost:5173/"`
 - `CORS_ORIGINS` includes both localhost frontends
@@ -52,7 +52,7 @@ ACCOUNT_LINK_CONFIRMATION_URL="http://localhost:5174"
 #### AccountLinkingPage.tsx
 
 - Added `getCallbackUrl()` function to dynamically determine HTTP vs HTTPS based on environment
-- Development: Uses `http://localhost:3000/api/v001/auth/callback`
+- Development: Uses `https://localhost:8443/api/v001/auth/callback`
 - Production: Uses `https://` URL format
 - Updated `handleConfirm()` to use the new callback URL function
 
@@ -107,15 +107,15 @@ Localhost Development Flow:
 
 ```
 frontend (localhost:5173)
-├── VITE_API_URL = "http://localhost:3000"
+├── VITE_API_URL = "https://localhost:8443"
 └── VITE_LOGIN_URL = "http://localhost:5174"
 
 login (localhost:5174)
-├── VITE_API_URL = "http://localhost:3000"
+├── VITE_API_URL = "https://localhost:8443"
 └── VITE_LOGIN_URL = "http://localhost:5174"
 
 backend (localhost:3000)
-├── AUTH0_CALLBACK_URL = "http://localhost:3000/api/v001/auth/callback"
+├── AUTH0_CALLBACK_URL = "https://localhost:8443/api/v001/auth/callback"
 ├── AUTH0_SUCCESS_REDIRECT = "http://localhost:5173/"
 ├── ACCOUNT_LINK_CONFIRMATION_URL = "http://localhost:5174"
 └── CORS_ORIGINS = "...http://localhost:5173,http://localhost:5174..."
@@ -146,7 +146,7 @@ For localhost testing to work, the Auth0 application must be configured with:
 ### Allowed Callback URLs
 
 ```
-http://localhost:3000/api/v001/auth/callback,
+https://localhost:8443/api/v001/auth/callback,
 http://localhost:5174/,
 http://localhost:5173/
 ```

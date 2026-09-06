@@ -1,6 +1,5 @@
 FROM node:24-alpine
 
-# Alpine-Pakete auf neuesten Patch-Stand bringen
 RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app

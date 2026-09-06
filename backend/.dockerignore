@@ -8,6 +8,4 @@ dist
 npm-debug.log*
 .vscode
 .idea
-Dockerfile
-.dockerignore
-README.md
+docker

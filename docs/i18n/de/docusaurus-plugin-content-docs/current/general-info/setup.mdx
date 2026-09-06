@@ -23,10 +23,10 @@ Beim Ausführen der Dev-Skripte öffnet sich für Frontend-Projekte http://local
 
 _Für Qualitätsprüfungen:_
 
+- npm run format:check
 - npm run lint
 - npm run build
-- npm run test (lint & build)
-  - wird bald durch echte Tests ersetzt
+- npm run test
 
 _Für lokale Builds:_
 
@@ -34,53 +34,67 @@ _Für lokale Builds:_
 - npm run build:login
 - npm run build:docs
 - npm run serve:docs (baut die Docs vorher)
+- npm run build:backend ->  baut und startet das backend in Docker Desktop, wenn NODE_ENV auf "development" gesetzt ist. Ansonsten muss zunächst ein VPS eingerichtet werden.
+- npm run restart:backend -> baut deine -app erneut. redis und nginx sind von dieser Aktion nicht betroffen. 
+
+Info: Nutze `npm run build:backend` erneut um das Ganze backend neu zu bauen 
+    - bei Problemen: backend/docker/ `docker-compose down` und dann `docker-compose up --build`. 
 
 ---
 
 ### Verzeichnisstruktur
 
 ```
-Sanny/ (Root-Workspace)
-├── .github/ # CI/CD-Workflows & Actions
-├── backend/ # Fastify-Server-Engine
-│ └── src/
-│ ├── middleware/ # RBAC-Rollengards & Authentifizierungsprüfungen
-│ └── modules/ # Gekapselte Fastify-Logik-Plugins
-│ ├── auth/ # OAuth2- & JWT-Handler
-│ ├── blog/ # Öffentliche Handler für Beiträge
-│ ├── events/ # Geheime /party /comfort /refreshments Endpoints
-│ ├── portfolio/ # Auf Recruiter beschränkte Datenrouten
-│ └── settings/ # Settings-API für domainübergreifendes Settings-Profiling
+Sanny/ (Root Workspace)
+├── .github/                         # CI/CD Workflows & actions
+│
+├── backend/                         # Fastify Server Engine
+│   ├── auth0/                       # RBAC role guards & authentication checks
+│   │    ├── database-action/        # RBAC role guards & authentication checks
+│   │    ├── post-login/             #
+│   │    └── post-user-registration/ #
+│   ├── docker/                      #
+│   ├── nginx/                       #
+│   ├── prisma/                      #
+│   └── src/                         #
+│        ├── controllers/            # RBAC role guards & authentication checks
+│        ├── routes/                 # Encapsulated Fastify logic plugins
+│        ├── schemas/                # OAuth2 & JWT handlers
+│        ├── services/               # Public writing handlers
+│        ├── tests/                  # Secret /party /comfort /refreshments endpoints
+│        ├── types/                  # Recruiter-restricted data routes
+│        ├── utils/                  # Settings API for cross domain settings profiling
+│        └── server.ts               #
 │
 ├── games/
-│ ├── first/ # Eigenständiger Spiel-Service / Repository (meine allererste Website)
-│ └── blockrunner/ # Eigenständiger Spiel-Service (Programmier-Challenge)
+│   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
+│   └── blockrunner/          # Independent game service / repository (programming challenge)
 │
-├── login/ # Frontend: auth.sanny64.de (Vite + React + TS)
-│ ├── public/
-│ └── src/
-│ ├── assets/ # Frontend-projektspezifische Assets
-│ ├── components/ # Exklusive benutzerdefinierte Komponenten für dieses Frontend-Projekt
-│ └── pages/ # LoginPage
+├── login/                    # Frontend: auth.sanny64.de (Vite + React + TS)
+│   ├── public/
+│   └── src/
+│       ├── assets/           # Frontend project specific assets
+│       ├── components/       # Custom frontend project exclusive components
+│       └── pages/            # LoginPage
 │
-├── sanny/ # Frontend: sanny64.de (Vite + React + TS)
-│ ├── public/
-│ └── src/
-│ ├── assets/ # Frontend-projektspezifische Assets
-│ ├── components/ # Exklusive benutzerdefinierte Komponenten für dieses Frontend-Projekt
-│ └── pages/ # Hauptseiten: Home, Blog, Games, Portfolio, Projects | Zusatzseite: Party (anderer Stil)
+├── sanny/                    # Frontend: sanny64.de (Vite + React + TS)
+│   ├── public/
+│   └── src/
+│       ├── assets/           # Frontend project specific assets
+│       ├── components/       # Custom frontend project exclusive components
+│       └── pages/            # Main: Home, Blog, Games, Portfolio, Projects | Auxiliary: Party (different style)
 │
-├── shared # Gemeinsame benutzerdefinierte npm-Packages
-│ └── packages/
-│ ├── i18n/ # Gemeinsamer Sprachkontext, Typen, Utilities und Übersetzungen
-│ ├── styles/ # Gemeinsamer Theme-Kontext, Typen, Utilities und Darstellungszustand
-│ └── ui/ # Gemeinsame UI-Komponenten, Seiten und Komponenten-/Seiten-Styles
-│ ├── components/ # Buttons, TextInput usw.
-│ ├── pages/ # Settings, Errors
-│ └── styles/
+├── shared                    # Shared custom npm packages
+│   └── packages/
+│       ├── i18n/             # Shared language context, types, utilities, and translations
+│       ├── styles/           # Shared theme context, types, utilities, and styling state
+│       └── ui/               # Shared ui components, pages and component/page styles
+│           ├── components/   # Buttons, TextInput, etc.
+│           ├── pages/        # Settings, Errors
+│           └── styles/
 │
-├── .gitignore # Globale Regeln zum Ignorieren in Git
-└── README.md # Projekt-Roadmap & Dokumentation
+├── .gitignore                # Global git ignoring rules
+└── README.md                 # Project roadmap & documentation
 ```
 
 ---

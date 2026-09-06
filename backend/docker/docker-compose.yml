@@ -1,32 +1,42 @@
 services:
-  redis:
-    image: redis:7-alpine
-    networks:
-      - app-network
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-  app:
-    build: ../
-    env_file:
-      - ../.env
-    environment:
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - redis
-    networks:
-      - app-network
-    restart: unless-stopped
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - "8080:80"
+      - "8443:443"
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ../nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - ../.env
+    volumes:
+      - ../redis/certs/ca.crt:/app/redis-ca.crt:ro
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      sh -c "redis-server /etc/redis/redis.conf --requirepass $$REDIS_PASSWORD"
+    env_file:
+      - ../.env
+    volumes:
+      - ../redis/redis.conf:/etc/redis/redis.conf:ro
+      - ../redis/certs:/etc/redis/certs:ro
+      - redis-data:/data
     networks:
       - app-network
     restart: unless-stopped

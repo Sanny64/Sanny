@@ -5,13 +5,13 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const loginScriptPath = fileURLToPath(
-  new URL("../../auth0/database-action-scripts/login.js", import.meta.url),
+  new URL("../../auth0/database-action/login.js", import.meta.url),
 );
 const getUserScriptPath = fileURLToPath(
-  new URL("../../auth0/database-action-scripts/getUser.js", import.meta.url),
+  new URL("../../auth0/database-action/getUser.js", import.meta.url),
 );
 const verifyScriptPath = fileURLToPath(
-  new URL("../../auth0/database-action-scripts/verify.js", import.meta.url),
+  new URL("../../auth0/database-action/verify.js", import.meta.url),
 );
 
 class ValidationError extends Error {

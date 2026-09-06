@@ -26,17 +26,21 @@
     "typescript-eslint": "^8.59.2"
   },
   "scripts": {
-    "dev:backend": "npm run dev -w backend",
     "start:backend": "npm run start -w backend",
+    "stop:backend": "npm run stop -w backend",
+    "restart:backend": "npm run restart -w backend",
     "dev:login": "npm run dev -w login",
     "dev:sanny": "npm run dev -w sanny",
     "dev:docs": "npm run start -w docs",
-    "dev:docs-de": "npm run start -w docs -- --locale de",
+    "dev:docs-de": "npm run start -w docs -- --locale de --port 3001",
     "build:shared": "npm run build -w @sanny/i18n && npm run build -w @sanny/styles && npm run build -w @sanny/ui",
     "build:login": "npm run build:shared && npm run build -w login",
     "build:sanny": "npm run build:shared && npm run build -w sanny",
     "build:docs": "npm run build -w docs",
     "build:docs-de": "npm run build -w docs -- --locale de",
+    "build:frontends": "npm run build:login && npm run build:sanny && npm run build:docs",
+    "build:backend": "npm run build -w backend",
+    "build:all": "npm run build:backend && npm run build:frontends",
     "serve:docs": "npm run build -w docs && npm run serve -w docs",
     "serve:docs-de": "npm run build -w docs -- --locale de && npm run serve -w docs",
     "format": "prettier . --write --ignore-path .prettierignore",
@@ -44,9 +48,12 @@
     "lint:login": "npm run lint -w login",
     "lint:sanny": "npm run lint -w sanny",
     "lint:shared": "npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui",
-    "build": "npm run build:login && npm run build:sanny && npm run build:docs",
-    "lint": "npm run lint:login && npm run lint:sanny && npm run lint:shared && npm run type-check",
-    "type-check": "npm run type-check -w backend",
-    "test": "npm run lint && npm run build"
+    "lint:docs": "npm run typecheck -w docs",
+    "lint:frontends": "npm run lint:login && npm run lint:sanny && npm run lint:shared && npm run lint:docs",
+    "lint:backend": "npm run type-check -w backend",
+    "lint": "npm run format:check && npm run lint:frontends && npm run lint:backend",
+    "test:frontends": "npm run lint:frontends && npm run build",
+    "test:backend": "npm run lint:backend && npm run test -w backend",
+    "test": "npm run format:check && npm run test:backend && npm run test:frontends"
   }
 }

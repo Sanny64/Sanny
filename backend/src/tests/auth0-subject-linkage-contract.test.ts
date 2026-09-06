@@ -4,7 +4,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const createScriptPath = fileURLToPath(
-  new URL("../../auth0/database-action-scripts/create.js", import.meta.url),
+  new URL("../../auth0/database-action/create.js", import.meta.url),
 );
 const userServicePath = fileURLToPath(
   new URL("../services/user.service.ts", import.meta.url),

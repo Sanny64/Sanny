@@ -1,23 +1,4 @@
 services:
-  redis:
-    image: redis:7-alpine
-    networks:
-      - app-network
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-  app:
-    image: ghcr.io/sanny64/sanny/backend:latest
-    build: ../
-    env_file:
-      - ../.env
-    environment:
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      - redis
-    networks:
-      - app-network
-    restart: unless-stopped
   nginx:
     image: nginx:1.27-alpine
     ports:
@@ -28,6 +9,34 @@ services:
       - ../nginx/certs:/etc/nginx/certs:ro
     depends_on:
       - app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  app:
+    image: ghcr.io/sanny64/sanny/backend:latest
+    env_file:
+      - ../backend.env
+    environment:
+      - PROD_REDIS_URL=rediss://:${REDIS_PASSWORD}@redis:6379
+    volumes:
+      - ../redis/certs/ca.crt:/app/redis-ca.crt:ro
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      sh -c "redis-server /etc/redis/redis.conf --requirepass $$REDIS_PASSWORD"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - ../redis/redis.conf:/etc/redis/redis.conf:ro
+      - ../redis/certs:/etc/redis/certs:ro
+      - redis-data:/data
     networks:
       - app-network
     restart: unless-stopped

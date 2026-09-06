@@ -7,9 +7,11 @@
   "type": "module",
   "main": "server.ts",
   "scripts": {
-    "start": "tsx src/server.ts",
-    "dev": "tsx src/server.ts",
-    "test": "tsx --test \"src/**/*.test.ts\"",
+    "start": "cd docker && docker-compose start && cd ..",
+    "stop": "cd docker && docker-compose stop && cd ..",
+    "restart": "cd docker && docker-compose up --build -d app && cd ..",
+    "build": "cd docker && docker-compose up --build && cd ..",
+    "test": "tsx --test \"src/tests/*.test.ts\"",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

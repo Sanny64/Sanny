@@ -29,7 +29,7 @@ It'll be used as a **portfolio**, a helper for me to **host events** and for you
 
 ## Getting Started
 
-Clone this repository. You will need node.js and git installed globally on your machine.
+Clone this repository. You will need node.js and git installed.
 
 ### Installation and Setup Instructions
 
@@ -43,8 +43,11 @@ In the project directory, run one of the workspace scripts:
 
 For quality checks:
 
+- npm run format:check
 - npm run lint
 - npm run build
+- npm run test
+- npm run type-check
 
 That will open http://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 
@@ -52,16 +55,25 @@ That will open http://localhost:5173 for frontend projects and http://localhost:
 
 ```
 Sanny/ (Root Workspace)
-├── .github/                  # CI/CD Workflows & actions
-├── backend/                  # Fastify Server Engine
-│   └── src/
-│        ├── middleware/      # RBAC role guards & authentication checks
-│        └── modules/         # Encapsulated Fastify logic plugins
-│             ├── auth/       # OAuth2 & JWT handlers
-│             ├── blog/       # Public writing handlers
-│             ├── events/     # Secret /party /comfort /refreshments endpoints
-│             ├── portfolio/  # Recruiter-restricted data routes
-│             └── settings/   # Settings API for cross domain settings profiling
+├── .github/                         # CI/CD Workflows & actions
+│
+├── backend/                         # Fastify Server Engine
+│   ├── auth0/                       # RBAC role guards & authentication checks
+│   │    ├── database-action/        # RBAC role guards & authentication checks
+│   │    ├── post-login/             #
+│   │    └── post-user-registration/ #
+│   ├── docker/                      #
+│   ├── nginx/                       #
+│   ├── prisma/                      #
+│   └── src/                         #
+│        ├── controllers/            # RBAC role guards & authentication checks
+│        ├── routes/                 # Encapsulated Fastify logic plugins
+│        ├── schemas/                # OAuth2 & JWT handlers
+│        ├── services/               # Public writing handlers
+│        ├── tests/                  # Secret /party /comfort /refreshments endpoints
+│        ├── types/                  # Recruiter-restricted data routes
+│        ├── utils/                  # Settings API for cross domain settings profiling
+│        └── server.ts               #
 │
 ├── games/
 │   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
@@ -98,7 +110,7 @@ Sanny/ (Root Workspace)
 
 - Architecture: modul-based mono-repo
 - Design approach: mobile-first and user-centered design
-- Authentication: required for some actions, with a role system
+- Authentication: through Auth0 - required for backend use and personal infos
 - Settings: language and appearance changes
 - Requirements: barrier-free, dark and light mode, English and German support, micro-interactions, modern and intuitive design
 
@@ -113,11 +125,11 @@ Sanny/ (Root Workspace)
 ### Backend
 
 - Fastify (TypeScript) + REST API Architecture + Prisma Schemas; The api endpoints for all (sub)-domains are routed via _base-url_/api/v001/
-- Nginx is used for traffic management
-- Auth0 custom database authentication + JWT access tokens
-- Role-Based Access Control (RBAC) Middleware in the Fastify backend
-- MySQL (MariaDB + HeidiSQL)
-- Cloudflare (WAF & DDoS Protection) + Fastify-Helmet (@fastify/helmet)
+- Nginx is used as a reverse proxy for traffic management
+- Auth0 custom database authentication
+- Role-Based Access Control (RBAC) through Auth0
+- MySQL (MariaDB + HeidiSQL) 
+- Cloudflare (through Auth0) + Fastify-Helmet (@fastify/helmet)
 
 ### Deployment
 

@@ -6,7 +6,7 @@ import vm from "node:vm";
 
 const scriptPath = fileURLToPath(
   new URL(
-    "../../auth0/database-action-scripts/changePassword.js",
+    "../../auth0/database-action/changePassword.js",
     import.meta.url,
   ),
 );

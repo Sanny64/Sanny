@@ -4,9 +4,9 @@
 
 1. [] Address gaps
 
-- "Load all users" returns "http://localhost:3000/api/v001/users/list"; Request Method: GET; Status Code: 500 Internal Server Error
-- "Update user roles" returns "http://localhost:3000/api/v001/users/4/roles; Request Method: PATCH; Status Code: 403 Forbidden"
-- "Password reset" returns "http://localhost:3000/api/v001/users/4/password-reset; Request Method: POST; Status Code: 401 Unauthorized"
+- "Load all users" returns "https://localhost:8443/api/v001/users/list"; Request Method: GET; Status Code: 500 Internal Server Error
+- "Update user roles" returns "https://localhost:8443/api/v001/users/4/roles; Request Method: PATCH; Status Code: 403 Forbidden"
+- "Password reset" returns "https://localhost:8443/api/v001/users/4/password-reset; Request Method: POST; Status Code: 401 Unauthorized"
 - same goes for "self password reset"
 - Full Fastify hook/pre-handler integration, including cookie replacement during rotation.
 - Redis-backed session rotation, refresh expiry, malformed records, concurrent refresh, and atomic replacement.
@@ -39,11 +39,13 @@
 
 ### Security hardening and deployment
 
-4. [] Set up NGINX as the TLS-terminating reverse proxy in front of the Fastify backend.
+4. [x] Set up NGINX as the TLS-terminating reverse proxy in front of the Fastify backend.
 
 - Configure rate limits for `/api/v001/auth`, `/api/v001/auth/callback`, `/api/v001/auth/logout`, and sensitive `/api/v001/users` routes.
 - Add `Retry-After` handling and `429` responses for abuse traffic.
 - Keep the app private behind the proxy and do not expose Fastify directly to the internet.
+- Containerize the backend, as well as ngnix, just like redis and make the backend only be accessible through reverse proxy
+- add authentication to redis so it can't be used by attackers
 
 5. [] Configure ingress monitoring and alerting.
 

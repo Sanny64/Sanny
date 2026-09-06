@@ -162,12 +162,12 @@ export function validateProductionConfig() {
     requiredProductionUrl("AUTH0_LOGOUT_REDIRECT");
     requiredProductionUrl("ACCOUNT_LINK_FRONTEND_URL");
   } else {
-    requiredUrl("AUTH0_CALLBACK_URL");
-    requiredUrl("AUTH0_SUCCESS_REDIRECT");
-    requiredUrl("AUTH0_LOGOUT_REDIRECT");
-    requiredUrl("ACCOUNT_LINK_FRONTEND_URL");
+    requiredEnvironmentSpecificEnv("AUTH0_CALLBACK_URL");
+    requiredEnvironmentSpecificEnv("AUTH0_SUCCESS_REDIRECT");
+    requiredEnvironmentSpecificEnv("AUTH0_LOGOUT_REDIRECT");
+    requiredEnvironmentSpecificEnv("ACCOUNT_LINK_FRONTEND_URL");
   }
   requiredEnv("DATABASE_URL");
-  requiredEnvironmentSpecificEnv("REDIS_URL");
+  requiredEnv("REDIS_PASSWORD");
   getCorsOrigins();
 }
