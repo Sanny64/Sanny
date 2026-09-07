@@ -18,7 +18,7 @@ env:
   DOCKER_AUTOBUILDS_CONTEXT_PATH: ./backend
 
   # DOCKER_AUTOBUILDS_DOCKERFILE_PATH should be set to the "Dockerfile Location" in the Build Rules of your Docker Hub Automated Builds configuration.
-  DOCKER_AUTOBUILDS_DOCKERFILE_PATH: ./docker/Dockerfile
+  DOCKER_AUTOBUILDS_DOCKERFILE_PATH: docker/Dockerfile
 
   # DOCKER_REPOSITORY_NAME should be set to the name of the Docker Hub repository where the image will be pushed to.
   DOCKER_REPOSITORY_NAME: s4nny64/app
