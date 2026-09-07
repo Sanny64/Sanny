@@ -67,7 +67,7 @@ jobs:
         uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: ${{ steps.paths.outputs.build_path }}
-          file: ${{ steps.paths.outputs.dockerfile_path }}
+          file: ${{ steps.paths.outputs.build_path }}/${{ steps.paths.outputs.dockerfile_path }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
