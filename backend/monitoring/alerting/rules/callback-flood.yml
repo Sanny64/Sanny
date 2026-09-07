@@ -1,0 +1,76 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Callback Flood Rule
+    folder: Security
+    interval: 1m
+    rules:
+      - uid: callback-flood
+        title: "Auth Callback Flood"
+        condition: C
+
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              refId: A
+              expr: 'sum(count_over_time({job="nginx"} |= "/api/v001/auth/callback" [5m]))'
+              queryType: range
+
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: ""
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - type: query
+                  evaluator:
+                    type: gt
+                    params:
+                      - 20
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+
+        labels:
+          severity: critical
+
+        annotations:
+          summary: "Mehr als 20 Auth-Callback-Requests innerhalb von fünf Minuten"
+          description: "Der OAuth- oder Auth-Callback-Endpunkt erhielt über fünf Minuten hinweg mehr als 20 Requests. Prüfe Wiederholungen, Fehlerantworten, Bots oder einen möglichen Callback-Flood."

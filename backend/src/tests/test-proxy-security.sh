@@ -4,7 +4,7 @@
 #   2. nginx's rate limiting actually returns 429 + Retry-After under load.
 #
 # Run this from your HOST machine (not inside a container), while the
-# stack is up via `docker compose up`. Use Git Bash on Windows, or WSL2, or Linux, or macOS. It will not work in plain Windows CMD or PowerShell.
+# stack is up via `docker compose --env-file ../.env up`. Use Git Bash on Windows, or WSL2, or Linux, or macOS. It will not work in plain Windows CMD or PowerShell.
 
 set -uo pipefail
 
