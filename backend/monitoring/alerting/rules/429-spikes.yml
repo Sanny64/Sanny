@@ -1,0 +1,72 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: 429 Spikes Rule
+    folder: Security
+    interval: 1m
+    rules:
+      - uid: 429-spike
+        title: "429 Rate Limit Spike"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              refId: A
+              expr: 'sum(count_over_time({job="nginx"} |= " 429 " [5m]))'
+              queryType: range
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: ""
+              datasource:
+                type: __expr__
+                uid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - type: query
+                  evaluator:
+                    type: gt
+                    params:
+                      - 20
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+              datasource:
+                type: __expr__
+                uid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mehr als 20 HTTP-429-Antworten innerhalb von fünf Minuten"

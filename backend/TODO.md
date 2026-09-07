@@ -39,26 +39,7 @@
 
 ### Security hardening and deployment
 
-4. [x] Set up NGINX as the TLS-terminating reverse proxy in front of the Fastify backend.
-
-- Configure rate limits for `/api/v001/auth`, `/api/v001/auth/callback`, `/api/v001/auth/logout`, and sensitive `/api/v001/users` routes.
-- Add `Retry-After` handling and `429` responses for abuse traffic.
-- Keep the app private behind the proxy and do not expose Fastify directly to the internet.
-- Containerize the backend, as well as ngnix, just like redis and make the backend only be accessible through reverse proxy
-- add authentication to redis so it can't be used by attackers
-
-5. [] Configure ingress monitoring and alerting.
-
-- Track repeated `429`s, callback floods, auth abuse spikes, and suspicious request patterns.
-- Route sanitized proxy logs to centralized monitoring.
-- Expose NGINX metrics to Prometheus and create Grafana panels/alerts for request rates, callback spikes, and abuse traffic.
-
-6. [] Keep application-layer defenses in place.
-
-- Preserve Fastify rate limiting, CSRF enforcement, secure host-only cookies, security headers, no-store responses, and sanitized security logging.
-- Monitor session rotation, refresh reuse detection, deletion reconciliation, and rate-limit failures.
-
-7. [] Validate the full deployment in staging.
+5. [] Validate the full deployment in staging.
 
 - Verify NGINX and application limits block abuse without breaking normal auth flows.
 - Confirm JWT/session handling and forwarding-header behavior behind the proxy.
@@ -67,7 +48,7 @@
 
 ## Finishing touches
 
-8. [] Add extensive documentation to `docs/docs/backend`
+6. [] Add extensive documentation to `docs/docs/backend`
 
 - Started `docs/docs/backend/operations.mdx` with environment, Auth0, Redis, proxy, monitoring, staging, and incident-response guidance.
 - Make sure no secrets are leaked.

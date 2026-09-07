@@ -10,6 +10,8 @@ RUN npm install
 COPY prisma ./prisma
 RUN npx prisma generate
 
+COPY redis/certs/ca.crt /app/redis-ca.crt
+
 COPY . .
 
 EXPOSE 3000

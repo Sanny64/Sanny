@@ -1,0 +1,18 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: discord-alerts
+    receivers:
+      - uid: discord1
+        type: discord
+        settings:
+          url: "https://discord.com/api/webhooks/1546231751846924409/bhXnsO0-NeS4w7M964VzkgHBKwSr0Kqx026vEEKFTUtoN_T9djbImiaMF0lrm-XLwaZL"
+
+  - orgId: 1
+    name: email-alerts
+    receivers:
+      - uid: email1
+        type: email
+        settings:
+          addresses: "s4nny64@gmail.com, webmaster@sanny64.de"
