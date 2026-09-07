@@ -1,6 +1,4 @@
-FROM node:24-alpine
-
-RUN apk update && apk upgrade --no-cache
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -12,6 +10,15 @@ RUN npx prisma generate
 
 COPY . .
 
+FROM dhi.io/node:24-debian12
+
+WORKDIR /app
+
+# Copy files as non-root (1001)
+COPY --from=builder --chown=1001:1001 /app /app
+
 EXPOSE 3000
 
-CMD ["npx", "tsx", "src/server.ts"]
+USER 1001
+
+CMD ["node", "dist/server.js"]
