@@ -55,25 +55,28 @@ That will open http://localhost:5173 for frontend projects and http://localhost:
 
 ```
 Sanny/ (Root Workspace)
-├── .github/                         # CI/CD Workflows & actions
+├── .github/                         # CI/CD workflows & actions
 │
-├── backend/                         # Fastify Server Engine
-│   ├── auth0/                       # RBAC role guards & authentication checks
-│   │    ├── database-action/        # RBAC role guards & authentication checks
-│   │    ├── post-login/             #
-│   │    └── post-user-registration/ #
-│   ├── docker/                      #
-│   ├── nginx/                       #
-│   ├── prisma/                      #
-│   └── src/                         #
-│        ├── controllers/            # RBAC role guards & authentication checks
-│        ├── routes/                 # Encapsulated Fastify logic plugins
-│        ├── schemas/                # OAuth2 & JWT handlers
-│        ├── services/               # Public writing handlers
-│        ├── tests/                  # Secret /party /comfort /refreshments endpoints
-│        ├── types/                  # Recruiter-restricted data routes
-│        ├── utils/                  # Settings API for cross domain settings profiling
-│        └── server.ts               #
+├── backend/                         # Fastify server engine
+│   ├── auth0/                       
+│   │    ├── database-action/        # Scripts to manage the custom database connection
+│   │    ├── post-login/             # Scripts that run after user login
+│   │    └── post-user-registration/ # Scripts that run after user registration
+│   │
+│   ├── docker/                      # Docker compose and Dockerfile
+│   ├── monitoring/                  # Grafana, Loki, Prometheus Setup
+│   ├── nginx/                       # Reverse proxy, rate limiting safety net, 429-error handling
+│   ├── prisma/                      # Prisma Schema
+│   ├── redis/                       # Memory-NoSQL database
+│   └── src/                         # Custom backend implementation 
+│        ├── controllers/
+│        ├── routes/
+│        ├── schemas/
+│        ├── services/
+│        ├── tests
+│        ├── types/
+│        ├── utils/
+│        └── server.ts
 │
 ├── games/
 │   ├── first/#index.html     # Independent game service / repository (first ever website of mine)

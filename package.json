@@ -12,7 +12,10 @@
   "dependencies": {
     "@sanny/i18n": "*",
     "@sanny/styles": "*",
-    "@sanny/ui": "*"
+    "@sanny/ui": "*",
+    "docs": "0.0.0",
+    "login": "0.0.0",
+    "react-router": "7.18.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -55,5 +58,9 @@
     "test:frontends": "npm run lint:frontends && npm run build",
     "test:backend": "npm run lint:backend && npm run test -w backend",
     "test": "npm run format:check && npm run test:backend && npm run test:frontends"
+  },
+  "overrides": {
+    "image-size@<= >2.0.2": " >2.0.2",
+    "serialize-javascript@<=7.0.3": "7.0.3"
   }
 }
