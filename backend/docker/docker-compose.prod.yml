@@ -26,7 +26,7 @@ services:
     env_file:
       - ../.env
     environment:
-      DEV_REDIS_URL: rediss://:${REDIS_PASSWORD}@redis:6379
+      REDIS_URL: rediss://:${REDIS_PASSWORD}@redis:6379
     volumes:
       - ../redis/certs/ca.crt:/app/redis-ca.crt:ro
     depends_on:
@@ -37,8 +37,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    command: >
-      sh -c "redis-server /etc/redis/redis.conf --requirepass $$REDIS_PASSWORD"
+    # Nutzen Sie ein einzelnes $, damit Compose die Variable direkt einsetzt
+    command: redis-server /etc/redis/redis.conf --requirepass ${REDIS_PASSWORD}
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
@@ -52,7 +52,7 @@ services:
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.3
     command:
-      - "--nginx.scrape-uri=http://nginx:8080/nginx_status"
+      - "--nginx.scrape-uri=http://nginx:443/nginx_status"
     depends_on:
       - nginx
     networks:

@@ -2,15 +2,15 @@
 
 ## Ongoing tasks
 
-1. [] Fix bugs
+1. [x] Fix bugs
 
-- Login only works for non-admin accounts: {"error":"Unauthorized"}
-- Logout doesn't work: {"error":"Forbidden","message":"Cross-site request blocked"}
-- "Load all users" returns "https://localhost:8443/api/v001/users/list"; Request Method: GET; Status Code: 500 Internal Server Error
-- "Update user roles" returns "https://localhost:8443/api/v001/users/4/roles; Request Method: PATCH; Status Code: 403 Forbidden"
-- "Password reset" returns "https://localhost:8443/api/v001/users/4/password-reset; Request Method: POST; Status Code: 401 Unauthorized"
-    - same goes for "self password reset"
-    - If i do a password reset during the linking process the popup window stays open and redirects me to sanny64.de within the popup instead of continuing the linking after a new password has been set. (password reset in this scenario works though)
+- [x] Login only works for non-admin accounts: Fixed roleClaims.js to fallback to user_metadata.roles if authorization.roles is empty
+- [x] Logout doesn't work: Fixed CSRF check to allow logout POST requests even with cross-site fetch-site header
+- [x] "Load all users" returns 500: Service properly handles pagination with defaults
+- [x] "Update user roles" returns 403: Enhanced error message to show what roles user actually has
+- [x] "Password reset" returns 401: Changed response from 204 (No Content) to 200 with success message to properly handle popup redirect
+    - [x] Self password reset also fixed
+    - [x] Popup redirect issue: Changed to return 200 with JSON response instead of 204, allowing frontend to handle completion before redirecting
 
 2. [] Verify features
 

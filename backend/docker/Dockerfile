@@ -14,11 +14,11 @@ FROM dhi.io/node:24-debian12
 
 WORKDIR /app
 
-# Copy files as non-root (1001)
+# Copy node_modules and files from builder
 COPY --from=builder --chown=1001:1001 /app /app
 
 EXPOSE 3000
 
 USER 1001
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "--import=tsx", "src/server.ts"]

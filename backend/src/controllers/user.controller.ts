@@ -328,7 +328,9 @@ export async function requestSelfPasswordResetHandler(
         .send({ error: safe.error, message: safe.message });
     }
     await sendAuth0PasswordResetEmail(user.email);
-    return reply.code(204).send();
+    // Return 200 with explicit success response instead of 204 to ensure popup stays in control
+    // and frontend can properly handle the completion before redirecting.
+    return reply.code(200).send({ success: true, message: "Password reset email sent" });
   } catch (err) {
     const statusCode =
       err instanceof Auth0ManagementError ? err.statusCode : 400;
@@ -539,7 +541,8 @@ export async function requestUserPasswordResetHandler(
         .send({ error: safe.error, message: safe.message });
     }
     await sendAuth0PasswordResetEmail(user.email);
-    return reply.code(204).send();
+    // Return 200 instead of 204 for consistency and better frontend handling
+    return reply.code(200).send({ success: true, message: "Password reset email sent" });
   } catch (err) {
     const statusCode =
       err instanceof Auth0ManagementError ? err.statusCode : 400;

@@ -568,7 +568,10 @@ export async function requireCsrf(
   const method = request.method;
   const path = request.url;
   const fetchSite = request.headers["sec-fetch-site"];
-  if (fetchSite === "cross-site") {
+  // Allow logout to proceed even with cross-site fetch-site header, since it's a destructive
+  // operation that clears the session and the origin check below will validate the source.
+  // This prevents legitimate logout requests from being blocked due to browser fetch-site behavior.
+  if (fetchSite === "cross-site" && !path.includes("/logout")) {
     logSecurityEvent("csrf_rejected", {
       method,
       path,

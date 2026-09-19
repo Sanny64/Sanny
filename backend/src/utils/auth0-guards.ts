@@ -63,9 +63,10 @@ export function requireRoles(requiredRoles: string[]) {
     const hasAllRoles = requiredRoles.every((role) => roles.includes(role));
 
     if (!hasAllRoles) {
+      const missingRoles = requiredRoles.filter(r => !roles.includes(r));
       return reply.code(403).send({
         error: "Forbidden",
-        message: `Missing required roles: ${requiredRoles.join(", ")}`,
+        message: `Missing required roles: ${missingRoles.join(", ")}. User has: ${roles.length > 0 ? roles.join(", ") : "(none)"}`,
       });
     }
   };

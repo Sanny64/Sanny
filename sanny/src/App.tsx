@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AccountSettings from "./pages/settings/AccountSettings";
 import AdminSettings from "./pages/settings/AdminSettings";
 import Main from "./pages/Main";
@@ -26,6 +26,7 @@ function App() {
           {/* Main routes */}
           <Route element={<Main />}>
             <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
             <Route path="/portfolio" element={<Portfolio />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/haptigation" element={<Haptigation />} />
