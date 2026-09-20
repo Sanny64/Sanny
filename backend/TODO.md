@@ -4,15 +4,20 @@
 
 1. [ ] Fix bugs
 
-- [ ] password reset doesn't work (self, admin flow) https://localhost:8443/api/v001/users/6/password-reset; Request Method: POST; Status Code: 401 Unauthorized
+- [ ] password reset doesn't work (admin flow) https://localhost:8443/api/v001/users/6/password-reset; Request Method: POST; Status Code: 401 Unauthorized
+- [ ] password reset doesn't work (self flow) 
+- [ ] the self roles and available roles endpoint always only returns "{"roles":[]}" 
 
 2. [ ] Re-authentication flow
 
 - in multiple instances an admin is required to reauthenticate themselves before doing changes to users.
-    - in those cases the admin usually already inserted values in the user field but after reauthentication the role values, username changes, etc. are gone and need to be inserted again; that should change. maybe save state and recreate it after verification.
-        - note: user name only changes do not require reauthentication. only role promotion and password reset.
+    - in those cases the admin usually already inserted values in the user field but after reauthentication the role values, username changes, etc. are gone and need to be inserted again; that should change. 
+        - save state and recreate it after verification.
+            - note: for risky changes like role promotion and password reset the admin is required to always reauthenticate themselves with an Authenticator App unless they previously did so within the last 15 minutes.   Password authentication is not enough.
+            - note: requireMfaAuthentication is called in an preHandler. Save states must be saved accordingly in order for them to be restored after authentication.
+            - note: user name only changes do not require reauthentication with the Authenticator App. Only role promotion and password reset.
 
-- self password reset should not require authenticator app based reauthentication but instead use an email OTP verification
+- self password reset should not require authenticator app based reauthentication but instead use an email OTP verification.
 
 3. [ ] Verify features
 
@@ -51,7 +56,6 @@
  - implement toasts
     - add toast to show the user they must relogin soon 15mins before the TTL session has been exceeded after 8hrs.
 
-## Open tasks
 
 7. [ ] Verify the deployed Auth0 tenant and claim contract **!! OP-TASK !!**
 

@@ -1,11 +1,12 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import type {
-  CreateSelfUserInput,
-  UpdateSelfUserInput,
-  UpdateUserRolesInput,
-  UpdateUserInput,
-  UserIdParamInput,
-} from "../types/inputs.js";
+import type { z } from "zod";
+import type { 
+    createSelfUserSchema,
+    updateSelfUserSchema,
+    updateUserRolesSchema,
+    updateUserSchema,
+    userIdParamSchema,
+} from "../schemas/user.schema.js";
 import {
   Auth0SubjectConflictError,
   createOrGetSelfUser,
@@ -39,6 +40,12 @@ import {
 import { destroySessionsForSubject } from "../utils/session.js";
 import { createSafeErrorResponse } from "../utils/safe-error.js";
 import { logSecurityEvent } from "../utils/security-audit.js";
+
+type CreateSelfUserInput = z.infer<typeof createSelfUserSchema>;
+type UpdateSelfUserInput = z.infer<typeof updateSelfUserSchema>;
+type UpdateUserRolesInput = z.infer<typeof updateUserRolesSchema>;
+type UpdateUserInput = z.infer<typeof updateUserSchema>;
+type UserIdParamInput = z.infer<typeof userIdParamSchema>;
 
 function getIdentityOrReplyUnauthorized(
   request: FastifyRequest,

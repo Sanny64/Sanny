@@ -26,10 +26,6 @@ export const userIdParamSchema = z.object({
   userId: z.coerce.number().int().positive(),
 });
 
-export const userEmailQuerySchema = z.object({
-  email: emailSchema,
-});
-
 export const updateUserRolesSchema = z.object({
   roles: z.array(z.string().min(1)).max(50),
 });
@@ -57,7 +53,6 @@ export const userSchemas = {
   updateSelfUserSchema,
   updateUserSchema,
   userIdParamSchema,
-  userEmailQuerySchema,
   updateUserRolesSchema,
   updateUserRolesResponseSchema,
   userListQuerySchema,
