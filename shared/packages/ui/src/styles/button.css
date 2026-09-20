@@ -19,6 +19,11 @@
   color: var(--btn-secondary-text, var(--color-text));
 }
 
+.btn--destructive {
+  background: var(--btn-destructive-bg, var(--color-btn-destructive));
+  color: var(--btn-destructive-text, white);
+}
+
 .btn-group {
   display: flex;
   align-items: center;

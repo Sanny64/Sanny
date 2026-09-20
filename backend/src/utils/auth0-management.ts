@@ -31,20 +31,6 @@ export function isRoleSyncEnabled(): boolean {
   return value === "true";
 }
 
-export function getAllowedRoleNames(): string[] {
-  const configured = process.env.AUTH0_ASSIGNABLE_ROLES?.trim();
-  if (!configured) return [];
-
-  return [
-    ...new Set(
-      configured
-        .split(",")
-        .map((role) => role.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
-
 /**
  * Build the Auth0 Management API user search query used by purge/cleanup
  * tooling. Defaults to the Auth0 database connection provider; an operator
@@ -152,7 +138,12 @@ function encodeAuth0Sub(auth0Sub: string): string {
   return encodeURIComponent(auth0Sub);
 }
 
-async function getAllRoles(): Promise<Auth0Role[]> {
+export async function getAllRoles(): Promise<Auth0Role[]> {
+
+  if (!isRoleSyncEnabled()) {
+    return [];
+  }
+
   const response = await auth0ManagementRequest("/roles?per_page=100&page=0");
 
   if (!response.ok) {
@@ -163,10 +154,15 @@ async function getAllRoles(): Promise<Auth0Role[]> {
     );
   }
 
-  return (await response.json()) as Auth0Role[];
+  return await response.json() as Auth0Role[];
 }
 
-async function getUserRoles(auth0Sub: string): Promise<Auth0Role[]> {
+export async function getUserRoles(auth0Sub: string): Promise<Auth0Role[]> {
+
+  if (!isRoleSyncEnabled()) {
+    return [];
+  }
+
   const response = await auth0ManagementRequest(
     `/users/${encodeAuth0Sub(auth0Sub)}/roles`,
   );
@@ -179,7 +175,7 @@ async function getUserRoles(auth0Sub: string): Promise<Auth0Role[]> {
     );
   }
 
-  return (await response.json()) as Auth0Role[];
+  return await response.json() as Auth0Role[];
 }
 
 async function assignRoles(auth0Sub: string, roleIds: string[]): Promise<void> {
@@ -272,7 +268,7 @@ export async function syncAuth0UserRolesByName(
   };
 }
 
-export async function sendAuth0PasswordResetEmail(email: string) {
+export async function sendAuth0PasswordResetEmail(auth0Sub: string, email: string) {
   const domain = getRequiredEnv("AUTH0_DOMAIN");
   const response = await fetch(
     `https://${domain}/dbconnections/change_password`,

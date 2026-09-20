@@ -21,7 +21,7 @@ test("password reset requests Auth0's configured database connection", async () 
   }) as NonNullable<typeof fetch>;
 
   try {
-    await sendAuth0PasswordResetEmail("user@example.com");
+    await sendAuth0PasswordResetEmail("auth0|1", "user@example.com");
   } finally {
     globalThis.fetch = originalFetch;
     for (const [key, value] of Object.entries(originalEnvironment)) {

@@ -38,6 +38,11 @@ export const updateUserRolesResponseSchema = z.object({
   roles: z.array(z.string()),
 });
 
+export const userListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().max(50).optional(),
+});
+
 export const createUserResponseSchema = userCoreSchema.extend({
   id: z.number(),
 });
@@ -55,6 +60,7 @@ export const userSchemas = {
   userEmailQuerySchema,
   updateUserRolesSchema,
   updateUserRolesResponseSchema,
+  userListQuerySchema,
   createUserResponseSchema,
   linkUserAccountsSchema,
 };

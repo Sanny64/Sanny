@@ -9,7 +9,7 @@ test("logSecurityEvent strips sensitive authentication data from logs", () => {
     path: "/api/v001/users/me",
     reason: "Invalid CSRF token",
     csrfToken: "super-secret-token",
-    cookie: "__Secure-sanny_session=abc; __Secure-sanny_csrf=xyz",
+    cookie: "__Host-sanny_session=abc; __Host-sanny_csrf=xyz",
   });
 
   assert.equal(recorded.event, "csrf_rejected");
@@ -19,6 +19,6 @@ test("logSecurityEvent strips sensitive authentication data from logs", () => {
   assert.equal(recorded.csrfToken, undefined);
   assert.equal(recorded.cookie, undefined);
   assert.ok(!JSON.stringify(recorded).includes("super-secret-token"));
-  assert.ok(!JSON.stringify(recorded).includes("__Secure-sanny_session"));
-  assert.ok(!JSON.stringify(recorded).includes("__Secure-sanny_csrf"));
+  assert.ok(!JSON.stringify(recorded).includes("__Host-sanny_session"));
+  assert.ok(!JSON.stringify(recorded).includes("__Host-sanny_csrf"));
 });

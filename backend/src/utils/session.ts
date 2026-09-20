@@ -559,6 +559,21 @@ export async function consumeAccountLinkProofState(state: string) {
   return JSON.parse(raw) as AccountLinkProofState;
 }
 
+async function validateCsrfToken(
+  request: FastifyRequest,
+): Promise<string | null> {
+  const sessionId = request.cookies[SESSION_COOKIE];
+  if (!sessionId) return null;
+  const raw = await getRedis().get(sessionKey(sessionId));
+  if (!raw) return null;
+
+  try {
+    const session = JSON.parse(raw) as Session;
+    return session.csrfToken ?? null;
+  } catch {
+    return null;
+  }
+}
 export async function requireCsrf(
   request: FastifyRequest,
   reply: FastifyReply,
@@ -627,8 +642,8 @@ export async function requireCsrf(
     }
   }
 
-  const session = await getSession(request);
-  if (!session || request.headers["x-csrf-token"] !== session.csrfToken) {
+  const csrfToken = await validateCsrfToken(request);
+  if (!csrfToken || request.headers["x-csrf-token"] !== csrfToken) {
     logSecurityEvent("csrf_rejected", {
       method,
       path,

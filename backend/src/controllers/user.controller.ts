@@ -30,7 +30,8 @@ import {
   Auth0ManagementError,
   deleteAuth0UserBySub,
   updateAuth0UsernameBySub,
-  getAllowedRoleNames,
+  getAllRoles,
+  getUserRoles,
   isRoleSyncEnabled,
   sendAuth0PasswordResetEmail,
   syncAuth0UserRolesByName,
@@ -316,8 +317,13 @@ export async function requestSelfPasswordResetHandler(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
-  const identity = getIdentityOrReplyUnauthorized(request, reply);
-  if (!identity) return;
+  const identity = request.sannySession;
+  if (!identity) {
+    return reply.code(401).send({
+      error: "Unauthorized",
+      message: "Authentication required.",
+    });
+  }
 
   try {
     const user = await findSelfUserBySub(identity.sub);
@@ -327,14 +333,26 @@ export async function requestSelfPasswordResetHandler(
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
     }
-    await sendAuth0PasswordResetEmail(user.email);
-    // Return 200 with explicit success response instead of 204 to ensure popup stays in control
-    // and frontend can properly handle the completion before redirecting.
+    await sendAuth0PasswordResetEmail(identity.sub, user.email);
     return reply.code(200).send({ success: true, message: "Password reset email sent" });
+
   } catch (err) {
-    const statusCode =
-      err instanceof Auth0ManagementError ? err.statusCode : 400;
-    const safe = createSafeErrorResponse(err, statusCode);
+    if (err instanceof Auth0ManagementError) {
+      const statusCode =
+        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 400;
+      console.error(
+        "Auth0 Management API error creating password reset ticket:",
+        err.statusCode,
+        err.message,
+      );
+      const safe = createSafeErrorResponse(err, statusCode);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+
+    console.error("Unexpected error requesting password reset:", err);
+    const safe = createSafeErrorResponse(err, 400);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });
@@ -476,19 +494,24 @@ export async function updateUserRolesHandler(
     });
   }
 
-  const allowedRoles = getAllowedRoleNames();
-  const invalidRoles = requestedRoles.filter(
-    (role) => !allowedRoles.includes(role),
-  );
-  if (invalidRoles.length > 0) {
-    const safe = createSafeErrorResponse(new Error("Role not allowed"), 403);
-    return reply.code(safe.status).send({
-      error: safe.error,
-      message: `Roles are not permitted in this environment: ${invalidRoles.join(", ")}`,
-    });
-  }
-
   try {
+    // Fetch all available roles from Auth0
+    const allRoles = await getAllRoles();
+    const availableRoleNames = new Set(allRoles.map((r) => r.name));
+
+    // Validate requested roles exist in Auth0
+    const invalidRoles = requestedRoles.filter(
+      (role) => !availableRoleNames.has(role),
+    );
+    if (invalidRoles.length > 0) {
+      const safe = createSafeErrorResponse(new Error("Role not found"), 400);
+      return reply.code(safe.status).send({
+        error: safe.error,
+        message: `Roles not found in Auth0: ${invalidRoles.join(", ")}`,
+      });
+    }
+
+    // Find user and update roles
     const user = await findUserByIdWithAuth0Sub(userId);
     if (!user || !user.auth0Sub) {
       const safe = createSafeErrorResponse(new Error("User not found"), 404);
@@ -540,13 +563,33 @@ export async function requestUserPasswordResetHandler(
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
     }
-    await sendAuth0PasswordResetEmail(user.email);
+    const userWithAuth0Sub = await findUserByIdWithAuth0Sub(userId);
+    if (!userWithAuth0Sub || !userWithAuth0Sub.auth0Sub) {
+      const safe = createSafeErrorResponse(new Error("User not linked to Auth0"), 400);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+    await sendAuth0PasswordResetEmail(userWithAuth0Sub.auth0Sub, user.email);
     // Return 200 instead of 204 for consistency and better frontend handling
     return reply.code(200).send({ success: true, message: "Password reset email sent" });
   } catch (err) {
-    const statusCode =
-      err instanceof Auth0ManagementError ? err.statusCode : 400;
-    const safe = createSafeErrorResponse(err, statusCode);
+    if (err instanceof Auth0ManagementError) {
+      const statusCode =
+        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 400;
+      console.error(
+        "Auth0 Management API error creating password reset ticket:",
+        err.statusCode,
+        err.message,
+      );
+      const safe = createSafeErrorResponse(err, statusCode);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+
+    console.error("Unexpected error requesting password reset:", err);
+    const safe = createSafeErrorResponse(err, 400);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });
@@ -608,6 +651,86 @@ export async function linkUserAccountsHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
+    const safe = createSafeErrorResponse(err, 500);
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+}
+
+export async function getAvailableRolesHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  try {
+    const roles = await getAllRoles();
+    return reply.code(200).send({ roles: roles.map((r) => r.name) });
+  } catch (err) {
+    if (err instanceof Auth0ManagementError) {
+      const statusCode =
+        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 502;
+      console.error(
+        "Auth0 Management API error fetching roles:",
+        err.statusCode,
+        err.message,
+      );
+      const safe = createSafeErrorResponse(err, statusCode);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+
+    console.error("Unexpected error fetching roles:", err);
+    const safe = createSafeErrorResponse(err, 500);
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+}
+
+export async function getUserRolesHandler(
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
+  const userId = parseUserId(request);
+
+  if (!userId) {
+    const safe = createSafeErrorResponse(
+      new Error("Invalid userId parameter"),
+      400,
+    );
+    return reply
+      .code(safe.status)
+      .send({ error: safe.error, message: safe.message });
+  }
+
+  try {
+    const user = await findUserByIdWithAuth0Sub(userId);
+    if (!user || !user.auth0Sub) {
+      const safe = createSafeErrorResponse(new Error("User not found"), 404);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+
+    const roles = await getUserRoles(user.auth0Sub);
+    return reply.code(200).send({ roles: roles.map((r) => r.name) });
+  } catch (err) {
+    if (err instanceof Auth0ManagementError) {
+      const statusCode =
+        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 502;
+      console.error(
+        "Auth0 Management API error fetching user roles:",
+        err.statusCode,
+        err.message,
+      );
+      const safe = createSafeErrorResponse(err, statusCode);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+
+    console.error("Unexpected error fetching user roles:", err);
     const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)

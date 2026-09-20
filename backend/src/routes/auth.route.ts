@@ -331,7 +331,7 @@ async function authRoutes(server: FastifyInstance) {
     );
     setSessionCookies(reply, session.sessionId, session.csrfToken);
     const redirectUrl = new URL(getSuccessRedirectUrl());
-    if (state.returnTo) {
+    if (state.returnTo && state.returnTo.startsWith("/") && !state.returnTo.startsWith("//")) {
       redirectUrl.pathname = state.returnTo;
       redirectUrl.search = "";
       redirectUrl.hash = "";

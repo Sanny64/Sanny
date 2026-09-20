@@ -1,7 +1,8 @@
 import { useLanguage, translations } from "@sanny/i18n";
-import { Button } from "../../../../shared/packages/ui/src/components/Button";
-import { useEffect, useState } from "react";
-import "./adminSettings.css";
+import { Button, Checkbox, ButtonGroup } from "@sanny/ui";
+import { useEffect, useState, useRef } from "react";
+import { useBlocker } from "react-router-dom";
+import "../../styles/adminSettings.css";
 
 type Identity = {
   roles: string[];
@@ -69,20 +70,63 @@ export default function AdminSettings() {
   const t = translations[useLanguage().language].shared.settings;
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userLookup, setUserLookup] = useState("");
   const [username, setUsername] = useState("");
-  const [roles, setRoles] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [initialUserData, setInitialUserData] = useState<{ username: string; roles: string[] } | null>(null);
+  const stateRef = useRef({ username, selectedRoles, initialUserData, selectedUser });
 
   const permissions = identity?.permissions ?? [];
   const isAdmin = identity?.roles.includes("admin") ?? false;
   const canReadUsers = isAdmin && permissions.includes("read:users");
   const canWriteUsers = isAdmin && permissions.includes("write:users");
   const canDeleteUsers = isAdmin && permissions.includes("delete:users");
+
+  const ITEMS_PER_PAGE = 10;
+  const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedUsers = users.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  useBlocker(({ nextLocation, currentLocation }) => {
+    if (nextLocation.pathname === currentLocation.pathname) {
+      return false;
+    }
+
+    const shouldAllowNavigation = confirmNavigation();
+    return !shouldAllowNavigation;
+  });
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (selectedUser && initialUserData) {
+        const isUsernameChanged = username.trim() !== initialUserData.username;
+        const currentRolesSorted = [...selectedRoles].sort().join(",");
+        const initialRolesSorted = [...initialUserData.roles].sort().join(",");
+        const isRolesChanged = currentRolesSorted !== initialRolesSorted;
+
+        if (isUsernameChanged || isRolesChanged) {
+          event.preventDefault();
+          return ""; 
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [selectedUser, initialUserData, username, selectedRoles]);
+  
+  useEffect(() => {
+    stateRef.current = { username, selectedRoles, initialUserData, selectedUser };
+  }, [username, selectedRoles, initialUserData, selectedUser]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,20 +154,97 @@ export default function AdminSettings() {
     };
   }, [t.requestFailed]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAvailableRoles() {
+      try {
+        const data = await request<{ roles: string[] }>(
+          "/api/v001/users/roles/available",
+        );
+        if (!cancelled) {
+          setAvailableRoles(data?.roles ?? []);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          console.error("Failed to load available roles", requestError);
+          setAvailableRoles([]);
+        }
+      }
+    }
+
+    if (canReadUsers) {
+      void loadAvailableRoles();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canReadUsers]);
+
   function selectUser(user: User) {
     setSelectedUser(user);
     setUsername(user.username ?? "");
-    setRoles("");
+    setSelectedRoles([]);
     setMessage(null);
     setError(null);
+    loadUserRoles(user.id, user.username ?? "");
   }
 
+  async function loadUserRoles(userId: number, currentUsername: string) {
+    try {
+      const data = await request<{ roles: string[] }>(
+        `/api/v001/users/${userId}/roles`,
+      );
+      const roles = data?.roles ?? [];
+      setSelectedRoles(roles);
+      setInitialUserData({ username: currentUsername, roles: roles });
+    } catch (err) {
+      console.error("Failed to load user roles:", err);
+      setSelectedRoles([]);
+      setInitialUserData({ username: currentUsername, roles: [] });
+    }
+  }
+
+  function confirmNavigation() {
+    const { selectedUser, initialUserData, username, selectedRoles } = stateRef.current;
+
+    if (selectedUser && initialUserData) {
+      const isUsernameChanged = username.trim() !== initialUserData.username;
+      const currentRolesSorted = [...selectedRoles].sort().join(",");
+      const initialRolesSorted = [...initialUserData.roles].sort().join(",");
+      const isRolesChanged = currentRolesSorted !== initialRolesSorted;
+
+      if (isUsernameChanged || isRolesChanged) {
+        return window.confirm("Sie haben ungespeicherte Änderungen. Möchten Sie diese wirklich verwerfen?");
+      }
+    }
+    return true;
+  }
+
+
   async function loadUsers() {
+    if (!confirmNavigation()) return;
+
     setIsBusy(true);
     setError(null);
     setMessage(null);
     try {
-      setUsers(await request<User[]>("/api/v001/users/list"));
+      let allUsers = await request<User[]>("/api/v001/users/list");
+      
+      if (import.meta.env.DEV) {
+        const mockUsers: User[] = Array.from({ length: 25 }, (_, index) => ({
+          id: 999000 + index,
+          email: `mock.user.${index + 1}@example.com`,
+          username: `MockUser_${index + 1}`
+        }));
+        allUsers = [...allUsers, ...mockUsers];
+      }
+
+      setUsers(allUsers);
+      setCurrentPage(1);
+      setSelectedUser(null);
+      setInitialUserData(null);
       setMessage(t.usersLoaded);
     } catch (requestError) {
       setError(
@@ -137,6 +258,7 @@ export default function AdminSettings() {
   async function loadUser() {
     const lookup = userLookup.trim();
     if (!lookup) return;
+    if (!confirmNavigation()) return;
     setIsBusy(true);
     setError(null);
     setMessage(null);
@@ -161,30 +283,31 @@ export default function AdminSettings() {
     setError(null);
     setMessage(null);
     try {
+      const updatedUsername = username.trim();
       const user = await request<User>(`/api/v001/users/${selectedUser.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify({ username: updatedUsername }),
       });
       setSelectedUser(user);
       setUsers((currentUsers) =>
         currentUsers.map((entry) => (entry.id === user.id ? user : entry)),
       );
-      const requestedRoles = roles
-        .split(",")
-        .map((role) => role.trim())
-        .filter(Boolean);
-      if (requestedRoles.length > 0) {
+
+      let finalRoles = selectedRoles;
+      if (selectedRoles.length > 0) {
         const result = await request<{ roles: string[] }>(
           `/api/v001/users/${selectedUser.id}/roles`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ roles: requestedRoles }),
+            body: JSON.stringify({ roles: selectedRoles }),
           },
         );
-        setRoles(result.roles.join(", "));
+        finalRoles = result.roles;
+        setSelectedRoles(finalRoles);
       }
+      setInitialUserData({ username: updatedUsername, roles: finalRoles });
       setMessage(t.userUpdated);
     } catch (requestError) {
       if (isMfaAuthenticationRequired(requestError)) {
@@ -208,10 +331,18 @@ export default function AdminSettings() {
       await request<void>(`/api/v001/users/${selectedUser.id}`, {
         method: "DELETE",
       });
-      setUsers((currentUsers) =>
-        currentUsers.filter((entry) => entry.id !== selectedUser.id),
-      );
+      
+      setUsers((currentUsers) => {
+        const updatedUsers = currentUsers.filter((entry) => entry.id !== selectedUser.id);
+        const newTotalPages = Math.ceil(updatedUsers.length / ITEMS_PER_PAGE);
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+          setCurrentPage(newTotalPages);
+        }
+        return updatedUsers;
+      });
+      
       setSelectedUser(null);
+      setInitialUserData(null); // Zustand leeren
       setMessage(t.userDeleted);
     } catch (requestError) {
       if (isMfaAuthenticationRequired(requestError)) {
@@ -253,29 +384,29 @@ export default function AdminSettings() {
   if (!isAdmin)
     return (
       <div className="content admin-settings">
-        <h1>{t.adminSettingsTitle}</h1>
-        <p>{t.adminAccessDenied}</p>
+        <h1>{t.adminAccessDenied}</h1>
       </div>
     );
 
   return (
-    <div className="content admin-settings">
-      <h1>{t.adminSettingsTitle}</h1>
-      {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
+  <div className="content admin-settings">
+    <h1>{t.adminSettingsTitle}</h1>
+    {error && <p role="alert">{error}</p>}
+    {message && <p role="status">{message}</p>}
 
-      <section className="admin-settings__section">
-        <h2>{t.adminUsersTitle}</h2>
-        <div className="admin-settings__lookup">
-          <label className="admin-settings__field">
-            <span>{t.userLookup}</span>
-            <input
-              value={userLookup}
-              onChange={(event) => setUserLookup(event.target.value)}
-              disabled={!canReadUsers || isBusy}
-            />
-          </label>
-          <div className="admin-settings__actions">
+    <section className="admin-settings__section">
+      <h2>{t.adminUsersTitle}</h2>
+      <div className="admin-settings__lookup">
+        <label className="admin-settings__field">
+          <span>{t.userLookup}</span>
+          <input
+            value={userLookup}
+            onChange={(event) => setUserLookup(event.target.value)}
+            disabled={!canReadUsers || isBusy}
+          />
+        </label>
+        <div className="admin-settings__actions">
+          <ButtonGroup>
             <Button
               type="button"
               onClick={() => void loadUser()}
@@ -291,11 +422,13 @@ export default function AdminSettings() {
             >
               {t.loadUsers}
             </Button>
-          </div>
+          </ButtonGroup>
         </div>
-        {users.length > 0 && (
+      </div>
+      {users.length > 0 && (
+        <>
           <ul className="admin-settings__users">
-            {users.map((user) => (
+            {paginatedUsers.map((user) => (
               <li key={user.id}>
                 <div>
                   <strong>{user.username ?? user.email}</strong>
@@ -304,7 +437,12 @@ export default function AdminSettings() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => selectUser(user)}
+                  onClick={() => {
+                    // ZUERST prüfen, ob die Navigation erlaubt ist!
+                    if (confirmNavigation()) {
+                      selectUser(user);
+                    }
+                  }}
                   disabled={isBusy}
                 >
                   {t.selectUser}
@@ -312,62 +450,133 @@ export default function AdminSettings() {
               </li>
             ))}
           </ul>
-        )}
-      </section>
-
-      {selectedUser && (
-        <section className="admin-settings__section">
-          <div className="admin-settings__selected-header">
-            <div>
-              <h2>{t.selectedUserTitle}</h2>
-              <p>{selectedUser.email}</p>
+          
+          {totalPages > 1 && (
+            <div className="admin-settings__pagination" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '1rem' }}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1 || isBusy}
+              >
+                Zurück
+              </Button>
+              <span>
+                Seite {currentPage} von {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || isBusy}
+              >
+                Weiter
+              </Button>
             </div>
-          </div>
-          <div className="admin-settings__fields">
+          )}
+        </>
+      )}
+    </section>
+    {selectedUser && (
+      <section className="admin-settings__section">
+        <div className="admin-settings__selected-header">
+            <h2>{t.selectedUserTitle}</h2>
+            <p>{selectedUser.email}</p>
+        </div>
+        
+        <div className="admin-settings__fields">
+          <div className="admin-settings__left-column">
             <label className="admin-settings__field">
-              <span>{t.username}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>{t.username}</span>
+                {initialUserData && username.trim() !== initialUserData.username && (
+                  <span className="admin-settings__modified-indicator">* geändert</span>
+                )}
+              </div>
               <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 disabled={!canWriteUsers || isBusy}
               />
             </label>
-            <label className="admin-settings__field">
-              <span>{t.roles}</span>
-              <input
-                value={roles}
-                onChange={(event) => setRoles(event.target.value)}
-                disabled={!canWriteUsers || isBusy}
-              />
-            </label>
+
+            <div className="admin-settings__actions">
+              <ButtonGroup
+                className="admin-settings__user-actions">
+                <Button
+                  type="button"
+                  className={
+                    selectedUser && initialUserData && (
+                      username.trim() !== initialUserData.username ||
+                      [...selectedRoles].sort().join(",") !== [...initialUserData.roles].sort().join(",")
+                    ) ? "admin-settings__btn--unsaved" : ""
+                  }
+                  onClick={() => void updateUser()}
+                  disabled={!canWriteUsers || isBusy || !username.trim()}
+                >
+                  {t.updateUser}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void requestPasswordReset()}
+                  disabled={!canWriteUsers || isBusy}
+                >
+                  {t.resetPassword}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={() => void deleteUser()}
+                  disabled={!canDeleteUsers || isBusy}
+                >
+                  {t.deleteUser}
+                </Button>
+            </ButtonGroup>
+            </div>
           </div>
-          <div className="admin-settings__actions">
-            <Button
-              type="button"
-              onClick={() => void updateUser()}
-              disabled={!canWriteUsers || isBusy || !username.trim()}
-            >
-              {t.updateUser}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void requestPasswordReset()}
-              disabled={!canWriteUsers || isBusy}
-            >
-              {t.resetPassword}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => void deleteUser()}
-              disabled={!canDeleteUsers || isBusy}
-            >
-              {t.deleteUser}
-            </Button>
+          <div className="admin-settings__field">
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: '21px' }}>
+            <span>{t.roles}</span>
           </div>
-        </section>
-      )}
-    </div>
+          <fieldset style={{ marginTop: '6px', height: '100%' }}>
+            <div className="admin-settings__roles">
+              {availableRoles.map((role) => {
+                const wasInitiallyChecked = initialUserData?.roles.includes(role) ?? false;
+                const isCurrentlyChecked = selectedRoles.includes(role);
+                const isRoleModified = wasInitiallyChecked !== isCurrentlyChecked;
+
+                return (
+                  <div key={role} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Checkbox
+                      label={role}
+                      checked={isCurrentlyChecked}
+                      onChange={(e) => {
+                        if (e.currentTarget.checked) {
+                          setSelectedRoles([...selectedRoles, role]);
+                        } else {
+                          setSelectedRoles(selectedRoles.filter((r) => r !== role));
+                        }
+                      }}
+                      disabled={!canWriteUsers || isBusy}
+                      containerClassName="admin-settings__role-item"
+                    />
+                    {isRoleModified && (
+                      <span className="admin-settings__modified-indicator">* geändert</span>
+                    )}
+                  </div>
+                );
+              })}
+              {availableRoles.length === 0 && (
+                <p className="admin-settings__no-roles">No roles available</p>
+              )}
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      </section>
+    )}
+  </div>
   );
 }

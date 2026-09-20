@@ -1,23 +1,26 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Main from "./pages/Main";
 import AccountLinkingPage from "./pages/accountLinkingPage/AccountLinkingPage";
 import AccountLinkingProofPage from "./pages/accountLinkingPage/AccountLinkingProofPage";
 
+const router = createBrowserRouter([
+  {
+    element: <Main />,
+    children: [
+      {
+        path: "/confirm-linking",
+        element: <AccountLinkingPage />,
+      },
+      {
+        path: "/account-link-proof-complete",
+        element: <AccountLinkingProofPage />,
+      },
+    ],
+  },
+]);
+
 function App() {
-  return (
-    <BrowserRouter>
-      {/* Main routes */}
-      <Routes>
-        <Route element={<Main />}>
-          <Route path="/confirm-linking" element={<AccountLinkingPage />} />
-          <Route
-            path="/account-link-proof-complete"
-            element={<AccountLinkingProofPage />}
-          />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

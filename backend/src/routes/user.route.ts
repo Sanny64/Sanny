@@ -12,6 +12,8 @@ import {
   updateUserRolesHandler,
   updateUserHandler,
   linkUserAccountsHandler,
+  getAvailableRolesHandler,
+  getUserRolesHandler,
 } from "../controllers/user.controller.js";
 import {
   createSelfUserSchema,
@@ -22,6 +24,7 @@ import {
   updateUserSchema,
   userIdParamSchema,
   userEmailQuerySchema,
+  userListQuerySchema,
   linkUserAccountsSchema,
 } from "../schemas/user.schema.js";
 import type { FastifyInstance } from "fastify";
@@ -142,6 +145,23 @@ async function userRoutes(server: FastifyInstance) {
     getUserByEmailHandler,
   );
 
+  // get user's current Auth0 roles
+  server.get(
+    "/:userId/roles",
+    {
+      preHandler: [
+        requireSession,
+        requirePermissions(["read:users"]),
+        requireRoles(["admin"]),
+      ],
+      schema: {
+        params: userIdParamSchema,
+        security: [{ sessionCookie: [] }],
+      },
+    },
+    getUserRolesHandler,
+  );
+
   server.get(
     "/:userId",
     {
@@ -171,14 +191,7 @@ async function userRoutes(server: FastifyInstance) {
         requireRoles(["admin"]),
       ],
       schema: {
-        querystring: {
-          type: "object",
-          properties: {
-            page: { type: "integer", minimum: 1 },
-            limit: { type: "integer", minimum: 1, maximum: 50 },
-          },
-          additionalProperties: false,
-        },
+        querystring: userListQuerySchema,
         security: [{ sessionCookie: [] }],
       },
     },
@@ -260,6 +273,22 @@ async function userRoutes(server: FastifyInstance) {
       },
     },
     deleteUserHandler,
+  );
+
+  // get available roles for role management UI
+  server.get(
+    "/roles/available",
+    {
+      preHandler: [
+        requireSession,
+        requirePermissions(["read:users"]),
+        requireRoles(["admin"]),
+      ],
+      schema: {
+        security: [{ sessionCookie: [] }],
+      },
+    },
+    getAvailableRolesHandler,
   );
 }
 

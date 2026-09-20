@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import AccountSettings from "./pages/settings/AccountSettings";
 import AdminSettings from "./pages/settings/AdminSettings";
 import Main from "./pages/Main";
@@ -17,40 +17,39 @@ import Party from "./pages/party/Party";
 import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
 
+const router = createBrowserRouter([
+  {
+    // Main routes using the <Main /> Layout
+    element: <Main />,
+    children: [
+      { path: "/", element: <Home /> },
+      { path: "/home", element: <Navigate to="/" replace /> },
+      { path: "/portfolio", element: <Portfolio /> },
+      { path: "/projects", element: <Projects /> },
+      { path: "/projects/haptigation", element: <Haptigation /> },
+      { path: "/projects/proscrum", element: <Proscrum /> },
+      { path: "/projects/sau", element: <SAU /> },
+      { path: "/projects/seo", element: <SEO /> },
+      { path: "/projects/sm.now", element: <SMNow /> },
+      { path: "/blog", element: <Blog /> },
+      { path: "/games", element: <Games /> },
+      { path: "/settings", element: <AccountSettings /> },
+      { path: "/admin/settings", element: <AdminSettings /> },
+    ],
+  },
+  {
+    // Auxiliary routes using the <Auxiliary /> Layout
+    element: <Auxiliary />,
+    children: [
+      { path: "/party", element: <Party /> },
+      { path: "/party/refreshments", element: <Refreshments /> },
+      { path: "/party/comfort", element: <Comfort /> },
+    ],
+  },
+]);
+
 function App() {
-  return (
-    <>
-      {/* Routing */}
-      <BrowserRouter>
-        <Routes>
-          {/* Main routes */}
-          <Route element={<Main />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/home" element={<Navigate to="/" replace />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/haptigation" element={<Haptigation />} />
-            <Route path="/projects/proscrum" element={<Proscrum />} />
-            <Route path="/projects/sau" element={<SAU />} />
-            <Route path="/projects/seo" element={<SEO />} />
-            <Route path="/projects/sm.now" element={<SMNow />} />
-            <Route path="/blog" element={<Blog />} />
-            <Route path="/games" element={<Games />} />
-            <Route path="/settings" element={<AccountSettings />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-          </Route>
-          {/* Auxiliary routes */}
-          <Route element={<Auxiliary />}>
-            <Route path="/party" element={<Party />} />
-            <Route path="/party/refreshments" element={<Refreshments />} />
-            <Route path="/party/comfort" element={<Comfort />} />
-          </Route>
-          {/* Redirect any unknown routes to Error */}
-          <Route element={<Main />}>{/* error route */}</Route>
-        </Routes>
-      </BrowserRouter>
-    </>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

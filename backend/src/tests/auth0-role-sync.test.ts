@@ -3,10 +3,10 @@ import test from "node:test";
 import { syncAuth0UserRolesByName } from "../utils/auth0-management.js";
 
 const auth0Environment = {
-  AUTH0_DOMAIN: "tenant.example.test",
+  AUTH0_DOMAIN: "tenant.location.example.test",
   AUTH0_M2M_CLIENT_ID: "client-id",
   AUTH0_M2M_CLIENT_SECRET: "client-secret",
-  AUTH0_MGMT_AUDIENCE: "https://tenant.example.test/api/v2/",
+  AUTH0_MGMT_AUDIENCE: "https://tenant.location.example.test/api/v2/",
 };
 
 test("role synchronization assigns requested roles and removes unrequested roles", async () => {
@@ -14,7 +14,9 @@ test("role synchronization assigns requested roles and removes unrequested roles
   const originalEnvironment = Object.fromEntries(
     Object.keys(auth0Environment).map((key) => [key, process.env[key]]),
   );
-  Object.assign(process.env, auth0Environment);
+
+  Object.assign(process.env, auth0Environment, { AUTH0_ROLE_SYNC_ENABLED: "true" });
+
   const requests: Array<{ url: string; init?: RequestInit }> = [];
   globalThis.fetch = (async (url: string, init?: RequestInit) => {
     requests.push(init ? { url, init } : { url });

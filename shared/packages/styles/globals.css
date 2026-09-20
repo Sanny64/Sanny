@@ -57,6 +57,7 @@ html.dark {
   --color-secondary: var(--social-bg);
   --color-btn-primary: #9353d3;
   --color-btn-secondary: rgba(137, 144, 218, 0.5);
+  --color-btn-destructive: #d9534f;
   --shadow:
     rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   color-scheme: dark;
