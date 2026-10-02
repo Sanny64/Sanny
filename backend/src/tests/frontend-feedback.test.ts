@@ -6,7 +6,7 @@ import { de } from "../../../shared/packages/i18n/locales/de.js";
 import {
   getErrorStatus,
   supportedStatuses,
-} from "../../../sanny/src/utils/error-status.js";
+} from "../../../shared/packages/ui/src/utils/error-status.js";
 
 const feedbackKeys = [
   "accountCreated",
@@ -89,7 +89,7 @@ test("wildcard routes use 404 while error redirects and boundaries remain", asyn
   assert.match(source, /errorElement: <ErrorPage \/>/);
 
   const errorPage = await readFile(
-    new URL("../../../sanny/src/pages/ErrorPage.tsx", import.meta.url),
+    new URL("../../../shared/packages/ui/src/pages/Error.tsx", import.meta.url),
     "utf8",
   );
   assert.match(errorPage, /isRouteErrorResponse\(routeError\)/);

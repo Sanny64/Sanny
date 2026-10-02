@@ -20,8 +20,7 @@ import Auxiliary from "./pages/Auxiliary";
 import Party from "./pages/party/Party";
 import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
-import ErrorPage from "./pages/ErrorPage";
-import { ToastViewport } from "@sanny/ui";
+import { Error as ErrorPage, ToastViewport } from "@sanny/ui";
 
 const router = createBrowserRouter([
   {
