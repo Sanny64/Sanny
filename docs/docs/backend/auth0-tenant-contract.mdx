@@ -95,6 +95,10 @@ See [Auth0's MFA customization prerequisites](https://auth0.com/docs/secure/mult
   `identities` contains that exact database identity. A prior `confirmed`
   metadata flag must not skip this canonicalization. Matching email or decision
   metadata alone is not evidence of a link.
+- If a `confirmed` metadata flag remains but the identities are not linked,
+  the Action must prompt for ownership proof again. Only a recent `pending`
+  decision suppresses a duplicate prompt (for five minutes); expired or invalid
+  pending timestamps permit retry.
 - Secondary ownership-proof logins (`link_proof=true`) intentionally retain the
   database subject. They must not be canonicalized before proof verification.
 - The canonical primary is always Google, but the ownership-proof target is the
@@ -110,6 +114,15 @@ See [Auth0's MFA customization prerequisites](https://auth0.com/docs/secure/mult
   primary session by reversing the backend's link check or rewriting the local
   account subject. Restart login after deploying the corrected Action so Auth0
   issues a new primary-subject token with the appropriate claims.
+- If the identities are not linked, inspect the Action's
+  `post-login account link detection` logs: both accounts must have
+  `email_verified: true` and their providers must be allowed. Verify that the
+  deployed Action is attached to the Login flow and its environment-specific
+  `ACCOUNT_LINK_CONFIRMATION_URL` points to the backend's
+  `/api/v001/auth/confirm-account-linking` route. The backend intentionally
+  creates no session on this conflict, so a following `/auth/me` `401` is a
+  consequence, not the cause. Do not fix it by accepting matching emails or
+  changing the stored subject without a verified Auth0 link.
 
 ### Password reset during ownership proof
 
