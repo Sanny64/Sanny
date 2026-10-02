@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { proofResumeKey } from "./proof-resume";
+import { proofResumeKey } from "../../utils/proof-resume";
 
 const channelName = "sanny-account-link-proof";
 

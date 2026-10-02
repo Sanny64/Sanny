@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useLoaderData } from "react-router-dom";
-import type { prepareProofResume } from "./proof-resume";
+import type { prepareProofResume } from "../../utils/proof-resume";
 
 export default function AccountLinkingResumePage() {
   const { url, error } = useLoaderData<typeof prepareProofResume>();

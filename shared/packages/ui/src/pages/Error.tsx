@@ -1,4 +1,4 @@
-import { Section } from "../../components/Section";
+import { Section } from "@sanny/ui";
 import { useLanguage, translations } from "@sanny/i18n";
 
 export default function ErrorPage() {

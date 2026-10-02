@@ -3,7 +3,7 @@ import Main from "./pages/Main";
 import AccountLinkingPage from "./pages/accountLinkingPage/AccountLinkingPage";
 import AccountLinkingProofPage from "./pages/accountLinkingPage/AccountLinkingProofPage";
 import AccountLinkingResumePage from "./pages/accountLinkingPage/AccountLinkingResumePage";
-import { prepareProofResume } from "./pages/accountLinkingPage/proof-resume";
+import { prepareProofResume } from "./utils/proof-resume";
 import { ToastViewport } from "@sanny/ui";
 
 const apiUrl = import.meta.env.DEV

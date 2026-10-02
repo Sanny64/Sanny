@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { showToast } from "@sanny/ui";
-import "./AccountLinkingPage.css";
+import "../../styles/AccountLinkingPage.css";
 
 const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
