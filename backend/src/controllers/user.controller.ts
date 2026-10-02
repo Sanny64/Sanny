@@ -44,8 +44,8 @@ import { logSecurityEvent } from "../utils/security-audit.js";
 type CreateSelfUserInput = z.infer<typeof createSelfUserSchema>;
 type UpdateSelfUserInput = z.infer<typeof updateSelfUserSchema>;
 type UpdateUserRolesInput = z.infer<typeof updateUserRolesSchema>;
-type UpdateUserInput = z.infer<typeof updateUserSchema>;
 type UserIdParamInput = z.infer<typeof userIdParamSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
 function getIdentityOrReplyUnauthorized(
   request: FastifyRequest,

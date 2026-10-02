@@ -182,27 +182,30 @@ export default function AdminSettings() {
     };
   }, [canReadUsers]);
 
-  function selectUser(user: User) {
+  async function selectUser(user: User) {
+    const currentUsername = user.username ?? "";
+    setIsBusy(true);
     setSelectedUser(user);
-    setUsername(user.username ?? "");
+    setUsername(currentUsername);
     setSelectedRoles([]);
+    setInitialUserData(null);
     setMessage(null);
     setError(null);
-    loadUserRoles(user.id, user.username ?? "");
-  }
-
-  async function loadUserRoles(userId: number, currentUsername: string) {
     try {
       const data = await request<{ roles: string[] }>(
-        `/api/v001/users/${userId}/roles`,
+        `/api/v001/users/${user.id}/roles`,
       );
       const roles = data?.roles ?? [];
       setSelectedRoles(roles);
-      setInitialUserData({ username: currentUsername, roles: roles });
-    } catch (err) {
-      console.error("Failed to load user roles:", err);
-      setSelectedRoles([]);
-      setInitialUserData({ username: currentUsername, roles: [] });
+      setInitialUserData({ username: currentUsername.trim(), roles });
+      return true;
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : t.requestFailed,
+      );
+      return false;
+    } finally {
+      setIsBusy(false);
     }
   }
 
@@ -266,8 +269,9 @@ export default function AdminSettings() {
       const path = /^\d+$/.test(lookup)
         ? `/api/v001/users/${lookup}`
         : `/api/v001/users/lookup?email=${encodeURIComponent(lookup)}`;
-      selectUser(await request<User>(path));
-      setMessage(t.userLoaded);
+      if (await selectUser(await request<User>(path))) {
+        setMessage(t.userLoaded);
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error ? requestError.message : t.requestFailed,
@@ -278,7 +282,7 @@ export default function AdminSettings() {
   }
 
   async function updateUser() {
-    if (!selectedUser) return;
+    if (!selectedUser || !initialUserData) return;
     setIsBusy(true);
     setError(null);
     setMessage(null);
@@ -440,7 +444,7 @@ export default function AdminSettings() {
                   onClick={() => {
                     // ZUERST prüfen, ob die Navigation erlaubt ist!
                     if (confirmNavigation()) {
-                      selectUser(user);
+                      void selectUser(user);
                     }
                   }}
                   disabled={isBusy}
@@ -496,7 +500,7 @@ export default function AdminSettings() {
               <input
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
-                disabled={!canWriteUsers || isBusy}
+                disabled={!canWriteUsers || isBusy || !initialUserData}
               />
             </label>
 
@@ -512,7 +516,7 @@ export default function AdminSettings() {
                     ) ? "admin-settings__btn--unsaved" : ""
                   }
                   onClick={() => void updateUser()}
-                  disabled={!canWriteUsers || isBusy || !username.trim()}
+                  disabled={!canWriteUsers || isBusy || !initialUserData || !username.trim()}
                 >
                   {t.updateUser}
                 </Button>
@@ -545,7 +549,7 @@ export default function AdminSettings() {
               {availableRoles.map((role) => {
                 const wasInitiallyChecked = initialUserData?.roles.includes(role) ?? false;
                 const isCurrentlyChecked = selectedRoles.includes(role);
-                const isRoleModified = wasInitiallyChecked !== isCurrentlyChecked;
+                const isRoleModified = initialUserData !== null && wasInitiallyChecked !== isCurrentlyChecked;
 
                 return (
                   <div key={role} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -559,7 +563,7 @@ export default function AdminSettings() {
                           setSelectedRoles(selectedRoles.filter((r) => r !== role));
                         }
                       }}
-                      disabled={!canWriteUsers || isBusy}
+                      disabled={!canWriteUsers || isBusy || !initialUserData}
                       containerClassName="admin-settings__role-item"
                     />
                     {isRoleModified && (

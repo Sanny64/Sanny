@@ -1,4 +1,4 @@
-import type { UpdateUserInput } from "../types/inputs.js";
+import type { UpdateUserInput } from "../controllers/user.controller.js";
 import { Prisma } from "../generated/prisma/client.js";
 import prisma from "../utils/prisma.js";
 
@@ -142,7 +142,7 @@ export async function deleteUserById(userId: number) {
   });
 
   return result.count;
-}
+} // AIKAIDO
 
 export async function updateSelfUserBySub(auth0Sub: string, username: string) {
   return prisma.user.update({
@@ -161,7 +161,7 @@ export async function deleteSelfUserBySub(auth0Sub: string) {
     where: { auth0Sub },
   });
   return result.count;
-}
+} // AIKAIDO
 
 /**
  * List local users whose Auth0 subject belongs to a social/non-database

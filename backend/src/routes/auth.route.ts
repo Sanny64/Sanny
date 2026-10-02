@@ -232,7 +232,7 @@ async function authRoutes(server: FastifyInstance) {
           request.query.error_description,
         ),
       );
-    }
+    } // AIKAIDO
 
     const outstandingStates = getLoginStates(request);
     if (

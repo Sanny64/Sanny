@@ -2,12 +2,6 @@
 
 ## Ongoing tasks
 
-1. [ ] Fix bugs
-
-- [ ] password reset doesn't work (admin flow) https://localhost:8443/api/v001/users/6/password-reset; Request Method: POST; Status Code: 401 Unauthorized
-- [ ] password reset doesn't work (self flow) 
-- [ ] the self roles and available roles endpoint always only returns "{"roles":[]}" 
-
 2. [ ] Re-authentication flow
 
 - in multiple instances an admin is required to reauthenticate themselves before doing changes to users.
@@ -18,6 +12,19 @@
             - note: user name only changes do not require reauthentication with the Authenticator App. Only role promotion and password reset.
 
 - self password reset should not require authenticator app based reauthentication but instead use an email OTP verification.
+- loading a single user 
+
+Diskussion:
+Hierzu einige Punkte:
+Die Idee ist die folgende: Für kritische Aktionen wie password resets und role promotions sollen admin sich reauthentifizieren müssen. 
+
+Die selbe Sicherheitslücke existiert auch für Nutzer*innen, wenn diese einen password-reset machen, allerdings kann der Authenticator hier nicht genutzt werden, weil Authenticator based authentication im initialen setup von jedem bei sich auf dem Gerät eingerichten kann, unabhängig davon, ob man der echte Nutzer ist, oder jemand, der zufällig Zugriff auf den QR code bekommen hat.
+
+Reguläre Nutzer*innen sollen sich also nur über email authentifizieren können.  
+
+Admins müssen ihren Authenticator sofort bei Ausführung der ersten Admin-Rollen-Kritischen Aktion einrichten. Hier könnte erzwungen werden, dass admins die sich einloggen einmalig dazu gezwungen werden sich über den authenticator zu authentifizieren.
+
+Es ist übrigens richtig, dass die authentifizierung über authenticator app, email, etc. alles möglich ist. man muss nur auf select different method drücken.
 
 3. [ ] Verify features
 

@@ -34,6 +34,10 @@ export const updateUserRolesResponseSchema = z.object({
   roles: z.array(z.string()),
 });
 
+export const userEmailQuerySchema = z.object({
+  email: emailSchema,
+});
+
 export const userListQuerySchema = z.object({
   page: z.coerce.number().int().positive().optional(),
   limit: z.coerce.number().int().positive().max(50).optional(),
@@ -58,4 +62,5 @@ export const userSchemas = {
   userListQuerySchema,
   createUserResponseSchema,
   linkUserAccountsSchema,
+  userEmailQuerySchema,
 };

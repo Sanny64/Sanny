@@ -1,3 +1,4 @@
+import type { FastifyInstance } from "fastify";
 import {
   getSelfUserHandler,
   deleteSelfUserHandler,
@@ -27,8 +28,10 @@ import {
   userListQuerySchema,
   linkUserAccountsSchema,
 } from "../schemas/user.schema.js";
-import type { FastifyInstance } from "fastify";
-import { requirePermissions, requireRoles } from "../utils/auth0-guards.js";
+import {
+  requirePermissions,
+  requireRoles,
+} from "../utils/auth0-guards.js";
 import {
   requireRecentAuthentication,
   requireMfaAuthentication,
@@ -281,7 +284,6 @@ async function userRoutes(server: FastifyInstance) {
     {
       preHandler: [
         requireSession,
-        requirePermissions(["read:users"]),
         requireRoles(["admin"]),
       ],
       schema: {
