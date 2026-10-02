@@ -202,7 +202,7 @@ test("an already linked database login selects the Google primary before honorin
   }
 });
 
-test("matching email or confirmed metadata without a linked identity never switches the primary", async () => {
+test("confirmed metadata without a linked identity prompts for ownership proof instead of switching the primary", async () => {
   const action = await loadAction();
   for (const identities of [
     [],
@@ -216,7 +216,7 @@ test("matching email or confirmed metadata without a linked identity never switc
         identities,
       },
     ];
-    await withManagementApi(users, async () => {
+    await withManagementApi(users, async (redirects) => {
       const event = actionEvent(users);
       await action.onExecutePostLogin(
         {
@@ -233,8 +233,62 @@ test("matching email or confirmed metadata without a linked identity never switc
             setPrimaryUser: () =>
               assert.fail("Unlinked identity must not be promoted"),
           },
+          redirect: {
+            sendUserTo: (
+              url: string,
+              options: { query: Record<string, string> },
+            ) => redirects.push({ url, ...options }),
+          },
         },
       );
+      assert.equal(redirects.length, 1);
+      const query = redirects[0]?.query as Record<string, string>;
+      assert.equal(query.primaryUserId, "google-oauth2|google-user");
+      assert.equal(query.secondaryUserId, "auth0|email-user");
+      assert.equal(query.proofUserId, "google-oauth2|google-user");
+    });
+  }
+});
+
+test("only a recent pending link decision suppresses another ownership prompt", async () => {
+  const action = await loadAction();
+  const users = [
+    { user_id: "auth0|email-user", email_verified: true },
+    { user_id: "google-oauth2|google-user", email_verified: true },
+  ];
+  for (const [decision, expectedPrompts] of [
+    [{ decision: "pending", decidedAt: new Date().toISOString() }, 0],
+    [
+      {
+        decision: "pending",
+        decidedAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+      },
+      1,
+    ],
+    [{ decision: "pending", decidedAt: "invalid" }, 1],
+    [{ decision: "cancelled" }, 1],
+  ] as const) {
+    await withManagementApi(users, async (redirects) => {
+      const event = actionEvent(users);
+      await action.onExecutePostLogin(
+        {
+          ...event,
+          user: {
+            ...event.user,
+            app_metadata: { pending_account_link: decision },
+          },
+        },
+        {
+          authentication: {
+            setPrimaryUser: () =>
+              assert.fail("Unlinked identity must not be promoted"),
+          },
+          redirect: {
+            sendUserTo: (url: string) => redirects.push({ url }),
+          },
+        },
+      );
+      assert.equal(redirects.length, expectedPrompts);
     });
   }
 });

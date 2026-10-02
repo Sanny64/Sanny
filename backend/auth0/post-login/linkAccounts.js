@@ -50,12 +50,9 @@ const GOOGLE_PROVIDER = "google-oauth2";
 const DATABASE_PROVIDER = "auth0";
 // A "pending" decision is only recorded right before redirecting the user to
 // the confirmation page. If that attempt is abandoned (closed tab, network
-// error, or -- as happened here -- a bug in the confirmation UI) the flag
-// would otherwise stay "pending" forever and permanently block re-detection
-// on every future login. Only a durable "confirmed" (or explicit
-// "cancelled") decision should suppress re-prompting indefinitely; a
-// "pending" one expires after a short TTL so an interrupted attempt can be
-// retried.
+// error) the flag would otherwise permanently block re-detection.
+// Only a recent "pending" decision suppresses another prompt; actual linked
+// identities, not a "confirmed" metadata flag, establish a completed link.
 const PENDING_DECISION_TTL_MS = 5 * 60 * 1000;
 
 /**
@@ -144,7 +141,6 @@ function identityAlreadyLinked(primaryUser, secondaryParsedUserId) {
  */
 function isDecisionStillBlocking(decision) {
   if (!decision || typeof decision !== "object") return false;
-  if (decision.decision === "confirmed") return true;
   if (decision.decision !== "pending") return false;
 
   const decidedAt = Date.parse(decision.decidedAt || "");
