@@ -1,5 +1,24 @@
 # Backend
 
+## Account linking
+
+Google/password identity conflicts require confirmation and authentication of
+the other identity through the login frontend. The OAuth callback restarts Auth0
+authorization once for an unresolved Google/password conflict, preserving the
+return destination and email-MFA requirement. It does not create a session or
+merge users before Auth0 proves the link. If the retry still returns unlinked
+identities, it redirects to the auth error page rather than looping.
+
+Deploy `auth0/post-login/linkAccounts.js` to the Auth0 **Login** flow as well as
+deploying the backend; the repository copy is not executed by the backend.
+Pending or confirmed metadata must not suppress confirmation for identities
+that are still unlinked. Proof logins (`link_proof=true`) still bypass the
+linking prompt. Configure the development Action with `NODE_ENV=development`
+and `DEV_ACCOUNT_LINK_CONFIRMATION_URL` pointing to the backend's
+`/api/v001/auth/confirm-account-linking` endpoint (not directly to the frontend).
+The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the login frontend's
+`/confirm-linking` page.
+
 ## Rate limiting and proxy trust
 
 The backend uses an atomic Redis fixed-window limiter. OAuth initiation and callback, logout, self-service mutations, and admin mutations use separate route groups. Keys contain Fastify's resolved client IP, the authenticated session subject when available, and the normalized route group; query strings are never included.

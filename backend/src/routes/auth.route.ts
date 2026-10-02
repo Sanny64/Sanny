@@ -55,6 +55,57 @@ import {
 const mfaAcr = "http://schemas.openid.net/pape/policies/2007/06/multi-factor";
 const emailMfaAcr = "https://sanny64.de/acr/email-otp";
 
+async function startAuthorization(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  options: {
+    returnTo?: string | undefined;
+    emailMfa?: boolean | undefined;
+    mfa?: boolean;
+    reauthenticate?: boolean;
+    accountLinkRetry?: boolean;
+    loginHint?: string;
+    outstandingStates?: string[];
+  },
+) {
+  const codeVerifier = randomBytes(64).toString("base64url");
+  const codeChallenge = createHash("sha256")
+    .update(codeVerifier)
+    .digest("base64url");
+  const state = await createLoginState(
+    codeVerifier,
+    options.returnTo,
+    options.emailMfa,
+    options.accountLinkRetry,
+  );
+  setLoginStates(reply, [
+    ...(options.outstandingStates ?? getLoginStates(request)),
+    state,
+  ]);
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: requiredEnv("AUTH0_CLIENT_ID"),
+    redirect_uri: getCallbackUrl(),
+    audience: requiredEnv("AUTH0_AUDIENCE"),
+    scope: buildAuthorizationScope(),
+    state,
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+  });
+  if (options.reauthenticate) {
+    params.set("prompt", "login");
+    params.set("max_age", "0");
+  }
+  if (options.mfa) params.set("acr_values", mfaAcr);
+  if (options.emailMfa) {
+    params.set("acr_values", `${mfaAcr} ${emailMfaAcr}`);
+  }
+  if (options.loginHint) params.set("login_hint", options.loginHint);
+  return reply.redirect(
+    `https://${requiredEnv("AUTH0_DOMAIN")}/authorize?${params}`,
+  );
+}
+
 async function exchangeCode(
   code: string,
   codeVerifier: string,
@@ -277,41 +328,17 @@ async function authRoutes(server: FastifyInstance) {
       returnTo?: string;
     };
   }>("/", async (request, reply) => {
-    const codeVerifier = randomBytes(64).toString("base64url");
-    const codeChallenge = createHash("sha256")
-      .update(codeVerifier)
-      .digest("base64url");
     const returnTo = request.query.returnTo;
     const safeReturnTo =
       returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
         ? returnTo
         : undefined;
-    const emailMfa = request.query.emailMfa === "true";
-    const state = await createLoginState(codeVerifier, safeReturnTo, emailMfa);
-    setLoginStates(reply, [...getLoginStates(request), state]);
-    const params = new URLSearchParams({
-      response_type: "code",
-      client_id: requiredEnv("AUTH0_CLIENT_ID"),
-      redirect_uri: getCallbackUrl(),
-      audience: requiredEnv("AUTH0_AUDIENCE"),
-      scope: buildAuthorizationScope(),
-      state,
-      code_challenge: codeChallenge,
-      code_challenge_method: "S256",
+    return startAuthorization(request, reply, {
+      returnTo: safeReturnTo,
+      emailMfa: request.query.emailMfa === "true",
+      mfa: request.query.mfa === "true",
+      reauthenticate: request.query.reauthenticate === "true",
     });
-    if (request.query.reauthenticate === "true") {
-      params.set("prompt", "login");
-      params.set("max_age", "0");
-    }
-    if (request.query.mfa === "true") {
-      params.set("acr_values", mfaAcr);
-    }
-    if (emailMfa) {
-      params.set("acr_values", `${mfaAcr} ${emailMfaAcr}`);
-    }
-    return reply.redirect(
-      `https://${requiredEnv("AUTH0_DOMAIN")}/authorize?${params}`,
-    );
   });
 
   server.get<{
@@ -406,10 +433,30 @@ async function authRoutes(server: FastifyInstance) {
             existingAuth0Sub: existingUser?.auth0Sub,
             email: verifiedEmail,
           });
-          // This route is reached via a full-page browser redirect from
-          // Auth0, not a fetch call, so a JSON body would just render as
-          // plain text. Redirect back into the app with an error the
-          // frontend already knows how to surface instead.
+          // Linking needs a live Auth0 redirect transaction, not the consumed
+          // OAuth callback state. Retry once without granting a session.
+          if (
+            !state.accountLinkRetry &&
+            existingUser &&
+            ((auth.identity.sub.startsWith("auth0|") &&
+              existingUser.auth0Sub?.startsWith("google-oauth2|")) ||
+              (auth.identity.sub.startsWith("google-oauth2|") &&
+                (
+                  existingUser.auth0Sub ?? `auth0|${existingUser.id}`
+                ).startsWith("auth0|")))
+          ) {
+            return startAuthorization(request, reply, {
+              returnTo: state.returnTo,
+              emailMfa: state.emailMfa,
+              mfa: auth.mfaAuthenticated,
+              accountLinkRetry: true,
+              reauthenticate: true,
+              loginHint: verifiedEmail,
+              outstandingStates: outstandingStates.filter(
+                (value) => value !== request.query.state,
+              ),
+            });
+          }
           return reply.redirect(
             getAuthErrorRedirectUrl(
               "account_linking_required",

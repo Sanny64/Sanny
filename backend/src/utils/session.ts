@@ -46,6 +46,7 @@ export type LoginState = {
   codeVerifier: string;
   returnTo?: string;
   emailMfa?: boolean;
+  accountLinkRetry?: boolean;
 };
 export type AccountLinkProofState = {
   codeVerifier: string;
@@ -509,6 +510,7 @@ export async function createLoginState(
   codeVerifier: string,
   returnTo?: string,
   emailMfa = false,
+  accountLinkRetry = false,
 ) {
   const state = randomBytes(32).toString("base64url");
   await getRedis().set(
@@ -517,6 +519,7 @@ export async function createLoginState(
       codeVerifier,
       ...(returnTo ? { returnTo } : {}),
       ...(emailMfa ? { emailMfa: true } : {}),
+      ...(accountLinkRetry ? { accountLinkRetry: true } : {}),
     } satisfies LoginState),
     { EX: stateTtlSeconds },
   );

@@ -48,12 +48,6 @@
 const LINK_DECISION_METADATA_KEY = "pending_account_link";
 const GOOGLE_PROVIDER = "google-oauth2";
 const DATABASE_PROVIDER = "auth0";
-// A "pending" decision is only recorded right before redirecting the user to
-// the confirmation page. If that attempt is abandoned (closed tab, network
-// error) the flag would otherwise permanently block re-detection.
-// Only a recent "pending" decision suppresses another prompt; actual linked
-// identities, not a "confirmed" metadata flag, establish a completed link.
-const PENDING_DECISION_TTL_MS = 5 * 60 * 1000;
 
 /**
  * @param {PostLoginEvent} event
@@ -133,19 +127,6 @@ function identityAlreadyLinked(primaryUser, secondaryParsedUserId) {
       identity.provider === secondaryParsedUserId.provider &&
       identity.user_id === secondaryParsedUserId.providerUserId,
   );
-}
-
-/**
- * @param {{ decision?: string; decidedAt?: string } | undefined} decision
- * @returns {boolean}
- */
-function isDecisionStillBlocking(decision) {
-  if (!decision || typeof decision !== "object") return false;
-  if (decision.decision !== "pending") return false;
-
-  const decidedAt = Date.parse(decision.decidedAt || "");
-  if (!Number.isFinite(decidedAt)) return false;
-  return Date.now() - decidedAt < PENDING_DECISION_TTL_MS;
 }
 
 /**
@@ -247,8 +228,7 @@ async function linkIdentity(
 }
 
 /**
- * Record that this user was already offered a link decision, so we don't
- * re-prompt on every subsequent login regardless of outcome.
+ * Verify ownership of the identity not used for the current login.
  * @param {PostLoginEvent} event
  * @param {string} managementToken
  * @param {string} userId
@@ -327,10 +307,6 @@ async function detectAndPromptForLinking(event, api) {
     return;
   }
 
-  const alreadyDecided =
-    event.user.app_metadata &&
-    event.user.app_metadata[LINK_DECISION_METADATA_KEY];
-
   const managementToken = await fetchManagementToken(event);
   if (!managementToken) {
     logLinkDetection("no_management_token");
@@ -374,10 +350,6 @@ async function detectAndPromptForLinking(event, api) {
       throw new Error("Cannot select the linked primary identity");
     }
     api.authentication.setPrimaryUser(primaryUser.user_id);
-    return;
-  }
-
-  if (isDecisionStillBlocking(alreadyDecided)) {
     return;
   }
 
@@ -438,7 +410,9 @@ async function detectAndPromptForLinking(event, api) {
     event,
     "ACCOUNT_LINK_CONFIRMATION_URL",
   );
-  if (!api.redirect) return;
+  if (!api.redirect) {
+    throw new Error("Cannot redirect for account-link ownership proof");
+  }
 
   api.redirect.sendUserTo(environmentSpecificConfirmationUrl, {
     query: {

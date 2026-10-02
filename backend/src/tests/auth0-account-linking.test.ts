@@ -250,14 +250,14 @@ test("confirmed metadata without a linked identity prompts for ownership proof i
   }
 });
 
-test("only a recent pending link decision suppresses another ownership prompt", async () => {
+test("pending or cancelled metadata never skips ownership proof on a new login", async () => {
   const action = await loadAction();
   const users = [
     { user_id: "auth0|email-user", email_verified: true },
     { user_id: "google-oauth2|google-user", email_verified: true },
   ];
   for (const [decision, expectedPrompts] of [
-    [{ decision: "pending", decidedAt: new Date().toISOString() }, 0],
+    [{ decision: "pending", decidedAt: new Date().toISOString() }, 1],
     [
       {
         decision: "pending",
@@ -291,6 +291,21 @@ test("only a recent pending link decision suppresses another ownership prompt", 
       assert.equal(redirects.length, expectedPrompts);
     });
   }
+});
+
+test("a duplicate identity fails closed when the linking redirect is unavailable", async () => {
+  const users = [
+    { user_id: "auth0|email-user", email_verified: true },
+    { user_id: "google-oauth2|google-user", email_verified: true },
+  ];
+  const action = await loadAction();
+  await withManagementApi(users, async () => {
+    let denial: string | undefined;
+    await action.onExecutePostLogin(actionEvent(users), {
+      access: { deny: (reason: string) => (denial = reason) },
+    });
+    assert.equal(denial, "account_linking_failed");
+  });
 });
 
 test("secondary ownership proof keeps its database subject even when already linked", async () => {
