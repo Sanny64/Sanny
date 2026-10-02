@@ -5,6 +5,7 @@ const proofTtlMs = 2 * 60 * 1000;
 type AccountLinkProof = {
   primaryUserId: string;
   secondaryUserId: string;
+  authenticatedUserId: string;
   expiresAt: number;
 };
 
@@ -25,11 +26,13 @@ export function createAccountLinkProof(
   secondaryUserId: string,
   secret: string,
   now = Date.now(),
+  authenticatedUserId = secondaryUserId,
 ) {
   const payload = encode(
     JSON.stringify({
       primaryUserId,
       secondaryUserId,
+      authenticatedUserId,
       expiresAt: now + proofTtlMs,
     } satisfies AccountLinkProof),
   );
@@ -42,6 +45,7 @@ export function verifyAccountLinkProof(
   secondaryUserId: string,
   secret: string,
   now = Date.now(),
+  authenticatedUserId = secondaryUserId,
 ) {
   if (!proof) return false;
   const [payload, signature, ...extra] = proof.split(".");
@@ -58,6 +62,7 @@ export function verifyAccountLinkProof(
     return (
       parsed.primaryUserId === primaryUserId &&
       parsed.secondaryUserId === secondaryUserId &&
+      parsed.authenticatedUserId === authenticatedUserId &&
       Number.isSafeInteger(parsed.expiresAt) &&
       parsed.expiresAt > now
     );

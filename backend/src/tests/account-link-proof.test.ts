@@ -67,3 +67,43 @@ test("rejects tampered and expired account-link proofs", () => {
     false,
   );
 });
+
+test("proof binds which account actually authenticated in the popup", () => {
+  for (const authenticatedUserId of [
+    "google-oauth2|google-user",
+    "auth0|database-user",
+  ]) {
+    const proof = createAccountLinkProof(
+      "google-oauth2|google-user",
+      "auth0|database-user",
+      secret,
+      now,
+      authenticatedUserId,
+    );
+    assert.equal(
+      verifyAccountLinkProof(
+        proof,
+        "google-oauth2|google-user",
+        "auth0|database-user",
+        secret,
+        now,
+        authenticatedUserId,
+      ),
+      true,
+    );
+    const otherUserId = authenticatedUserId.startsWith("auth0|")
+      ? "google-oauth2|google-user"
+      : "auth0|database-user";
+    assert.equal(
+      verifyAccountLinkProof(
+        proof,
+        "google-oauth2|google-user",
+        "auth0|database-user",
+        secret,
+        now,
+        otherUserId,
+      ),
+      false,
+    );
+  }
+});

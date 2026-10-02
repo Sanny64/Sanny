@@ -39,6 +39,8 @@ import {
 } from "../utils/auth0-management.js";
 import { destroySessionsForSubject } from "../utils/session.js";
 import { createSafeErrorResponse } from "../utils/safe-error.js";
+import { createPasswordResetErrorResponse } from "../utils/password-reset-error.js";
+import { PasswordResetMailError } from "../utils/password-reset-mail.js";
 import { logSecurityEvent } from "../utils/security-audit.js";
 
 type CreateSelfUserInput = z.infer<typeof createSelfUserSchema>;
@@ -340,19 +342,20 @@ export async function requestSelfPasswordResetHandler(
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
     }
-    await sendAuth0PasswordResetEmail(identity.sub, user.email);
+    await sendAuth0PasswordResetEmail(user.email);
     return reply.code(200).send({ success: true, message: "Password reset email sent" });
 
   } catch (err) {
-    if (err instanceof Auth0ManagementError) {
-      const statusCode =
-        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 400;
+    if (
+      err instanceof Auth0ManagementError ||
+      err instanceof PasswordResetMailError
+    ) {
       console.error(
-        "Auth0 Management API error creating password reset ticket:",
-        err.statusCode,
+        "Auth0 error requesting password reset email:",
+        err instanceof Auth0ManagementError ? err.statusCode : "SMTP",
         err.message,
       );
-      const safe = createSafeErrorResponse(err, statusCode);
+      const safe = createPasswordResetErrorResponse(err);
       return reply
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
@@ -577,19 +580,20 @@ export async function requestUserPasswordResetHandler(
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
     }
-    await sendAuth0PasswordResetEmail(userWithAuth0Sub.auth0Sub, user.email);
+    await sendAuth0PasswordResetEmail(user.email);
     // Return 200 instead of 204 for consistency and better frontend handling
     return reply.code(200).send({ success: true, message: "Password reset email sent" });
   } catch (err) {
-    if (err instanceof Auth0ManagementError) {
-      const statusCode =
-        err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 400;
+    if (
+      err instanceof Auth0ManagementError ||
+      err instanceof PasswordResetMailError
+    ) {
       console.error(
-        "Auth0 Management API error creating password reset ticket:",
-        err.statusCode,
+        "Auth0 error requesting password reset email:",
+        err instanceof Auth0ManagementError ? err.statusCode : "SMTP",
         err.message,
       );
-      const safe = createSafeErrorResponse(err, statusCode);
+      const safe = createPasswordResetErrorResponse(err);
       return reply
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });

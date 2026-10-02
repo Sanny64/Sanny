@@ -42,6 +42,10 @@ import {
 } from "../services/user.service.js";
 import { isAuth0IdentityLinked } from "../utils/auth0-management.js";
 import { createAccountLinkProof } from "../utils/account-link-proof.js";
+import {
+  getAccountLinkContinuationUrl,
+  type AccountLinkContinuation,
+} from "../utils/account-link-continuation.js";
 
 async function exchangeCode(
   code: string,
@@ -106,16 +110,29 @@ async function accountLinkingConfirmationHandler(
   const query = request.query as {
     primaryUserId?: string;
     secondaryUserId?: string;
+    proofUserId?: string;
     temporaryUserId?: string;
     state?: string;
   };
-  const { primaryUserId, secondaryUserId, temporaryUserId, state } = query;
+  const {
+    primaryUserId,
+    secondaryUserId,
+    temporaryUserId,
+    state,
+    proofUserId,
+  } = query;
 
-  if (!primaryUserId || !secondaryUserId || !state) {
+  if (
+    !primaryUserId ||
+    !secondaryUserId ||
+    !state ||
+    !proofUserId ||
+    (proofUserId !== primaryUserId && proofUserId !== secondaryUserId)
+  ) {
     return reply.code(400).send({
       error: "Invalid request",
       message:
-        "Missing required parameters: primaryUserId, secondaryUserId, state",
+        "Missing or invalid account-linking parameters. Restart login with the updated Auth0 Action.",
     });
   }
   if (
@@ -135,6 +152,7 @@ async function accountLinkingConfirmationHandler(
     continuationState: state,
     primaryUserId,
     secondaryUserId,
+    proofUserId,
     ...(temporaryUserId ? { temporaryUserId } : {}),
   });
   if (temporaryUserId) {
@@ -154,6 +172,7 @@ async function accountLinkingConfirmationHandler(
   const frontendUrl = new URL(getAccountLinkFrontendUrl());
   frontendUrl.searchParams.set("primaryUserId", primaryUserId);
   frontendUrl.searchParams.set("secondaryUserId", secondaryUserId);
+  frontendUrl.searchParams.set("proofUserId", proofUserId);
   if (temporaryUserId) {
     frontendUrl.searchParams.set("temporaryUserId", temporaryUserId);
   }
@@ -343,6 +362,46 @@ async function authRoutes(server: FastifyInstance) {
     return accountLinkingConfirmationHandler(request, reply);
   });
 
+  server.get<{ Querystring: Partial<AccountLinkContinuation> }>(
+    "/account-link/continue",
+    async (request, reply) => {
+      const query = request.query;
+      if (
+        typeof query.state !== "string" ||
+        !query.state ||
+        typeof query.primaryUserId !== "string" ||
+        !query.primaryUserId ||
+        typeof query.secondaryUserId !== "string" ||
+        !query.secondaryUserId ||
+        !["confirm", "cancel"].includes(query.decision ?? "") ||
+        (query.temporaryUserId !== undefined &&
+          typeof query.temporaryUserId !== "string") ||
+        (query.proof !== undefined && typeof query.proof !== "string") ||
+        (query.decision === "confirm" && !query.proof)
+      ) {
+        logSecurityEvent("account_link_continuation_rejected", {
+          reason: "Missing or invalid continuation parameters",
+        });
+        return reply.code(400).send({
+          error: "Invalid request",
+          message: "Invalid account-link continuation parameters.",
+        });
+      }
+      return reply.redirect(
+        getAccountLinkContinuationUrl({
+          state: query.state,
+          decision: query.decision === "confirm" ? "confirm" : "cancel",
+          primaryUserId: query.primaryUserId,
+          secondaryUserId: query.secondaryUserId,
+          ...(query.temporaryUserId
+            ? { temporaryUserId: query.temporaryUserId }
+            : {}),
+          ...(query.proof ? { proof: query.proof } : {}),
+        }),
+      );
+    },
+  );
+
   server.get<{ Querystring: { state?: string } }>(
     "/account-link-proof/start",
     async (request, reply) => {
@@ -354,9 +413,19 @@ async function authRoutes(server: FastifyInstance) {
       );
       if (!raw) return reply.code(400).send({ error: "Invalid request" });
       const pending = JSON.parse(raw) as {
-        secondaryUserId: string;
+        proofUserId: string;
+        codeVerifier: string;
       };
-      const [provider] = pending.secondaryUserId.split("|", 1);
+      if (!pending.proofUserId) {
+        logSecurityEvent("account_link_proof_rejected", {
+          reason: "Pending proof predates directional ownership verification",
+        });
+        return reply.code(400).send({
+          error: "Invalid request",
+          message: "Restart account linking.",
+        });
+      }
+      const [provider] = pending.proofUserId.split("|", 1);
       const connection =
         provider === "google-oauth2"
           ? "google-oauth2"
@@ -371,6 +440,10 @@ async function authRoutes(server: FastifyInstance) {
         prompt: "login",
         connection,
         link_proof: "true",
+        code_challenge: createHash("sha256")
+          .update(pending.codeVerifier)
+          .digest("base64url"),
+        code_challenge_method: "S256",
       });
       return reply.redirect(
         `https://${requiredEnv("AUTH0_DOMAIN")}/authorize?${params}`,
@@ -395,7 +468,7 @@ async function authRoutes(server: FastifyInstance) {
         getAccountLinkProofCompletionUrl(
           new URLSearchParams({
             error:
-              "Secondary authentication could not be completed. Please try again.",
+              "Account ownership verification could not be completed. Please try again.",
           }),
         ),
       );
@@ -410,9 +483,9 @@ async function authRoutes(server: FastifyInstance) {
       pending.codeVerifier,
       getAccountLinkProofCallbackUrl(),
     );
-    if (auth.identity.sub !== pending.secondaryUserId) {
+    if (auth.identity.sub !== pending.proofUserId) {
       logSecurityEvent("account_link_proof_rejected", {
-        expectedSub: pending.secondaryUserId,
+        expectedSub: pending.proofUserId,
         actualSub: auth.identity.sub,
       });
       return reply.code(403).send({ error: "Forbidden" });
@@ -421,6 +494,8 @@ async function authRoutes(server: FastifyInstance) {
       pending.primaryUserId,
       pending.secondaryUserId,
       requiredEnv("ACCOUNT_LINK_PROOF_SECRET"),
+      Date.now(),
+      auth.identity.sub,
     );
     return reply.redirect(
       getAccountLinkProofCompletionUrl(new URLSearchParams({ proof })),

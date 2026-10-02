@@ -35,3 +35,98 @@ The backend source and its automated tests verify the local OAuth and token-hand
 - Keep role synchronization disabled unless `AUTH0_ROLE_SYNC_ENABLED=true` is intentional.
 - `AUTH0_ASSIGNABLE_ROLES` must contain only reviewed, exact role names.
 - Grant the machine-to-machine client only the least-privilege Management API scopes required by the enabled operation.
+
+## MFA step-up and password reset
+
+- Deploy `backend/auth0/post-login/mfaStepUp.js` in the Login flow and set its
+  `MFA_ACR` secret to
+  `http://schemas.openid.net/pape/policies/2007/06/multi-factor`.
+  The Action requests MFA only when this value is explicitly requested.
+- Enable the intended MFA factors in Security -> Multi-factor Auth and ensure
+  administrators can complete enrollment and step-up. For Actions that customize
+  factor selection, enable **Customize MFA Factors using Actions** under
+  **Additional Settings**. The Auth0 error
+  `MFA customized via PostLogin action but feature is not enabled` indicates a
+  missing tenant feature setting, not proof of bot detection. Check the deployed
+  Login Actions as well as the source mirror.
+- Self-service password-reset email requests require a valid Sanny session, but
+  do not request MFA step-up. Admin reset requests additionally require the
+  `admin` role, `write:users`, and MFA completed within the last 15 minutes.
+  Do not remove those guards to work around a tenant configuration error.
+- Both handlers create a Management API `/tickets/password-change` ticket with
+  `AUTH0_CLIENT_ID`, `AUTH0_DATABASE_CONNECTION_ID`, and the target user's stored
+  email. Set the non-secret `con_...` ID of the same connection identified by
+  `AUTH0_DATABASE_CONNECTION`. Enable that connection for the application and
+  grant the M2M client `create:user_tickets`. Targeting the database connection by
+  email also supports database identities linked to a social primary account;
+  social-only accounts must reset their password with their identity provider.
+- Tickets expire after 15 minutes and do not mark email as verified or include
+  email in redirects. Configure the application's default login route in Auth0
+  for the completion redirect. Tickets are delivered only to the target user's
+  stored email, never returned to the requester or logged.
+- Sanny sends a bilingual plain-text email through `SMTP_HOST` (hostname with
+  optional port, default 587), `SMTP_USER`, `SMTP_PASSWORD`, and
+  `SMTP_FROM_ADDRESS` (a single mailbox). Port 465 uses implicit TLS; other ports
+  require STARTTLS. Certificate verification is not disabled. Success means the
+  SMTP server accepted the message, not that inbox delivery is guaranteed.
+- The public `/dbconnections/change_password` endpoint is no longer used.
+  Its `requires_verification` / `Suspicious request requires verification` error
+  indicates a Bot Detection challenge that a server-to-server request cannot
+  complete. Keep Bot Detection enabled; authenticated Management API ticket
+  creation and SMTP delivery avoid that incompatible public request flow.
+- Auth0 failures are logged server-side with the upstream status and detail.
+  The reset endpoints return a safe `502` provider-failure response, or `429`
+  for rate limiting. SMTP configuration or delivery failure returns a safe `503`.
+  An Auth0 `401` is not returned as a Sanny session `401`.
+  Local session and MFA guards retain their `401` responses.
+- If Auth0 rejects the email request, inspect the server log entry
+  `Auth0 error requesting password reset email` and the corresponding Auth0
+  tenant log. Check M2M scopes, database connection ID, and SMTP settings instead
+  of disabling attack-protection settings.
+
+See [Auth0's MFA customization prerequisites](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa/customize-mfa-selection-universal-login).
+
+## Linked identities and canonical subjects
+
+- Deploy `backend/auth0/post-login/linkAccounts.js` in the Auth0 Login flow.
+  Local source changes and backend container rebuilds do not deploy Actions.
+- On subsequent database logins, the Action must call
+  `api.authentication.setPrimaryUser` when the verified Google primary's
+  `identities` contains that exact database identity. A prior `confirmed`
+  metadata flag must not skip this canonicalization. Matching email or decision
+  metadata alone is not evidence of a link.
+- Secondary ownership-proof logins (`link_proof=true`) intentionally retain the
+  database subject. They must not be canonicalized before proof verification.
+- The canonical primary is always Google, but the ownership-proof target is the
+  account not used for the current login: Google login requires database proof;
+  database login (including a first password set through reset) requires Google
+  proof. The Action passes `proofUserId`, the backend enforces that exact subject,
+  and the signed proof includes `authenticatedUserId`. On continuation the Action
+  checks this against the opposite of its original login subject. Deploy the
+  updated Action and backend together; restart pending links after deployment.
+- If the backend reports `account_linking_needed` even though the stored Google
+  profile contains the database identity, check the token subject and deployed
+  Action version. A database-subject token must not be accepted as a Google
+  primary session by reversing the backend's link check or rewriting the local
+  account subject. Restart login after deploying the corrected Action so Auth0
+  issues a new primary-subject token with the appropriate claims.
+
+### Password reset during ownership proof
+
+- Set the OAuth application's **Application Login URI** in Auth0 to
+  `https://localhost:5174/account-link-proof-resume` for local testing, or the
+  deployed login frontend's `/account-link-proof-resume` URL for production.
+  This is the default login route used by New Universal Login after password
+  reset. It is not the OAuth callback URL.
+- The proof popup first visits the login frontend to save its opaque pending
+  state and expiry in that window's `sessionStorage`. After reset, Auth0's
+  completion/return-to-application button takes the same popup to the resume
+  route, which starts a fresh secondary authentication using the pending state.
+  The reset itself is never treated as proof of account ownership.
+- Expired state requires restarting linking. Outside a proof popup, the default
+  login route starts ordinary backend login. Completing reset in a different tab
+  does not automatically resume the original popup.
+- Continuations are constructed by the backend using `AUTH0_DOMAIN`, matching
+  the host used for `/authorize`. Do not mix the tenant domain and custom domain
+  for the same Auth0 transaction. The login frontend no longer uses a separate
+  `VITE_AUTH0_DOMAIN` to construct `/continue`.

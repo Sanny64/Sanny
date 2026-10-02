@@ -5,7 +5,6 @@ import "./AccountLinkingPage.css";
 const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
   : import.meta.env.VITE_PROD_API_URL;
-const auth0Domain = import.meta.env.VITE_AUTH0_DOMAIN ?? "sanny64.eu.auth0.com";
 const proofChannelName = "sanny-account-link-proof";
 
 type AccountLinkProofMessage = {
@@ -29,7 +28,7 @@ function getAccountLinkContinuationUrl({
   temporaryUserId: string | null;
   proof?: string;
 }) {
-  const continueUrl = new URL(`https://${auth0Domain}/continue`);
+  const continueUrl = new URL("/api/v001/auth/account-link/continue", apiUrl);
   continueUrl.searchParams.set("state", continuationState);
   continueUrl.searchParams.set("decision", decision);
   continueUrl.searchParams.set("primaryUserId", primaryUserId);
@@ -82,6 +81,7 @@ export default function AccountLinkingPage() {
 
   const primaryUserId = searchParams.get("primaryUserId");
   const secondaryUserId = searchParams.get("secondaryUserId");
+  const proofUserId = searchParams.get("proofUserId");
   const temporaryUserId = searchParams.get("temporaryUserId");
   const continuationState = searchParams.get("continuationState");
   const proofState = searchParams.get("proofState");
@@ -99,9 +99,15 @@ export default function AccountLinkingPage() {
 
   const primaryParsed = primaryUserId && parseAuth0UserId(primaryUserId);
   const secondaryParsed = secondaryUserId && parseAuth0UserId(secondaryUserId);
+  const proofParsed = proofUserId && parseAuth0UserId(proofUserId);
 
   const hasValidParams =
-    primaryParsed && secondaryParsed && continuationState && proofState;
+    primaryParsed &&
+    secondaryParsed &&
+    proofParsed &&
+    (proofUserId === primaryUserId || proofUserId === secondaryUserId) &&
+    continuationState &&
+    proofState;
   const validationError = !hasValidParams
     ? "Invalid request: missing account-linking parameters"
     : null;
@@ -123,6 +129,8 @@ export default function AccountLinkingPage() {
   useEffect(() => {
     const channel = new BroadcastChannel(proofChannelName);
     function receiveProof(message: AccountLinkProofMessage) {
+      if (!hasValidParams || (expiresAt !== null && Date.now() >= expiresAt))
+        return;
       if (message.type === "error") {
         setError(
           typeof message.message === "string"
@@ -165,7 +173,14 @@ export default function AccountLinkingPage() {
       window.removeEventListener("message", receiveWindowMessage);
       channel.close();
     };
-  }, [continuationState, primaryUserId, secondaryUserId, temporaryUserId]);
+  }, [
+    continuationState,
+    primaryUserId,
+    secondaryUserId,
+    temporaryUserId,
+    hasValidParams,
+    expiresAt,
+  ]);
 
   if (!hasValidParams) {
     return (
@@ -183,6 +198,7 @@ export default function AccountLinkingPage() {
 
   const primaryProvider = getProviderDisplayName(primaryParsed.provider);
   const secondaryProvider = getProviderDisplayName(secondaryParsed.provider);
+  const proofProvider = getProviderDisplayName(proofParsed!.provider);
   const primaryIcon = getProviderIcon(primaryParsed.provider);
   const secondaryIcon = getProviderIcon(secondaryParsed.provider);
 
@@ -213,8 +229,14 @@ export default function AccountLinkingPage() {
 
     setIsProcessing(true);
     setAuthWindowOpen(true);
-    const authUrl = new URL("/api/v001/auth/account-link-proof/start", apiUrl);
-    authUrl.searchParams.set("state", proofState!);
+    const authUrl = new URL(
+      "/account-link-proof-resume",
+      window.location.origin,
+    );
+    authUrl.hash = new URLSearchParams({
+      state: proofState!,
+      expiresAt: String(expiresAt),
+    }).toString();
 
     const authWindow = window.open(
       authUrl.toString(),
@@ -225,7 +247,7 @@ export default function AccountLinkingPage() {
     if (!authWindow) {
       setError(
         "Popup was blocked. Please allow popups and try again. After authenticating with your " +
-          secondaryProvider +
+          proofProvider +
           " account, you can confirm the linking.",
       );
       setAuthWindowOpen(false);
@@ -289,14 +311,14 @@ export default function AccountLinkingPage() {
         {!isExpired && !authWindowOpen && !error && !proof && (
           <div className="warning">
             <strong>Security:</strong> To confirm linking, you will need to
-            re-authenticate with your {secondaryProvider} account. This is a
+            re-authenticate with your {proofProvider} account. This is a
             security measure to verify you own both accounts.
           </div>
         )}
 
         {!isExpired && proof && (
           <div className="success-banner">
-            ✓ You've successfully authenticated with your {secondaryProvider}{" "}
+            ✓ You've successfully authenticated with your {proofProvider}{" "}
             account. Now confirm to complete the linking.
           </div>
         )}
@@ -307,13 +329,12 @@ export default function AccountLinkingPage() {
           <div className="auth-modal">
             <h2>Completing Authentication</h2>
             <p>
-              A new window opened for you to authenticate with{" "}
-              {secondaryProvider}.
+              A new window opened for you to authenticate with {proofProvider}.
             </p>
             <p>
-              {secondaryProvider === "Email & Password"
+              {proofProvider === "Email & Password"
                 ? "Please enter your email and password."
-                : `Please log in with your ${secondaryProvider} account.`}
+                : `Please log in with your ${proofProvider} account.`}
             </p>
             <p>If the window closed unexpectedly, you can try again.</p>
             <div className="spinner"></div>

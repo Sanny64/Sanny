@@ -17,8 +17,16 @@ const appTsxPath = fileURLToPath(
 test("login app registers both the confirm-linking and proof-complete routes", async () => {
   const source = await readFile(appTsxPath, "utf8");
 
-  assert.match(source, /path="\/confirm-linking"/);
-  assert.match(source, /element=\{<AccountLinkingPage \/>\}/);
-  assert.match(source, /path="\/account-link-proof-complete"/);
-  assert.match(source, /element=\{<AccountLinkingProofPage \/>\}/);
+  assert.match(
+    source,
+    /path:\s*"\/confirm-linking",\s*element:\s*<AccountLinkingPage \/>/,
+  );
+  assert.match(
+    source,
+    /path:\s*"\/account-link-proof-complete",\s*element:\s*<AccountLinkingProofPage \/>/,
+  );
+  assert.match(
+    source,
+    /path:\s*"\/account-link-proof-resume",\s*element:\s*<AccountLinkingResumePage \/>/,
+  );
 });

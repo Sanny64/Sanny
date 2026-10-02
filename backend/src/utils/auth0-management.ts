@@ -1,3 +1,8 @@
+import {
+  getPasswordResetMailConfig,
+  sendPasswordResetMail,
+} from "./password-reset-mail.js";
+
 type Auth0TokenResponse = {
   access_token: string;
   token_type: string;
@@ -80,7 +85,7 @@ function getManagementConfig() {
   };
 }
 
-async function getManagementAccessToken(): Promise<string> {
+async function getManagementAccessToken(signal?: AbortSignal): Promise<string> {
   const { domain, clientId, clientSecret, audience } = getManagementConfig();
 
   const response = await fetch(`https://${domain}/oauth/token`, {
@@ -94,6 +99,7 @@ async function getManagementAccessToken(): Promise<string> {
       client_secret: clientSecret,
       audience,
     }),
+    ...(signal ? { signal } : {}),
   });
 
   if (!response.ok) {
@@ -120,7 +126,7 @@ async function auth0ManagementRequest(
   init: RequestInit = {},
 ): Promise<Response> {
   const { domain } = getManagementConfig();
-  const accessToken = await getManagementAccessToken();
+  const accessToken = await getManagementAccessToken(init.signal ?? undefined);
 
   const response = await fetch(`https://${domain}/api/v2${path}`, {
     ...init,
@@ -268,28 +274,85 @@ export async function syncAuth0UserRolesByName(
   };
 }
 
-export async function sendAuth0PasswordResetEmail(auth0Sub: string, email: string) {
+export async function sendAuth0PasswordResetEmail(
+  email: string,
+  deliverEmail: (
+    email: string,
+    ticket: string,
+  ) => Promise<void> = sendPasswordResetMail,
+): Promise<void> {
+  getPasswordResetMailConfig();
   const domain = getRequiredEnv("AUTH0_DOMAIN");
-  const response = await fetch(
-    `https://${domain}/dbconnections/change_password`,
-    {
+  let response: Response;
+  try {
+    response = await auth0ManagementRequest("/tickets/password-change", {
       method: "POST",
-      headers: { "content-type": "application/json" },
       body: JSON.stringify({
         client_id: getRequiredEnv("AUTH0_CLIENT_ID"),
-        connection: getRequiredEnv("AUTH0_DATABASE_CONNECTION"),
+        connection_id: getRequiredEnv("AUTH0_DATABASE_CONNECTION_ID"),
         email,
+        ttl_sec: 15 * 60,
+        mark_email_as_verified: false,
+        includeEmailInRedirect: false,
       }),
-    },
-  );
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    if (error instanceof Auth0ManagementError) throw error;
+    throw new Auth0ManagementError(
+      "Auth0 password reset ticket request could not be completed",
+      502,
+    );
+  }
 
   if (!response.ok) {
-    const text = await response.text();
     throw new Auth0ManagementError(
-      `Failed to request Auth0 password reset: ${text || response.statusText}`,
+      `Auth0 password reset ticket request failed (${response.status}); check the tenant log and create:user_tickets scope`,
       response.status,
     );
   }
+
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new Auth0ManagementError(
+      "Auth0 returned an invalid password reset ticket response",
+      502,
+    );
+  }
+  if (
+    !body ||
+    typeof body !== "object" ||
+    !("ticket" in body) ||
+    typeof body.ticket !== "string"
+  ) {
+    throw new Auth0ManagementError(
+      "Auth0 password reset response missing ticket",
+      502,
+    );
+  }
+  let ticketUrl: URL;
+  try {
+    ticketUrl = new URL(body.ticket);
+  } catch {
+    throw new Auth0ManagementError(
+      "Auth0 returned an invalid password reset ticket URL",
+      502,
+    );
+  }
+  if (
+    ticketUrl.protocol !== "https:" ||
+    ticketUrl.host !== domain ||
+    ticketUrl.username ||
+    ticketUrl.password
+  ) {
+    throw new Auth0ManagementError(
+      "Auth0 returned an untrusted password reset ticket URL",
+      502,
+    );
+  }
+  await deliverEmail(email, body.ticket);
 }
 
 export async function deleteAuth0UserBySub(auth0Sub: string): Promise<void> {

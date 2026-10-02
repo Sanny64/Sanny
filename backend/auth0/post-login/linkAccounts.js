@@ -6,7 +6,7 @@
  *   1. onExecutePostLogin detects candidate duplicate accounts.
  *   2. If found (and not already decided), redirect to a confirmation
  *      page you host. That page should require the user to re-authenticate
- *      into the *secondary* account before allowing "confirm" — this is
+ *      into the account not used for the current login before allowing "confirm" — this is
  *      the ownership proof Auth0's docs call for; this Action cannot
  *      enforce it on its own.
  *   3. Your confirmation page redirects back to
@@ -334,9 +334,6 @@ async function detectAndPromptForLinking(event, api) {
   const alreadyDecided =
     event.user.app_metadata &&
     event.user.app_metadata[LINK_DECISION_METADATA_KEY];
-  if (isDecisionStillBlocking(alreadyDecided)) {
-    return;
-  }
 
   const managementToken = await fetchManagementToken(event);
   if (!managementToken) {
@@ -365,6 +362,29 @@ async function detectAndPromptForLinking(event, api) {
     return !!parsed && allowedProviders.includes(parsed.provider);
   });
 
+  const primaryUser = selectGooglePrimaryIdentity(eligibleUsers);
+  const currentIdentity = parseAuth0UserId(event.user.user_id);
+  if (
+    primaryUser &&
+    currentIdentity &&
+    currentIdentity.provider === DATABASE_PROVIDER &&
+    identityAlreadyLinked(primaryUser, currentIdentity)
+  ) {
+    // A confirmed decision must not leave subsequent tokens on the secondary.
+    if (
+      !api.authentication ||
+      typeof api.authentication.setPrimaryUser !== "function"
+    ) {
+      throw new Error("Cannot select the linked primary identity");
+    }
+    api.authentication.setPrimaryUser(primaryUser.user_id);
+    return;
+  }
+
+  if (isDecisionStillBlocking(alreadyDecided)) {
+    return;
+  }
+
   if (eligibleUsers.length < 2) {
     logLinkDetection("fewer_than_two_eligible_users", {
       eligibleUserIds: eligibleUsers.map((u) => u.user_id),
@@ -372,7 +392,6 @@ async function detectAndPromptForLinking(event, api) {
     return;
   }
 
-  const primaryUser = selectGooglePrimaryIdentity(eligibleUsers);
   if (!primaryUser) {
     logLinkDetection("no_google_primary_identity_found");
     return;
@@ -394,6 +413,16 @@ async function detectAndPromptForLinking(event, api) {
       primaryIdentities: primaryUser.identities,
     });
     return; // nothing unlinked left to offer
+  }
+
+  const proofUserId =
+    event.user.user_id === primaryUser.user_id
+      ? secondaryUser.user_id
+      : event.user.user_id === secondaryUser.user_id
+        ? primaryUser.user_id
+        : undefined;
+  if (!proofUserId) {
+    throw new Error("The current login is not part of the account link");
   }
 
   const temporaryUserId =
@@ -419,6 +448,7 @@ async function detectAndPromptForLinking(event, api) {
     query: {
       primaryUserId: primaryUser.user_id,
       secondaryUserId: secondaryUser.user_id,
+      proofUserId,
       ...(temporaryUserId ? { temporaryUserId } : {}),
     },
   });
@@ -472,12 +502,22 @@ async function handleLinkDecision(event, api) {
   }
 
   if (decision === "confirm") {
+    const expectedProofUserId =
+      event.user.user_id === primaryUserId
+        ? secondaryUserId
+        : event.user.user_id === secondaryUserId
+          ? primaryUserId
+          : undefined;
+    if (!expectedProofUserId) {
+      throw new Error("The current login is not part of the account link");
+    }
     if (
       !verifyAccountLinkProof(
         proof,
         primaryUserId,
         secondaryUserId,
         getActionSecret(event, "ACCOUNT_LINK_PROOF_SECRET"),
+        expectedProofUserId,
       )
     ) {
       throw new Error("Invalid account-link proof");
@@ -498,12 +538,14 @@ async function handleLinkDecision(event, api) {
      * @param {string} primaryUserId
      * @param {string} secondaryUserId
      * @param {string} secret
+     * @param {string} authenticatedUserId
      */
     function verifyAccountLinkProof(
       proof,
       primaryUserId,
       secondaryUserId,
       secret,
+      authenticatedUserId,
     ) {
       if (typeof proof !== "string") return false;
       const parts = proof.split(".");
@@ -528,6 +570,7 @@ async function handleLinkDecision(event, api) {
         return (
           payload.primaryUserId === primaryUserId &&
           payload.secondaryUserId === secondaryUserId &&
+          payload.authenticatedUserId === authenticatedUserId &&
           Number.isSafeInteger(payload.expiresAt) &&
           payload.expiresAt > Date.now()
         );
@@ -553,10 +596,16 @@ exports.onExecutePostLogin = async (event, api) => {
     await detectAndPromptForLinking(event, api);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.log("post-login account link detection skipped", {
+    console.log("post-login account link detection failed", {
       message: errorMessage,
       userId: event.user && event.user.user_id ? event.user.user_id : null,
     });
+    if (api.access && typeof api.access.deny === "function") {
+      api.access.deny(
+        "account_linking_failed",
+        "Account linking could not be verified. Please try again.",
+      );
+    }
   }
 };
 
