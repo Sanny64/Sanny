@@ -25,7 +25,6 @@ export default function LoginButton() {
   const t = translations[useLanguage().language];
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userSyncError, setUserSyncError] = useState<string | null>(null);
   const sessionWarningToastId = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -45,7 +44,6 @@ export default function LoginButton() {
 
         if (!cancelled) {
           setIsAuthenticated(true);
-          setUserSyncError(null);
           const sessionExpiryHeader = authResponse.headers.get(
             "X-Session-Expires-At",
           );
@@ -83,8 +81,7 @@ export default function LoginButton() {
           const message =
             syncError instanceof Error
               ? syncError.message
-              : "User synchronization failed";
-          setUserSyncError(message);
+              : t.shared.notifications.userSyncError;
           showToast(message);
         }
       } finally {
@@ -127,13 +124,11 @@ export default function LoginButton() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Logout request failed";
-      setUserSyncError(message);
       showToast(message);
       return;
     }
     if (!response.ok) {
       const message = `Logout failed (${response.status})`;
-      setUserSyncError(message);
       showToast(message);
       return;
     }
@@ -145,13 +140,11 @@ export default function LoginButton() {
     try {
       result = (await response.json()) as { logoutUrl?: string };
     } catch {
-      setUserSyncError(t.login.userSyncError);
-      showToast(t.login.userSyncError);
+      showToast(t.shared.notifications.userSyncError);
       return;
     }
     if (!result.logoutUrl) {
-      setUserSyncError(t.login.userSyncError);
-      showToast(t.login.userSyncError);
+      showToast(t.shared.notifications.userSyncError);
       return;
     }
     window.location.href = result.logoutUrl;
@@ -165,7 +158,6 @@ export default function LoginButton() {
           type="button"
           variant="primary"
           onClick={() => {
-            setUserSyncError(null);
             window.location.href = `${apiUrl}/api/v001/auth`;
           }}
         >
@@ -182,7 +174,6 @@ export default function LoginButton() {
           {t.login.logoutButton}
         </Button>
       )}
-      {userSyncError && <p>{userSyncError}</p>}
     </>
   );
 }

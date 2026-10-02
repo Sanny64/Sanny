@@ -146,6 +146,8 @@ Sanny/ (Root Workspace)
 
 - Language and theme settings are handled by the shared i18n and styles packages, saved in cookies and mirrored in localStorage only on user change.
   - If no cookie value is set for either language or theme the website falls back to browser preferences
+- Transient account/admin feedback and recoverable login/linking failures use shared toasts, with German and English messages under `shared.notifications`. Loading, empty states, confirmations, and terminal errors remain on their pages.
+- Unknown routes in the main frontend display the localized 404 page. Explicit `/error?status=...` redirects and router errors retain their corresponding error pages.
 - Auth0 authentication routed via sub-domain to the protected Fastify API
 - RBAC
 - Auth0 credentials and application-user data share the MySQL user store without a second signup

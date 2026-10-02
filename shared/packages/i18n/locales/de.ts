@@ -39,7 +39,6 @@ export const de: Translations = {
   login: {
     loginButton: "Anmelden",
     logoutButton: "Abmelden",
-    userSyncError: "Benutzersynchronisierung fehlgeschlagen",
     authenticationFailed:
       "Authentifizierung fehlgeschlagen. Bitte versuche es erneut.",
     emailVerificationRequired:
@@ -73,13 +72,8 @@ export const de: Translations = {
       deleteAccount: "Mein Konto löschen",
       loadUsers: "Alle Benutzer laden",
       deleteUser: "Benutzer löschen",
-      accountCreated: "Konto erstellt",
-      accountUpdated: "Konto aktualisiert",
-      accountDeleted: "Konto gelöscht",
-      userDeleted: "Benutzer gelöscht",
       confirmDeleteAccount: "Dein Konto dauerhaft löschen?",
       confirmDeleteUser: "Diesen Benutzer dauerhaft löschen?",
-      requestFailed: "Die Kontoanfrage ist fehlgeschlagen.",
       adminSettingsTitle: "Admin-Einstellungen",
       adminUsersTitle: "Benutzerverwaltung",
       adminAccessDenied:
@@ -91,15 +85,9 @@ export const de: Translations = {
       updateUser: "Benutzer speichern",
       roles: "Rollen",
       syncRoles: "Rollen synchronisieren",
-      usersLoaded: "Benutzer geladen",
-      userLoaded: "Benutzer geladen",
-      userUpdated: "Benutzer aktualisiert",
-      rolesUpdated: "Rollen aktualisiert",
       resetPassword: "Passwort-Reset",
-      passwordResetRequested: "Passwort-Reset-E-Mail angefordert",
       testTitle: "Funktions-Tests",
       testAccountEndpoints: "Konto-Endpunkte testen",
-      accountTested: "Konto-Endpunkte haben erfolgreich geantwortet",
       openAdminSettings: "Admin-Einstellungen oeffnen",
     },
     errors: {
@@ -140,6 +128,22 @@ export const de: Translations = {
     notifications: {
       title: "Benachrichtigungen",
       dismiss: "Benachrichtigung schließen",
+      userSyncError: "Benutzersynchronisierung fehlgeschlagen",
+      accountCreated: "Konto erstellt",
+      accountUpdated: "Konto aktualisiert",
+      accountDeleted: "Konto gelöscht",
+      userDeleted: "Benutzer gelöscht",
+      requestFailed: "Die Kontoanfrage ist fehlgeschlagen.",
+      usersLoaded: "Benutzer geladen",
+      userLoaded: "Benutzer geladen",
+      userUpdated: "Benutzer aktualisiert",
+      rolesUpdated: "Rollen aktualisiert",
+      passwordResetRequested: "Passwort-Reset-E-Mail angefordert",
+      accountTested: "Konto-Endpunkte haben erfolgreich geantwortet",
+      accountLinkAuthenticationFailed:
+        "Die zusätzliche Authentifizierung konnte nicht abgeschlossen werden. Bitte versuche es erneut.",
+      accountLinkPopupBlocked: (provider: string): string =>
+        `Das Popup wurde blockiert. Bitte erlaube Popups und versuche es erneut. Nach der Authentifizierung mit deinem ${provider}-Konto kannst du die Verknüpfung bestätigen.`,
       sessionExpiresSoon:
         "Deine Sitzung läuft in 15 Minuten ab. Speichere deine Arbeit und melde dich erneut an, um fortzufahren.",
       signInAgain: "Erneut anmelden",

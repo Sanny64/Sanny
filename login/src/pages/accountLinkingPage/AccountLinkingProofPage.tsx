@@ -1,9 +1,13 @@
 import { useEffect } from "react";
+import { translations, useLanguage } from "@sanny/i18n";
 import { proofResumeKey } from "../../utils/proof-resume";
 
 const channelName = "sanny-account-link-proof";
 
 export default function AccountLinkingProofPage() {
+  const failureMessage =
+    translations[useLanguage().language].shared.notifications
+      .accountLinkAuthenticationFailed;
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const proof = params.get("proof");
@@ -12,9 +16,7 @@ export default function AccountLinkingProofPage() {
       ? { type: "proof", proof }
       : {
           type: "error",
-          message:
-            error ??
-            "Secondary authentication could not be completed. Please try again.",
+          message: error ?? failureMessage,
         };
     if (proof) {
       try {
@@ -33,7 +35,7 @@ export default function AccountLinkingProofPage() {
     }
     channel.close();
     window.close();
-  }, []);
+  }, [failureMessage]);
 
   return <p>Completing account verification...</p>;
 }

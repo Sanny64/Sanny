@@ -7,7 +7,7 @@ import {
   takePendingActionCredentials,
   type PendingAction,
 } from "../../utils/reauthentication";
-import { showToast } from "@sanny/ui";
+import { showErrorToast, showToast } from "@sanny/ui";
 
 type Identity = {
   email: string | null;
@@ -47,19 +47,11 @@ async function request<T>(path: string, init: RequestInit = {}) {
     headers.set("x-csrf-token", getCsrfToken() ?? "");
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${apiUrl}${path}`, {
-      ...init,
-      credentials: "include",
-      headers,
-    });
-  } catch (error) {
-    showToast(
-      error instanceof Error ? error.message : "The request could not be sent.",
-    );
-    throw error;
-  }
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...init,
+    credentials: "include",
+    headers,
+  });
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
@@ -74,9 +66,6 @@ async function request<T>(path: string, init: RequestInit = {}) {
     } catch {
       // Keep the status-based message for empty responses.
     }
-    showToast(message, {
-      kind: response.status === 429 ? "warning" : "error",
-    });
     const error = new Error(message) as RequestError;
     error.status = response.status;
     error.resumeToken = responseBody.resumeToken;
@@ -119,14 +108,12 @@ function replayRequest(action: PendingAction) {
 export default function AccountSettings() {
   const t = translations[useLanguage().language];
   const navigate = useNavigate();
-  const requestFailedMessage = t.shared.settings.requestFailed;
+  const requestFailedMessage = t.shared.notifications.requestFailed;
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const resumeStartedRef = useRef(false);
 
   const permissions = identity?.permissions ?? [];
@@ -157,11 +144,7 @@ export default function AccountSettings() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : requestFailedMessage,
-          );
+          showErrorToast(loadError, requestFailedMessage);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -199,16 +182,14 @@ export default function AccountSettings() {
         if (action.method === "DELETE") {
           setUser(null);
           setUsername("");
-          setMessage(t.shared.settings.accountDeleted);
+          showToast(t.shared.notifications.accountDeleted, { kind: "info" });
         } else if (action.path.endsWith("/me/password-reset")) {
-          setMessage(t.shared.settings.passwordResetRequested);
+          showToast(t.shared.notifications.passwordResetRequested, {
+            kind: "info",
+          });
         }
       } catch (resumeError) {
-        setError(
-          resumeError instanceof Error
-            ? resumeError.message
-            : requestFailedMessage,
-        );
+        showErrorToast(resumeError, requestFailedMessage);
       } finally {
         setIsBusy(false);
       }
@@ -217,14 +198,12 @@ export default function AccountSettings() {
     void resumePendingAction();
   }, [
     requestFailedMessage,
-    t.shared.settings.accountDeleted,
-    t.shared.settings.passwordResetRequested,
+    t.shared.notifications.accountDeleted,
+    t.shared.notifications.passwordResetRequested,
   ]);
 
   async function testAccountEndpoints() {
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const currentIdentity = await request<Identity>("/api/v001/auth/me");
       setIdentity(currentIdentity);
@@ -237,13 +216,9 @@ export default function AccountSettings() {
         setUser(null);
         setUsername("");
       }
-      setMessage(t.shared.settings.accountTested);
+      showToast(t.shared.notifications.accountTested, { kind: "info" });
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : requestFailedMessage,
-      );
+      showErrorToast(requestError, requestFailedMessage);
     } finally {
       setIsBusy(false);
     }
@@ -251,8 +226,6 @@ export default function AccountSettings() {
 
   async function createAccount() {
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const createdUser = await request<User>("/api/v001/users/me", {
         method: "POST",
@@ -261,13 +234,9 @@ export default function AccountSettings() {
       });
       setUser(createdUser);
       setUsername(createdUser.username ?? "");
-      setMessage(t.shared.settings.accountCreated);
+      showToast(t.shared.notifications.accountCreated, { kind: "info" });
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : t.shared.settings.requestFailed,
-      );
+      showErrorToast(requestError, requestFailedMessage);
     } finally {
       setIsBusy(false);
     }
@@ -275,8 +244,6 @@ export default function AccountSettings() {
 
   async function updateAccount() {
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const updatedUser = await request<User>("/api/v001/users/me", {
         method: "PATCH",
@@ -285,13 +252,9 @@ export default function AccountSettings() {
       });
       setUser(updatedUser);
       setUsername(updatedUser.username ?? "");
-      setMessage(t.shared.settings.accountUpdated);
+      showToast(t.shared.notifications.accountUpdated, { kind: "info" });
     } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : t.shared.settings.requestFailed,
-      );
+      showErrorToast(requestError, requestFailedMessage);
     } finally {
       setIsBusy(false);
     }
@@ -300,12 +263,10 @@ export default function AccountSettings() {
   async function deleteAccount() {
     if (!window.confirm(t.shared.settings.confirmDeleteAccount)) return;
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       await request<void>("/api/v001/users/me", { method: "DELETE" });
       setUser(null);
-      setMessage(t.shared.settings.accountDeleted);
+      showToast(t.shared.notifications.accountDeleted, { kind: "info" });
     } catch (requestError) {
       if (isMfaAuthenticationRequired(requestError)) {
         beginReauthentication(
@@ -315,11 +276,7 @@ export default function AccountSettings() {
         );
         return;
       }
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : t.shared.settings.requestFailed,
-      );
+      showErrorToast(requestError, requestFailedMessage);
     } finally {
       setIsBusy(false);
     }
@@ -327,13 +284,13 @@ export default function AccountSettings() {
 
   async function requestPasswordReset() {
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       await request<void>("/api/v001/users/me/password-reset", {
         method: "POST",
       });
-      setMessage(t.shared.settings.passwordResetRequested);
+      showToast(t.shared.notifications.passwordResetRequested, {
+        kind: "info",
+      });
     } catch (requestError) {
       if (isEmailOtpAuthenticationRequired(requestError)) {
         beginReauthentication(
@@ -343,11 +300,7 @@ export default function AccountSettings() {
         );
         return;
       }
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : t.shared.settings.requestFailed,
-      );
+      showErrorToast(requestError, requestFailedMessage);
     } finally {
       setIsBusy(false);
     }
@@ -359,8 +312,6 @@ export default function AccountSettings() {
   return (
     <div className="content">
       <h1>{t.shared.settings.title}</h1>
-      {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
 
       <section>
         <h2>{t.shared.settings.testTitle}</h2>

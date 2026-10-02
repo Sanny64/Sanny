@@ -1,26 +1,33 @@
-import { Link, useSearchParams } from "react-router-dom";
+import {
+  isRouteErrorResponse,
+  Link,
+  useRouteError,
+  useSearchParams,
+} from "react-router-dom";
 import { useLanguage, translations } from "@sanny/i18n";
 import { Section } from "@sanny/ui";
 import "@sanny/styles/globals.css";
 import "@sanny/styles/main.css";
+import { getErrorStatus, type ErrorStatus } from "../utils/error-status";
 
-const supportedStatuses = [400, 401, 403, 404, 429, 500, 503] as const;
-type ErrorStatus = (typeof supportedStatuses)[number];
-
-function getErrorStatus(value: string | null): ErrorStatus {
-  const parsed = Number(value);
-  const supportedStatus = supportedStatuses.find((status) => status === parsed);
-  if (supportedStatus) return supportedStatus;
-  return Number.isInteger(parsed) && parsed >= 400 && parsed < 500 ? 400 : 500;
-}
-
-export default function ErrorPage() {
+export default function ErrorPage({
+  status: pageStatus,
+}: {
+  status?: ErrorStatus;
+}) {
   const [searchParams] = useSearchParams();
+  const routeError = useRouteError();
   const t = translations[useLanguage().language];
-  const status = getErrorStatus(searchParams.get("status"));
+  const status = isRouteErrorResponse(routeError)
+    ? getErrorStatus(routeError.status)
+    : routeError
+      ? 500
+      : (pageStatus ?? getErrorStatus(searchParams.get("status")));
   const error = t.shared.errors[status];
-  const authError = searchParams.get("authError");
-  const description = searchParams.get("authErrorDescription");
+  const authError =
+    pageStatus || routeError ? null : searchParams.get("authError");
+  const description =
+    pageStatus || routeError ? null : searchParams.get("authErrorDescription");
   const message =
     authError === "access_denied" &&
     description?.toLowerCase().includes("verify") &&

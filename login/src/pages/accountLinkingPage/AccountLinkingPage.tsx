@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { showToast } from "@sanny/ui";
+import { translations, useLanguage } from "@sanny/i18n";
 import "../../styles/AccountLinkingPage.css";
 
 const apiUrl = import.meta.env.DEV
@@ -77,6 +78,8 @@ function getProviderIcon(provider: string): string {
 }
 
 export default function AccountLinkingPage() {
+  const notifications =
+    translations[useLanguage().language].shared.notifications;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -91,7 +94,6 @@ export default function AccountLinkingPage() {
 
   const [authWindowOpen, setAuthWindowOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [proof, setProof] = useState<string | null>(null);
   const [isExpired, setIsExpired] = useState(
     () => expiresAt !== null && Date.now() >= expiresAt,
@@ -136,8 +138,7 @@ export default function AccountLinkingPage() {
         const errorMessage =
           typeof message.message === "string"
             ? message.message
-            : "Secondary authentication could not be completed. Please try again.";
-        setError(errorMessage);
+            : notifications.accountLinkAuthenticationFailed;
         showToast(errorMessage);
         setAuthWindowOpen(false);
         setIsProcessing(false);
@@ -182,6 +183,7 @@ export default function AccountLinkingPage() {
     temporaryUserId,
     hasValidParams,
     expiresAt,
+    notifications.accountLinkAuthenticationFailed,
   ]);
 
   if (!hasValidParams) {
@@ -247,12 +249,7 @@ export default function AccountLinkingPage() {
     );
 
     if (!authWindow) {
-      const errorMessage =
-        "Popup was blocked. Please allow popups and try again. After authenticating with your " +
-        proofProvider +
-        " account, you can confirm the linking.";
-      setError(errorMessage);
-      showToast(errorMessage);
+      showToast(notifications.accountLinkPopupBlocked(proofProvider));
       setAuthWindowOpen(false);
       setIsProcessing(false);
       return;
@@ -311,7 +308,7 @@ export default function AccountLinkingPage() {
           </div>
         )}
 
-        {!isExpired && !authWindowOpen && !error && !proof && (
+        {!isExpired && !authWindowOpen && !proof && (
           <div className="warning">
             <strong>Security:</strong> To confirm linking, you will need to
             re-authenticate with your {proofProvider} account. This is a
@@ -325,8 +322,6 @@ export default function AccountLinkingPage() {
             account. Now confirm to complete the linking.
           </div>
         )}
-
-        {error && <div className="error-banner">{error}</div>}
 
         {!isExpired && authWindowOpen && (
           <div className="auth-modal">

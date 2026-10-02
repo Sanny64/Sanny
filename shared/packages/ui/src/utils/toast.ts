@@ -73,3 +73,12 @@ export function showToast(message: string, options: ToastOptions = {}) {
   notifySubscribers();
   return id;
 }
+
+export function showErrorToast(error: unknown, fallbackMessage: string) {
+  return showToast(error instanceof Error ? error.message : fallbackMessage, {
+    kind:
+      error instanceof Error && "status" in error && error.status === 429
+        ? "warning"
+        : "error",
+  });
+}

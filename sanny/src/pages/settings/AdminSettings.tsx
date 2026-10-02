@@ -8,7 +8,7 @@ import {
   takePendingActionCredentials,
   type PendingAction,
 } from "../../utils/reauthentication";
-import { showToast } from "@sanny/ui";
+import { showErrorToast, showToast } from "@sanny/ui";
 
 type Identity = {
   roles: string[];
@@ -45,19 +45,11 @@ async function request<T>(path: string, init: RequestInit = {}) {
     headers.set("x-csrf-token", getCsrfToken() ?? "");
   }
 
-  let response: Response;
-  try {
-    response = await fetch(`${apiUrl}${path}`, {
-      ...init,
-      credentials: "include",
-      headers,
-    });
-  } catch (error) {
-    showToast(
-      error instanceof Error ? error.message : "The request could not be sent.",
-    );
-    throw error;
-  }
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...init,
+    credentials: "include",
+    headers,
+  });
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
@@ -72,9 +64,6 @@ async function request<T>(path: string, init: RequestInit = {}) {
     } catch {
       // Keep the status-based message for empty responses.
     }
-    showToast(message, {
-      kind: response.status === 429 ? "warning" : "error",
-    });
     const error = new Error(message) as RequestError;
     error.status = response.status;
     error.resumeToken = resumeToken;
@@ -112,7 +101,9 @@ function replayRequest(action: PendingAction) {
 }
 
 export default function AdminSettings() {
-  const t = translations[useLanguage().language].shared.settings;
+  const { language } = useLanguage();
+  const t = translations[language].shared.settings;
+  const notifications = translations[language].shared.notifications;
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,8 +114,6 @@ export default function AdminSettings() {
   const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [initialUserData, setInitialUserData] = useState<{
     username: string;
     roles: string[];
@@ -196,11 +185,7 @@ export default function AdminSettings() {
         if (!cancelled) setIdentity(currentIdentity);
       } catch (requestError) {
         if (!cancelled) {
-          setError(
-            requestError instanceof Error
-              ? requestError.message
-              : t.requestFailed,
-          );
+          showErrorToast(requestError, notifications.requestFailed);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -211,7 +196,7 @@ export default function AdminSettings() {
     return () => {
       cancelled = true;
     };
-  }, [t.requestFailed]);
+  }, [notifications.requestFailed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +212,7 @@ export default function AdminSettings() {
       } catch (requestError) {
         if (!cancelled) {
           console.error("Failed to load available roles", requestError);
+          showErrorToast(requestError, notifications.requestFailed);
           setAvailableRoles([]);
         }
       }
@@ -239,7 +225,7 @@ export default function AdminSettings() {
     return () => {
       cancelled = true;
     };
-  }, [canReadUsers]);
+  }, [canReadUsers, notifications.requestFailed]);
 
   async function selectUser(user: User) {
     const currentUsername = user.username ?? "";
@@ -248,8 +234,6 @@ export default function AdminSettings() {
     setUsername(currentUsername);
     setSelectedRoles([]);
     setInitialUserData(null);
-    setMessage(null);
-    setError(null);
     try {
       const data = await request<{ roles: string[] }>(
         `/api/v001/users/${user.id}/roles`,
@@ -260,9 +244,7 @@ export default function AdminSettings() {
       return true;
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return false;
-      setError(
-        requestError instanceof Error ? requestError.message : t.requestFailed,
-      );
+      showErrorToast(requestError, notifications.requestFailed);
       return false;
     } finally {
       setIsBusy(false);
@@ -292,8 +274,6 @@ export default function AdminSettings() {
     if (!confirmNavigation()) return;
 
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       let allUsers = await request<User[]>("/api/v001/users/list");
 
@@ -310,12 +290,10 @@ export default function AdminSettings() {
       setCurrentPage(1);
       setSelectedUser(null);
       setInitialUserData(null);
-      setMessage(t.usersLoaded);
+      showToast(notifications.usersLoaded, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      setError(
-        requestError instanceof Error ? requestError.message : t.requestFailed,
-      );
+      showErrorToast(requestError, notifications.requestFailed);
     } finally {
       setIsBusy(false);
     }
@@ -326,20 +304,16 @@ export default function AdminSettings() {
     if (!lookup) return;
     if (!confirmNavigation()) return;
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const path = /^\d+$/.test(lookup)
         ? `/api/v001/users/${lookup}`
         : `/api/v001/users/lookup?email=${encodeURIComponent(lookup)}`;
       if (await selectUser(await request<User>(path))) {
-        setMessage(t.userLoaded);
+        showToast(notifications.userLoaded, { kind: "info" });
       }
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      setError(
-        requestError instanceof Error ? requestError.message : t.requestFailed,
-      );
+      showErrorToast(requestError, notifications.requestFailed);
     } finally {
       setIsBusy(false);
     }
@@ -348,8 +322,6 @@ export default function AdminSettings() {
   async function updateUser() {
     if (!selectedUser || !initialUserData) return;
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       const updatedUsername = username.trim();
       const user = await request<User>(`/api/v001/users/${selectedUser.id}`, {
@@ -379,12 +351,10 @@ export default function AdminSettings() {
         setSelectedRoles(finalRoles);
       }
       setInitialUserData({ username: updatedUsername, roles: finalRoles });
-      setMessage(t.userUpdated);
+      showToast(notifications.userUpdated, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      setError(
-        requestError instanceof Error ? requestError.message : t.requestFailed,
-      );
+      showErrorToast(requestError, notifications.requestFailed);
     } finally {
       setIsBusy(false);
     }
@@ -393,8 +363,6 @@ export default function AdminSettings() {
   async function deleteUser() {
     if (!selectedUser || !window.confirm(t.confirmDeleteUser)) return;
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       await request<void>(`/api/v001/users/${selectedUser.id}`, {
         method: "DELETE",
@@ -413,12 +381,10 @@ export default function AdminSettings() {
 
       setSelectedUser(null);
       setInitialUserData(null); // Zustand leeren
-      setMessage(t.userDeleted);
+      showToast(notifications.userDeleted, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      setError(
-        requestError instanceof Error ? requestError.message : t.requestFailed,
-      );
+      showErrorToast(requestError, notifications.requestFailed);
     } finally {
       setIsBusy(false);
     }
@@ -427,18 +393,14 @@ export default function AdminSettings() {
   async function requestPasswordReset() {
     if (!selectedUser) return;
     setIsBusy(true);
-    setError(null);
-    setMessage(null);
     try {
       await request<void>(`/api/v001/users/${selectedUser.id}/password-reset`, {
         method: "POST",
       });
-      setMessage(t.passwordResetRequested);
+      showToast(notifications.passwordResetRequested, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      setError(
-        requestError instanceof Error ? requestError.message : t.requestFailed,
-      );
+      showErrorToast(requestError, notifications.requestFailed);
     } finally {
       setIsBusy(false);
     }
@@ -473,11 +435,11 @@ export default function AdminSettings() {
           );
           setSelectedUser(null);
           setInitialUserData(null);
-          setMessage(t.userDeleted);
+          showToast(notifications.userDeleted, { kind: "info" });
         } else if (action.method === "GET" && action.path.endsWith("/list")) {
           setUsers(result as User[]);
           setCurrentPage(1);
-          setMessage(t.usersLoaded);
+          showToast(notifications.usersLoaded, { kind: "info" });
         } else {
           let user: User | undefined;
           if (action.path.includes("/lookup?")) {
@@ -510,18 +472,16 @@ export default function AdminSettings() {
           }
 
           if (action.path.endsWith("/password-reset")) {
-            setMessage(t.passwordResetRequested);
+            showToast(notifications.passwordResetRequested, { kind: "info" });
           } else if (action.method !== "GET") {
-            setMessage(t.userUpdated);
+            showToast(notifications.userUpdated, { kind: "info" });
           } else if (user) {
-            setMessage(t.userLoaded);
+            showToast(notifications.userLoaded, { kind: "info" });
           }
         }
       } catch (resumeError) {
         if (beginMfaIfRequired(resumeError)) return;
-        setError(
-          resumeError instanceof Error ? resumeError.message : t.requestFailed,
-        );
+        showErrorToast(resumeError, notifications.requestFailed);
       } finally {
         setIsBusy(false);
       }
@@ -529,12 +489,12 @@ export default function AdminSettings() {
 
     void resumePendingAction();
   }, [
-    t.passwordResetRequested,
-    t.requestFailed,
-    t.userDeleted,
-    t.userLoaded,
-    t.userUpdated,
-    t.usersLoaded,
+    notifications.passwordResetRequested,
+    notifications.requestFailed,
+    notifications.userDeleted,
+    notifications.userLoaded,
+    notifications.userUpdated,
+    notifications.usersLoaded,
   ]);
 
   if (isLoading) return <div className="content">{t.loading}</div>;
@@ -548,8 +508,6 @@ export default function AdminSettings() {
   return (
     <div className="content admin-settings">
       <h1>{t.adminSettingsTitle}</h1>
-      {error && <p role="alert">{error}</p>}
-      {message && <p role="status">{message}</p>}
 
       <section className="admin-settings__section">
         <h2>{t.adminUsersTitle}</h2>

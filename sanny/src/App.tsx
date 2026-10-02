@@ -43,12 +43,13 @@ const router = createBrowserRouter([
       { path: "/settings", element: <AccountSettings /> },
       { path: "/admin/settings", element: <AdminSettings /> },
       { path: "/error", element: <ErrorPage /> },
-      { path: "*", element: <ErrorPage /> },
+      { path: "*", element: <ErrorPage status={404} /> },
     ],
   },
   {
     // Auxiliary routes using the <Auxiliary /> Layout
     element: <Auxiliary />,
+    errorElement: <ErrorPage />,
     children: [
       { path: "/party", element: <Party /> },
       { path: "/party/refreshments", element: <Refreshments /> },

@@ -4,6 +4,7 @@ import {
   dismissToast,
   getToasts,
   showToast,
+  showErrorToast,
   subscribeToToasts,
 } from "../../../shared/packages/ui/src/utils/toast.js";
 
@@ -39,4 +40,28 @@ test("shared toasts expire automatically", async () => {
     getToasts().some((toast) => toast.id === id),
     false,
   );
+});
+
+test("request failures produce one toast with the appropriate severity", () => {
+  const cases = [
+    {
+      error: new Error("Network failure"),
+      message: "Network failure",
+      kind: "error",
+    },
+    {
+      error: Object.assign(new Error("Please wait"), { status: 429 }),
+      message: "Please wait",
+      kind: "warning",
+    },
+    { error: null, message: "Localized fallback", kind: "error" },
+  ];
+
+  for (const { error, message, kind } of cases) {
+    const id = showErrorToast(error, "Localized fallback");
+    assert.equal(getToasts().length, 1);
+    assert.equal(getToasts()[0]?.message, message);
+    assert.equal(getToasts()[0]?.kind, kind);
+    dismissToast(id);
+  }
 });
