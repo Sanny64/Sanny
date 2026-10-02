@@ -55,7 +55,7 @@
     "lint:frontends": "npm run lint:login && npm run lint:sanny && npm run lint:shared && npm run lint:docs",
     "lint:backend": "npm run type-check -w backend",
     "lint": "npm run format:check && npm run lint:frontends && npm run lint:backend",
-    "test:frontends": "npm run lint:frontends && npm run build",
+    "test:frontends": "npm run lint:frontends && npm run build:frontends",
     "test:backend": "npm run lint:backend && npm run test -w backend",
     "test": "npm run format:check && npm run test:backend && npm run test:frontends"
   },

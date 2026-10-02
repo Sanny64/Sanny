@@ -1,4 +1,4 @@
-import type { en } from "./locales/en";
+import type { en } from "./locales/en.ts";
 
 export type Language = "en" | "de";
 

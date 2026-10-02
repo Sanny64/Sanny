@@ -1,4 +1,4 @@
-﻿import type { Translations } from "../language.types";
+﻿import type { Translations } from "../language.types.ts";
 
 export const de: Translations = {
   main: {
