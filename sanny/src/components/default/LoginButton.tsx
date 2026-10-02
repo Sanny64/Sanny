@@ -1,6 +1,9 @@
 import { useLanguage, translations } from "@sanny/i18n";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../../../../shared/packages/ui/src/components/Button";
+import { dismissToast, showToast } from "@sanny/ui";
+
+const sessionWarningLeadMs = 15 * 60 * 1000;
 
 const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
@@ -12,28 +15,10 @@ function checkAuthentication() {
     authCheckPromise = fetch(`${apiUrl}/api/v001/auth/me`, {
       method: "GET",
       credentials: "include",
+      headers: { accept: "application/json" },
     });
   }
   return authCheckPromise;
-}
-
-function buildAuthErrorMessage(
-  error: string,
-  description: string | null,
-  fallback: string,
-  emailVerificationRequired: string,
-) {
-  const normalizedDescription = description?.toLowerCase() ?? "";
-  const looksLikeEmailVerificationError =
-    error === "access_denied" &&
-    normalizedDescription.includes("verify") &&
-    normalizedDescription.includes("email");
-
-  if (looksLikeEmailVerificationError) {
-    return emailVerificationRequired;
-  }
-
-  return description ?? fallback;
 }
 
 export default function LoginButton() {
@@ -41,23 +26,11 @@ export default function LoginButton() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userSyncError, setUserSyncError] = useState<string | null>(null);
-  const [authCallbackError, setAuthCallbackError] = useState<{
-    error: string;
-    description: string | null;
-  } | null>(() => {
-    const query = new URLSearchParams(window.location.search);
-    const authError = query.get("authError");
-    if (!authError) {
-      return null;
-    }
-    return {
-      error: authError,
-      description: query.get("authErrorDescription"),
-    };
-  });
+  const sessionWarningToastId = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
+    let sessionWarningTimer: number | undefined;
 
     async function syncUser() {
       try {
@@ -73,14 +46,46 @@ export default function LoginButton() {
         if (!cancelled) {
           setIsAuthenticated(true);
           setUserSyncError(null);
+          const sessionExpiryHeader = authResponse.headers.get(
+            "X-Session-Expires-At",
+          );
+          const sessionExpiresAt = Number(sessionExpiryHeader);
+          if (sessionExpiryHeader && Number.isFinite(sessionExpiresAt)) {
+            const warningDelay =
+              sessionExpiresAt - Date.now() - sessionWarningLeadMs;
+            const showSessionWarning = () => {
+              sessionWarningToastId.current = showToast(
+                t.shared.notifications.sessionExpiresSoon,
+                {
+                  kind: "warning",
+                  durationMs: 0,
+                  action: {
+                    label: t.shared.notifications.signInAgain,
+                    onClick: () => {
+                      window.location.href = `${apiUrl}/api/v001/auth?reauthenticate=true`;
+                    },
+                  },
+                },
+              );
+            };
+            if (warningDelay <= 0) {
+              showSessionWarning();
+            } else {
+              sessionWarningTimer = window.setTimeout(
+                showSessionWarning,
+                warningDelay,
+              );
+            }
+          }
         }
       } catch (syncError) {
         if (!cancelled) {
-          setUserSyncError(
+          const message =
             syncError instanceof Error
               ? syncError.message
-              : "User synchronization failed",
-          );
+              : "User synchronization failed";
+          setUserSyncError(message);
+          showToast(message);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -91,32 +96,15 @@ export default function LoginButton() {
 
     return () => {
       cancelled = true;
+      if (sessionWarningTimer !== undefined) {
+        window.clearTimeout(sessionWarningTimer);
+      }
+      if (sessionWarningToastId.current !== undefined) {
+        dismissToast(sessionWarningToastId.current);
+        sessionWarningToastId.current = undefined;
+      }
     };
-  }, []);
-
-  useEffect(() => {
-    if (!authCallbackError) {
-      return;
-    }
-
-    const query = new URLSearchParams(window.location.search);
-    query.delete("authError");
-    query.delete("authErrorDescription");
-    const nextQuery = query.toString();
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
-    window.history.replaceState({}, "", nextUrl);
-  }, [authCallbackError]);
-
-  const inlineErrorMessage =
-    userSyncError ??
-    (authCallbackError
-      ? buildAuthErrorMessage(
-          authCallbackError.error,
-          authCallbackError.description,
-          t.login.authenticationFailed,
-          t.login.emailVerificationRequired,
-        )
-      : null);
+  }, [t]);
 
   function getCsrfToken() {
     return document.cookie
@@ -126,18 +114,44 @@ export default function LoginButton() {
   }
 
   async function logout() {
-    const response = await fetch(`${apiUrl}/api/v001/auth/logout`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "x-csrf-token": getCsrfToken() ?? "" },
-    });
-    if (!response.ok) {
-      setUserSyncError(`Logout failed (${response.status})`);
+    let response: Response;
+    try {
+      response = await fetch(`${apiUrl}/api/v001/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          accept: "application/json",
+          "x-csrf-token": getCsrfToken() ?? "",
+        },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Logout request failed";
+      setUserSyncError(message);
+      showToast(message);
       return;
     }
-    const result = (await response.json()) as { logoutUrl?: string };
+    if (!response.ok) {
+      const message = `Logout failed (${response.status})`;
+      setUserSyncError(message);
+      showToast(message);
+      return;
+    }
+    if (sessionWarningToastId.current !== undefined) {
+      dismissToast(sessionWarningToastId.current);
+      sessionWarningToastId.current = undefined;
+    }
+    let result: { logoutUrl?: string };
+    try {
+      result = (await response.json()) as { logoutUrl?: string };
+    } catch {
+      setUserSyncError(t.login.userSyncError);
+      showToast(t.login.userSyncError);
+      return;
+    }
     if (!result.logoutUrl) {
       setUserSyncError(t.login.userSyncError);
+      showToast(t.login.userSyncError);
       return;
     }
     window.location.href = result.logoutUrl;
@@ -151,7 +165,6 @@ export default function LoginButton() {
           type="button"
           variant="primary"
           onClick={() => {
-            setAuthCallbackError(null);
             setUserSyncError(null);
             window.location.href = `${apiUrl}/api/v001/auth`;
           }}
@@ -169,7 +182,7 @@ export default function LoginButton() {
           {t.login.logoutButton}
         </Button>
       )}
-      {inlineErrorMessage && <p>{inlineErrorMessage}</p>}
+      {userSyncError && <p>{userSyncError}</p>}
     </>
   );
 }

@@ -1,4 +1,8 @@
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import AccountSettings from "./pages/settings/AccountSettings";
 import AdminSettings from "./pages/settings/AdminSettings";
 import Main from "./pages/Main";
@@ -16,11 +20,14 @@ import Auxiliary from "./pages/Auxiliary";
 import Party from "./pages/party/Party";
 import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
+import ErrorPage from "./pages/ErrorPage";
+import { ToastViewport } from "@sanny/ui";
 
 const router = createBrowserRouter([
   {
     // Main routes using the <Main /> Layout
     element: <Main />,
+    errorElement: <ErrorPage />,
     children: [
       { path: "/", element: <Home /> },
       { path: "/home", element: <Navigate to="/" replace /> },
@@ -35,6 +42,8 @@ const router = createBrowserRouter([
       { path: "/games", element: <Games /> },
       { path: "/settings", element: <AccountSettings /> },
       { path: "/admin/settings", element: <AdminSettings /> },
+      { path: "/error", element: <ErrorPage /> },
+      { path: "*", element: <ErrorPage /> },
     ],
   },
   {
@@ -49,7 +58,12 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastViewport />
+    </>
+  );
 }
 
 export default App;

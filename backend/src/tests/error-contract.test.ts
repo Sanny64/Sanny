@@ -26,6 +26,15 @@ test("safe errors hide provider details and keep a stable contract", () => {
     message: "An internal error occurred.",
   });
 
+  assert.deepEqual(
+    createSafeErrorResponse(new Error("Too many requests"), 429),
+    {
+      status: 429,
+      error: "Too Many Requests",
+      message: "Rate limit exceeded. Please retry later.",
+    },
+  );
+
   assert.ok(!JSON.stringify(providerError).includes("access_token"));
   assert.ok(!JSON.stringify(providerError).includes("abc123"));
   assert.ok(

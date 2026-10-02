@@ -4,6 +4,7 @@ import AccountLinkingPage from "./pages/accountLinkingPage/AccountLinkingPage";
 import AccountLinkingProofPage from "./pages/accountLinkingPage/AccountLinkingProofPage";
 import AccountLinkingResumePage from "./pages/accountLinkingPage/AccountLinkingResumePage";
 import { prepareProofResume } from "./pages/accountLinkingPage/proof-resume";
+import { ToastViewport } from "@sanny/ui";
 
 const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
@@ -32,7 +33,12 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastViewport />
+    </>
+  );
 }
 
 export default App;

@@ -96,6 +96,10 @@ async function exchangeCode(
 
 function getAuthErrorRedirectUrl(error: string, description?: string) {
   const redirectUrl = new URL(getSuccessRedirectUrl());
+  redirectUrl.pathname = "/error";
+  redirectUrl.search = "";
+  redirectUrl.hash = "";
+  redirectUrl.searchParams.set("status", "401");
   redirectUrl.searchParams.set("authError", error);
   if (description) {
     redirectUrl.searchParams.set("authErrorDescription", description);

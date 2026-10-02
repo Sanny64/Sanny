@@ -23,7 +23,7 @@ import { readFileSync } from "node:fs";
 export const SESSION_COOKIE = "__Host-sanny_session";
 export const STATE_COOKIE = "__Host-sanny_auth_state";
 export const CSRF_COOKIE = "__Host-sanny_csrf";
-const sessionTtlMs = 8 * 60 * 60 * 1000;
+export const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const sessionIdleTtlMs = 30 * 60 * 1000;
 const stateTtlSeconds = 10 * 60;
 const maxOutstandingLoginStates = 4;
@@ -192,7 +192,7 @@ export async function createSession(
     expiresAt: refreshToken ? now + 60 * 60 * 1000 : undefined,
   };
   await getRedis().set(sessionKey(sessionId), JSON.stringify(session), {
-    PX: sessionTtlMs,
+    PX: SESSION_TTL_MS,
   });
   return { sessionId, csrfToken };
 }
@@ -214,7 +214,7 @@ export async function getSession(
     return null;
   }
   const now = Date.now();
-  const remainingAbsoluteTtl = session.createdAt + sessionTtlMs - now;
+  const remainingAbsoluteTtl = session.createdAt + SESSION_TTL_MS - now;
   const nextTtl = Math.min(sessionIdleTtlMs, remainingAbsoluteTtl);
 
   if (nextTtl <= 0) {
@@ -252,7 +252,7 @@ export async function getSession(
     await getRedis()
       .multi()
       .set(sessionKey(rotated.sessionId), JSON.stringify(rotatedSession), {
-        PX: sessionTtlMs,
+        PX: SESSION_TTL_MS,
       })
       .del(sessionKey(sessionId))
       .exec();
@@ -262,7 +262,7 @@ export async function getSession(
   }
 
   await getRedis().set(sessionKey(sessionId), JSON.stringify(sessionRecord), {
-    PX: sessionTtlMs,
+    PX: SESSION_TTL_MS,
   });
   return { sessionId, ...sessionRecord };
 }
@@ -411,7 +411,7 @@ export async function refreshSessionIdentity(
     };
 
     await getRedis().set(sessionKey(sessionId), JSON.stringify(nextSession), {
-      PX: sessionTtlMs,
+      PX: SESSION_TTL_MS,
     });
     return { identity, session: nextSession };
   } finally {

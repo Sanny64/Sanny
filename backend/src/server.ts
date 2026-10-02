@@ -22,6 +22,7 @@ import packageJson from "../package.json" with { type: "json" };
 import authRoutes from "./routes/auth.route.js";
 import {
   getCorsOrigins,
+  getSuccessRedirectUrl,
   getTrustProxy,
   isSwaggerEnabled,
   validateProductionConfig,
@@ -30,6 +31,11 @@ import { applyRateLimit } from "./utils/rate-limit.js";
 import { applySecurityHeaders } from "./utils/security-headers.js";
 import { startPendingAccountLinkCleanup } from "./utils/account-link-cleanup.js";
 import { startOrphanedSocialUserCleanup } from "./utils/orphaned-social-user-cleanup.js";
+import { createSafeErrorResponse } from "./utils/safe-error.js";
+import {
+  acceptsHtmlNavigation,
+  getErrorPageRedirectUrl,
+} from "./utils/error-response.js";
 
 const version = packageJson.version;
 
@@ -55,6 +61,34 @@ export const server = Fastify({
   trustProxy: getTrustProxy(),
 });
 
+server.setErrorHandler((error, request, reply) => {
+  const rawStatus =
+    typeof error === "object" && error !== null && "statusCode" in error
+      ? error.statusCode
+      : undefined;
+  const status =
+    typeof rawStatus === "number" &&
+    Number.isInteger(rawStatus) &&
+    rawStatus >= 400 &&
+    rawStatus <= 599
+      ? rawStatus
+      : 500;
+  const safe = createSafeErrorResponse(error, status);
+  if (status >= 500) {
+    request.log.error({ status }, "Request failed");
+  }
+  return reply
+    .code(safe.status)
+    .send({ error: safe.error, message: safe.message });
+});
+
+server.setNotFoundHandler((request, reply) => {
+  const safe = createSafeErrorResponse(new Error("Not found"), 404);
+  return reply
+    .code(safe.status)
+    .send({ error: safe.error, message: safe.message });
+});
+
 // create a type provider for Zod
 server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
@@ -69,6 +103,7 @@ async function main() {
     origin: corsOrigins,
     credentials: true,
     methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Retry-After", "X-Session-Expires-At"],
   });
   await server.register(cookie);
   await server.register(helmet, {
@@ -94,15 +129,30 @@ async function main() {
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   });
   server.addHook("onSend", async (request, reply) => {
+    if (reply.statusCode >= 400 && acceptsHtmlNavigation(request)) {
+      const errorStatus = reply.statusCode;
+      reply
+        .code(303)
+        .header(
+          "Location",
+          getErrorPageRedirectUrl(getSuccessRedirectUrl(), errorStatus),
+        )
+        .type("text/plain; charset=utf-8");
+      applySecurityHeaders(request, reply);
+      return "";
+    }
     applySecurityHeaders(request, reply);
   });
   server.addHook("onRequest", async (request, reply) => {
     const rateLimitDecision = await applyRateLimit(request, reply);
     if (!rateLimitDecision.allowed) {
-      return reply.code(429).send({
-        error: "Too Many Requests",
-        message: "Rate limit exceeded. Please retry later.",
-      });
+      const safe = createSafeErrorResponse(
+        new Error("Rate limit exceeded"),
+        429,
+      );
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
     }
     if (["POST", "PATCH", "PUT", "DELETE"].includes(request.method))
       return requireCsrf(request, reply);

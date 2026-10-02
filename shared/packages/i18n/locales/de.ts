@@ -103,10 +103,19 @@ export const de: Translations = {
       openAdminSettings: "Admin-Einstellungen oeffnen",
     },
     errors: {
-      title: "Error Handler",
+      title: "Ein Fehler ist aufgetreten",
+      returnHome: "Zur Startseite",
+      400: {
+        title: "Anfrage konnte nicht verarbeitet werden",
+        message: "Bitte überprüfe die Anfrage und versuche es erneut.",
+      },
       404: {
         title: "Seite nicht gefunden",
         message: "Die angeforderte Seite konnte nicht gefunden werden.",
+      },
+      429: {
+        title: "Zu viele Anfragen",
+        message: "Bitte warte kurz und versuche es erneut.",
       },
       403: {
         title: "Zugriff verweigert",
@@ -127,6 +136,15 @@ export const de: Translations = {
         message:
           "Der Dienst ist derzeit nicht verfügbar. Bitte versuchen Sie es später erneut.",
       },
+    },
+    notifications: {
+      title: "Benachrichtigungen",
+      dismiss: "Benachrichtigung schließen",
+      sessionExpiresSoon:
+        "Deine Sitzung läuft in 15 Minuten ab. Speichere deine Arbeit und melde dich erneut an, um fortzufahren.",
+      signInAgain: "Erneut anmelden",
+      retryAfter: (seconds: number): string =>
+        ` Bitte versuche es in ${seconds} Sekunde${seconds === 1 ? "" : "n"} erneut.`,
     },
   },
 };

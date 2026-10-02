@@ -77,6 +77,16 @@ At minimum, alert on:
 
 Prometheus can scrape a protected metrics endpoint or proxy exporter. Keep metrics endpoints private and avoid labels containing raw URLs, query strings, user identifiers, tokens, or unbounded input. Useful counters include request totals by normalized route group and status, rate-limit rejections, OAuth state rejections, refresh reuse events, and upstream failure classes.
 
+## Client error handling and session expiry
+
+Fastify keeps API errors as the stable, sanitized JSON envelope. Requests that accept `text/html` (full-page browser navigations) instead receive a `303` redirect to the configured frontend origin at `/error?status=<code>`. Rate-limited API calls retain their `429` response and `Retry-After` header; browser navigations show the same status on the frontend error page.
+
+The authenticated profile endpoint exposes the session's absolute expiry in the `X-Session-Expires-At` response header. The frontend displays an accessible warning toast 15 minutes before the fixed eight-hour session expiry, with an action to sign in again. This timestamp is based on the server-created session and is not extended by activity or token refresh.
+
+Frontend API failures are also surfaced through accessible, dismissible toasts. Do not place provider/database diagnostics, secrets, tokens, or session identifiers in client messages or URLs.
+
+Both the login and Sanny frontends mount the shared `ToastViewport` from `@sanny/ui`. Use its `showToast(message, { kind, durationMs, action })` and `dismissToast(id)` exports rather than adding frontend-specific notification stores. A `durationMs` of `0` keeps a notification visible until dismissed.
+
 ## Staging release checklist
 
 1. Load staging secrets from the deployment secret store.
@@ -87,10 +97,11 @@ Prometheus can scrape a protected metrics endpoint or proxy exporter. Keep metri
 6. Confirm the callback state is single-use and a replay is rejected.
 7. Confirm refresh works and refresh-token reuse is rejected.
 8. Verify self-service profile, mutation, and deletion flows.
-9. Verify admin authorization, pagination, rate limits, and safe error responses.
-10. Confirm proxy forwarding-header behavior and direct Fastify access is blocked.
-11. Review logs and alerts for secrets or personal data before approving promotion.
-12. Record results, residual risks, and rollback steps.
+9. Verify admin authorization, pagination, API `429` responses, browser error-page redirects, and the safe error contract.
+10. Confirm the session-expiry warning appears 15 minutes before the absolute eight-hour deadline.
+11. Confirm proxy forwarding-header behavior and direct Fastify access is blocked.
+12. Review logs and alerts for secrets or personal data before approving promotion.
+13. Record results, residual risks, and rollback steps.
 
 ## Incident response basics
 

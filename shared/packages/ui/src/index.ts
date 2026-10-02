@@ -3,5 +3,8 @@ export { ButtonGroup } from "./components/ButtonGroup";
 export { Section } from "./components/Section";
 export { SharedSetupProbe } from "./components/SharedSetupProbe";
 export { Checkbox } from "./components/Checkbox";
+export { default as ToastViewport } from "./components/ToastViewport";
+export { showToast, dismissToast } from "./utils/toast";
+export type { Toast, ToastAction, ToastKind } from "./utils/toast";
 export { default as Error } from "./pages/errors/Error";
 export { default as Settings } from "./pages/settings/Settings";

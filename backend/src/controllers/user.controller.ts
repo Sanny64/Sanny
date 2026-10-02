@@ -1,11 +1,11 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { z } from "zod";
-import type { 
-    createSelfUserSchema,
-    updateSelfUserSchema,
-    updateUserRolesSchema,
-    updateUserSchema,
-    userIdParamSchema,
+import type {
+  createSelfUserSchema,
+  updateSelfUserSchema,
+  updateUserRolesSchema,
+  updateUserSchema,
+  userIdParamSchema,
 } from "../schemas/user.schema.js";
 import {
   Auth0SubjectConflictError,
@@ -57,10 +57,10 @@ function getIdentityOrReplyUnauthorized(
     return getAccessTokenIdentity(request);
   } catch (error) {
     if (error instanceof AccessTokenValidationError) {
-      void reply.code(401).send({
-        error: "Unauthorized",
-        message: error.message,
-      });
+      const safe = createSafeErrorResponse(error, 401);
+      void reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
       return null;
     }
 
@@ -343,8 +343,9 @@ export async function requestSelfPasswordResetHandler(
         .send({ error: safe.error, message: safe.message });
     }
     await sendAuth0PasswordResetEmail(user.email);
-    return reply.code(200).send({ success: true, message: "Password reset email sent" });
-
+    return reply
+      .code(200)
+      .send({ success: true, message: "Password reset email sent" });
   } catch (err) {
     if (
       err instanceof Auth0ManagementError ||
@@ -575,14 +576,19 @@ export async function requestUserPasswordResetHandler(
     }
     const userWithAuth0Sub = await findUserByIdWithAuth0Sub(userId);
     if (!userWithAuth0Sub || !userWithAuth0Sub.auth0Sub) {
-      const safe = createSafeErrorResponse(new Error("User not linked to Auth0"), 400);
+      const safe = createSafeErrorResponse(
+        new Error("User not linked to Auth0"),
+        400,
+      );
       return reply
         .code(safe.status)
         .send({ error: safe.error, message: safe.message });
     }
     await sendAuth0PasswordResetEmail(user.email);
     // Return 200 instead of 204 for consistency and better frontend handling
-    return reply.code(200).send({ success: true, message: "Password reset email sent" });
+    return reply
+      .code(200)
+      .send({ success: true, message: "Password reset email sent" });
   } catch (err) {
     if (
       err instanceof Auth0ManagementError ||

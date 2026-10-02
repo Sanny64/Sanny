@@ -4,6 +4,8 @@ import {
   AccessTokenValidationError,
   getAccessTokenIdentity,
 } from "../utils/access-token.js";
+import { createSafeErrorResponse } from "../utils/safe-error.js";
+import { SESSION_TTL_MS } from "../utils/session.js";
 
 export async function getProfileHandler(
   request: FastifyRequest,
@@ -15,10 +17,10 @@ export async function getProfileHandler(
     identity = getAccessTokenIdentity(request);
   } catch (error) {
     if (error instanceof AccessTokenValidationError) {
-      return reply.code(401).send({
-        error: "Unauthorized",
-        message: error.message,
-      });
+      const safe = createSafeErrorResponse(error, 401);
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
     }
     throw error;
   }
@@ -31,6 +33,13 @@ export async function getProfileHandler(
     roles: identity.roles,
     permissions: identity.permissions,
   };
+
+  if (request.sannySessionRecord) {
+    reply.header(
+      "X-Session-Expires-At",
+      String(request.sannySessionRecord.createdAt + SESSION_TTL_MS),
+    );
+  }
 
   return reply.code(200).send(profile);
 }

@@ -96,10 +96,19 @@
       openAdminSettings: "Open admin settings",
     },
     errors: {
-      title: "Error Handler",
+      title: "Something went wrong",
+      returnHome: "Return home",
+      400: {
+        title: "Request could not be processed",
+        message: "Check the request and try again.",
+      },
       404: {
         title: "Page Not Found",
         message: "The requested page could not be found.",
+      },
+      429: {
+        title: "Too Many Requests",
+        message: "Please wait a moment before trying again.",
       },
       403: {
         title: "Access Denied",
@@ -119,6 +128,15 @@
         message:
           "The service is currently unavailable. Please try again later.",
       },
+    },
+    notifications: {
+      title: "Notifications",
+      dismiss: "Dismiss notification",
+      sessionExpiresSoon:
+        "Your session expires in 15 minutes. Save your work and sign in again to continue.",
+      signInAgain: "Sign in again",
+      retryAfter: (seconds: number): string =>
+        ` Please retry in ${seconds} second${seconds === 1 ? "" : "s"}.`,
     },
   },
 };

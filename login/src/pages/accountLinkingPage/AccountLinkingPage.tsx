@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { showToast } from "@sanny/ui";
 import "./AccountLinkingPage.css";
 
 const apiUrl = import.meta.env.DEV
@@ -132,11 +133,12 @@ export default function AccountLinkingPage() {
       if (!hasValidParams || (expiresAt !== null && Date.now() >= expiresAt))
         return;
       if (message.type === "error") {
-        setError(
+        const errorMessage =
           typeof message.message === "string"
             ? message.message
-            : "Secondary authentication could not be completed. Please try again.",
-        );
+            : "Secondary authentication could not be completed. Please try again.";
+        setError(errorMessage);
+        showToast(errorMessage);
         setAuthWindowOpen(false);
         setIsProcessing(false);
         return;
@@ -245,11 +247,12 @@ export default function AccountLinkingPage() {
     );
 
     if (!authWindow) {
-      setError(
+      const errorMessage =
         "Popup was blocked. Please allow popups and try again. After authenticating with your " +
-          proofProvider +
-          " account, you can confirm the linking.",
-      );
+        proofProvider +
+        " account, you can confirm the linking.";
+      setError(errorMessage);
+      showToast(errorMessage);
       setAuthWindowOpen(false);
       setIsProcessing(false);
       return;

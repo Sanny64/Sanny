@@ -8,6 +8,7 @@ import {
   takePendingActionCredentials,
   type PendingAction,
 } from "../../utils/reauthentication";
+import { showToast } from "@sanny/ui";
 
 type Identity = {
   roles: string[];
@@ -39,15 +40,24 @@ function getCsrfToken() {
 async function request<T>(path: string, init: RequestInit = {}) {
   const method = init.method ?? "GET";
   const headers = new Headers(init.headers);
+  headers.set("accept", "application/json");
   if (method !== "GET") {
     headers.set("x-csrf-token", getCsrfToken() ?? "");
   }
 
-  const response = await fetch(`${apiUrl}${path}`, {
-    ...init,
-    credentials: "include",
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      credentials: "include",
+      headers,
+    });
+  } catch (error) {
+    showToast(
+      error instanceof Error ? error.message : "The request could not be sent.",
+    );
+    throw error;
+  }
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
@@ -62,6 +72,9 @@ async function request<T>(path: string, init: RequestInit = {}) {
     } catch {
       // Keep the status-based message for empty responses.
     }
+    showToast(message, {
+      kind: response.status === 429 ? "warning" : "error",
+    });
     const error = new Error(message) as RequestError;
     error.status = response.status;
     error.resumeToken = resumeToken;
