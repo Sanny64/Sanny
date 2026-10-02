@@ -4,8 +4,8 @@ import { getSession, getSessionStoreClient } from "./session.js";
 import { logSecurityEvent } from "./security-audit.js";
 
 /**
- * Pending actions let the client restore an in-progress form after the user was
- * sent away to re-authenticate with their authenticator app.
+ * Pending actions let the client resume a user operation after step-up
+ * authentication redirects through Auth0.
  *
  * The record is keyed by an opaque token and bound to the Auth0 subject, not to
  * the session id: logging in again creates a *new* session, so a session-bound
@@ -18,6 +18,7 @@ const tokenPattern = /^[A-Za-z0-9_-]{32,128}$/;
 
 export type PendingAction = {
   auth0Sub: string;
+  authFactor: "mfa" | "email";
   method: string;
   path: string;
   routePath?: string | undefined;
@@ -43,7 +44,10 @@ const sensitiveKeys = new Set([
   "idtoken",
   "code",
   "otp",
+  "emailotp",
+  "emailcode",
   "mfacode",
+  "authenticatorcode",
   "verificationcode",
 ]);
 
@@ -82,16 +86,18 @@ function pendingActionKey(token: string) {
 }
 
 /**
- * Captures the rejected request so the client can rebuild its form afterwards.
+ * Captures the rejected request so the client can replay it after step-up auth.
  * Returns the token, or null when the payload is too large to be worth storing
  * (the request is still rejected either way).
  */
 export async function createPendingAction(
   request: FastifyRequest,
   auth0Sub: string,
+  authFactor: PendingAction["authFactor"],
 ): Promise<string | null> {
   const action: PendingAction = {
     auth0Sub,
+    authFactor,
     method: request.method,
     path: request.url,
     routePath: request.routeOptions?.url ?? undefined,
@@ -133,6 +139,22 @@ export async function consumePendingAction(
     return null;
   }
 
+  if (
+    !action ||
+    typeof action !== "object" ||
+    typeof action.auth0Sub !== "string" ||
+    (action.authFactor !== "mfa" && action.authFactor !== "email") ||
+    typeof action.method !== "string" ||
+    !["GET", "PATCH", "POST", "DELETE"].includes(action.method) ||
+    typeof action.path !== "string" ||
+    !action.path.startsWith("/api/v001/users/") ||
+    typeof action.createdAt !== "number" ||
+    !Number.isFinite(action.createdAt) ||
+    action.createdAt > Date.now()
+  ) {
+    return null;
+  }
+
   if (action.auth0Sub !== auth0Sub) {
     logSecurityEvent("pending_action_subject_mismatch", {
       expected: action.auth0Sub,
@@ -151,26 +173,24 @@ export async function discardPendingAction(token: string) {
   await getSessionStoreClient().del(pendingActionKey(token));
 }
 
-/**
- * Replaces the guard of the same name in session.ts. On rejection it stores the
- * request as a pending action and hands the token back, so the frontend can
- * carry it through the Auth0 round trip via `returnTo`.
- *
- * The 401 message is unchanged because clients match on it.
- */
-export function requireMfaAuthentication(maxAgeMs = 15 * 60 * 1000) {
-  return async function mfaAuthenticationGuard(
+function requireFactorAuthentication(
+  factor: "mfa" | "email",
+  maxAgeMs: number,
+) {
+  return async function factorAuthenticationGuard(
     request: FastifyRequest,
     reply: FastifyReply,
   ) {
     const session = request.sannySessionRecord ?? (await getSession(request));
-    const mfaAuthenticatedAt = session?.mfaAuthenticatedAt;
+    const authenticatedAt =
+      factor === "email"
+        ? session?.emailMfaAuthenticatedAt
+        : session?.mfaAuthenticatedAt;
 
-    if (
-      session &&
-      mfaAuthenticatedAt &&
-      Date.now() - mfaAuthenticatedAt < maxAgeMs
-    ) {
+    const authenticationAge = authenticatedAt
+      ? Date.now() - authenticatedAt
+      : Number.POSITIVE_INFINITY;
+    if (session && authenticationAge >= 0 && authenticationAge < maxAgeMs) {
       return;
     }
 
@@ -178,7 +198,7 @@ export function requireMfaAuthentication(maxAgeMs = 15 * 60 * 1000) {
     const auth0Sub = session?.identity?.sub;
     if (auth0Sub) {
       try {
-        resumeToken = await createPendingAction(request, auth0Sub);
+        resumeToken = await createPendingAction(request, auth0Sub, factor);
       } catch (error) {
         // Losing the draft is annoying; failing the rejection would be worse.
         logSecurityEvent("pending_action_store_failed", {
@@ -191,15 +211,29 @@ export function requireMfaAuthentication(maxAgeMs = 15 * 60 * 1000) {
     logSecurityEvent("mfa_authentication_required", {
       sessionId: session?.sessionId,
       maxAgeMs,
-      mfaAuthenticatedAt: mfaAuthenticatedAt ?? null,
+      factor,
+      authenticatedAt: authenticatedAt ?? null,
       resumable: Boolean(resumeToken),
     });
 
     return reply.code(401).send({
       error: "Unauthorized",
-      message: "MFA authentication required",
-      mfaRequired: true,
+      message:
+        factor === "email"
+          ? "Email OTP authentication required"
+          : "MFA authentication required",
+      ...(factor === "email"
+        ? { emailOtpRequired: true }
+        : { mfaRequired: true }),
       ...(resumeToken ? { resumeToken } : {}),
     });
   };
+}
+
+export function requireMfaAuthentication(maxAgeMs = pendingActionTtlMs) {
+  return requireFactorAuthentication("mfa", maxAgeMs);
+}
+
+export function requireEmailMfaAuthentication(maxAgeMs = pendingActionTtlMs) {
+  return requireFactorAuthentication("email", maxAgeMs);
 }

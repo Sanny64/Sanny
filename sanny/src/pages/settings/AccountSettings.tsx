@@ -1,7 +1,12 @@
 import { useLanguage, translations } from "@sanny/i18n";
 import { Button } from "../../../../shared/packages/ui/src/components/Button";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  beginReauthentication,
+  takePendingActionCredentials,
+  type PendingAction,
+} from "../../utils/reauthentication";
 
 type Identity = {
   email: string | null;
@@ -16,7 +21,11 @@ type User = {
   username: string | null;
 };
 
-type RequestError = Error & { status?: number };
+type RequestError = Error & {
+  status?: number;
+  resumeToken?: string;
+  emailOtpRequired?: boolean;
+};
 
 const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
@@ -44,14 +53,21 @@ async function request<T>(path: string, init: RequestInit = {}) {
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
+    let responseBody: {
+      message?: string;
+      resumeToken?: string;
+      emailOtpRequired?: boolean;
+    } = {};
     try {
-      const body = (await response.json()) as { message?: string };
-      message = body.message ?? message;
+      responseBody = (await response.json()) as typeof responseBody;
+      message = responseBody.message ?? message;
     } catch {
       // Keep the status-based message for empty responses.
     }
     const error = new Error(message) as RequestError;
     error.status = response.status;
+    error.resumeToken = responseBody.resumeToken;
+    error.emailOtpRequired = responseBody.emailOtpRequired;
     throw error;
   }
 
@@ -67,6 +83,26 @@ function isMfaAuthenticationRequired(error: unknown) {
   );
 }
 
+function isEmailOtpAuthenticationRequired(error: unknown) {
+  return (
+    error instanceof Error &&
+    (error as RequestError).status === 401 &&
+    (error as RequestError).emailOtpRequired === true
+  );
+}
+
+function replayRequest(action: PendingAction) {
+  return request(action.path, {
+    method: action.method,
+    ...(action.body !== null && action.body !== undefined
+      ? {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(action.body),
+        }
+      : {}),
+  });
+}
+
 export default function AccountSettings() {
   const t = translations[useLanguage().language];
   const navigate = useNavigate();
@@ -78,6 +114,7 @@ export default function AccountSettings() {
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const resumeStartedRef = useRef(false);
 
   const permissions = identity?.permissions ?? [];
   const roles = identity?.roles ?? [];
@@ -123,6 +160,53 @@ export default function AccountSettings() {
       cancelled = true;
     };
   }, [requestFailedMessage]);
+
+  useEffect(() => {
+    if (resumeStartedRef.current) return;
+    const credentials = takePendingActionCredentials();
+    if (!credentials) return;
+    resumeStartedRef.current = true;
+    const pendingCredentials = credentials;
+
+    async function resumePendingAction() {
+      setIsBusy(true);
+      try {
+        const action = await request<PendingAction>(
+          "/api/v001/auth/resume-action",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              resumeToken: pendingCredentials.resumeToken,
+              factor: pendingCredentials.factor,
+            }),
+          },
+        );
+        await replayRequest(action);
+        if (action.method === "DELETE") {
+          setUser(null);
+          setUsername("");
+          setMessage(t.shared.settings.accountDeleted);
+        } else if (action.path.endsWith("/me/password-reset")) {
+          setMessage(t.shared.settings.passwordResetRequested);
+        }
+      } catch (resumeError) {
+        setError(
+          resumeError instanceof Error
+            ? resumeError.message
+            : requestFailedMessage,
+        );
+      } finally {
+        setIsBusy(false);
+      }
+    }
+
+    void resumePendingAction();
+  }, [
+    requestFailedMessage,
+    t.shared.settings.accountDeleted,
+    t.shared.settings.passwordResetRequested,
+  ]);
 
   async function testAccountEndpoints() {
     setIsBusy(true);
@@ -211,7 +295,11 @@ export default function AccountSettings() {
       setMessage(t.shared.settings.accountDeleted);
     } catch (requestError) {
       if (isMfaAuthenticationRequired(requestError)) {
-        window.location.href = `${apiUrl}/api/v001/auth?mfa=true&returnTo=%2Fsettings`;
+        beginReauthentication(
+          apiUrl,
+          "mfa",
+          (requestError as RequestError).resumeToken,
+        );
         return;
       }
       setError(
@@ -234,6 +322,14 @@ export default function AccountSettings() {
       });
       setMessage(t.shared.settings.passwordResetRequested);
     } catch (requestError) {
+      if (isEmailOtpAuthenticationRequired(requestError)) {
+        beginReauthentication(
+          apiUrl,
+          "email",
+          (requestError as RequestError).resumeToken,
+        );
+        return;
+      }
       setError(
         requestError instanceof Error
           ? requestError.message

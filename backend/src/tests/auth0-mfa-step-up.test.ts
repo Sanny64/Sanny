@@ -15,6 +15,14 @@ type MfaStepUpAction = {
 type MfaOptions = {
   allowRememberBrowser: boolean;
 };
+type MfaActionApi = {
+  multifactor: {
+    enable: (provider: string, options: MfaOptions) => void;
+  };
+  authentication: {
+    challengeWith: (factor: { type: string }) => void;
+  };
+};
 
 async function loadAction() {
   const source = await readFile(actionPath, "utf8");
@@ -26,19 +34,25 @@ async function loadAction() {
 test("MFA Action challenges only an explicit MFA step-up request", async () => {
   const action = await loadAction();
   const calls: Array<{ provider: string; options: MfaOptions }> = [];
-  const api = {
+  const emailChallenges: Array<{ type: string }> = [];
+  const api: MfaActionApi = {
     multifactor: {
       enable: (provider: string, options: MfaOptions) =>
         calls.push({ provider, options }),
     },
+    authentication: {
+      challengeWith: (factor) => emailChallenges.push(factor),
+    },
   };
 
+  const secrets = {
+    MFA_ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
+    EMAIL_MFA_ACR: "https://sanny64.de/acr/email-otp",
+  };
   await action.onExecutePostLogin(
     {
       transaction: { acr_values: [] },
-      secrets: {
-        MFA_ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
-      },
+      secrets,
     },
     api,
   );
@@ -51,13 +65,27 @@ test("MFA Action challenges only an explicit MFA step-up request", async () => {
           "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
         ],
       },
-      secrets: {
-        MFA_ACR: "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
-      },
+      secrets,
     },
     api,
   );
   assert.equal(calls.length, 1);
   assert.equal(calls[0]?.provider, "any");
   assert.equal(calls[0]?.options.allowRememberBrowser, false);
+
+  await action.onExecutePostLogin(
+    {
+      transaction: {
+        acr_values: [
+          "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
+          "https://sanny64.de/acr/email-otp",
+        ],
+      },
+      secrets,
+    },
+    api,
+  );
+  assert.equal(calls.length, 1);
+  assert.equal(emailChallenges.length, 1);
+  assert.equal(emailChallenges[0]?.type, "email");
 });

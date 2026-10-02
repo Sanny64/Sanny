@@ -2,6 +2,7 @@ import { getProfileHandler } from "../controllers/auth.controller.js";
 import { meResponseSchema } from "../schemas/auth.schema.js";
 import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createHash, randomBytes } from "node:crypto";
+import { z } from "zod";
 import {
   verifyAccessTokenIdentity,
   verifyIdTokenMfa,
@@ -42,6 +43,13 @@ import {
 } from "../services/user.service.js";
 import { isAuth0IdentityLinked } from "../utils/auth0-management.js";
 import { createAccountLinkProof } from "../utils/account-link-proof.js";
+import {
+  consumePendingAction,
+  pendingActionTtlMs,
+} from "../utils/mfa-reauth.js";
+
+const mfaAcr = "http://schemas.openid.net/pape/policies/2007/06/multi-factor";
+const emailMfaAcr = "https://sanny64.de/acr/email-otp";
 
 async function exchangeCode(
   code: string,
@@ -168,8 +176,83 @@ async function accountLinkingConfirmationHandler(
 }
 
 async function authRoutes(server: FastifyInstance) {
+  server.post<{
+    Body: { resumeToken: string; factor: "mfa" | "email" };
+  }>(
+    "/resume-action",
+    {
+      preHandler: [requireSession],
+      schema: {
+        body: z.strictObject({
+          resumeToken: z
+            .string()
+            .min(32)
+            .max(128)
+            .regex(/^[A-Za-z0-9_-]+$/),
+          factor: z.enum(["mfa", "email"]),
+        }),
+      },
+    },
+    async (request, reply) => {
+      const session = request.sannySessionRecord;
+      const auth0Sub = request.sannySession?.sub;
+      if (!session || !auth0Sub) {
+        return reply.code(401).send({
+          error: "Unauthorized",
+          message: "Session required",
+        });
+      }
+
+      const now = Date.now();
+      const actionToken = request.body.resumeToken;
+      const factorTimestamp =
+        request.body.factor === "email"
+          ? session.emailMfaAuthenticatedAt
+          : session.mfaAuthenticatedAt;
+      const factorAge = factorTimestamp ? now - factorTimestamp : -1;
+      if (factorAge < 0 || factorAge >= pendingActionTtlMs) {
+        return reply.code(401).send({
+          error: "Unauthorized",
+          message:
+            request.body.factor === "email"
+              ? "Email OTP authentication required"
+              : "MFA authentication required",
+          ...(request.body.factor === "email"
+            ? { emailOtpRequired: true }
+            : { mfaRequired: true }),
+        });
+      }
+
+      const pending = await consumePendingAction(actionToken, auth0Sub);
+      if (!pending) {
+        return reply.code(410).send({
+          error: "Expired",
+          message: "The pending action expired or is no longer available.",
+        });
+      }
+      if (pending.authFactor !== request.body.factor) {
+        return reply.code(403).send({
+          error: "Forbidden",
+          message:
+            "The pending action requires a different authentication factor.",
+        });
+      }
+
+      return reply.code(200).send({
+        method: pending.method,
+        path: pending.path,
+        body: pending.body,
+      });
+    },
+  );
+
   server.get<{
-    Querystring: { reauthenticate?: string; mfa?: string; returnTo?: string };
+    Querystring: {
+      reauthenticate?: string;
+      mfa?: string;
+      emailMfa?: string;
+      returnTo?: string;
+    };
   }>("/", async (request, reply) => {
     const codeVerifier = randomBytes(64).toString("base64url");
     const codeChallenge = createHash("sha256")
@@ -180,7 +263,8 @@ async function authRoutes(server: FastifyInstance) {
       returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//")
         ? returnTo
         : undefined;
-    const state = await createLoginState(codeVerifier, safeReturnTo);
+    const emailMfa = request.query.emailMfa === "true";
+    const state = await createLoginState(codeVerifier, safeReturnTo, emailMfa);
     setLoginStates(reply, [...getLoginStates(request), state]);
     const params = new URLSearchParams({
       response_type: "code",
@@ -197,10 +281,10 @@ async function authRoutes(server: FastifyInstance) {
       params.set("max_age", "0");
     }
     if (request.query.mfa === "true") {
-      params.set(
-        "acr_values",
-        "http://schemas.openid.net/pape/policies/2007/06/multi-factor",
-      );
+      params.set("acr_values", mfaAcr);
+    }
+    if (emailMfa) {
+      params.set("acr_values", `${mfaAcr} ${emailMfaAcr}`);
     }
     return reply.redirect(
       `https://${requiredEnv("AUTH0_DOMAIN")}/authorize?${params}`,
@@ -268,6 +352,12 @@ async function authRoutes(server: FastifyInstance) {
       outstandingStates.filter((value) => value !== request.query.state),
     );
     const auth = await exchangeCode(request.query.code, state.codeVerifier);
+    if (state.emailMfa && !auth.mfaAuthenticated) {
+      logSecurityEvent("email_mfa_step_up_failed", {
+        auth0Sub: auth.identity.sub,
+      });
+      return reply.redirect(getAuthErrorRedirectUrl("email_mfa_required"));
+    }
     const verifiedEmail = auth.identity.email;
     if (verifiedEmail && auth.identity.emailVerified) {
       const username =
@@ -328,10 +418,15 @@ async function authRoutes(server: FastifyInstance) {
       auth.identity,
       auth.refreshToken,
       auth.mfaAuthenticated,
+      state.emailMfa && auth.mfaAuthenticated,
     );
     setSessionCookies(reply, session.sessionId, session.csrfToken);
     const redirectUrl = new URL(getSuccessRedirectUrl());
-    if (state.returnTo && state.returnTo.startsWith("/") && !state.returnTo.startsWith("//")) {
+    if (
+      state.returnTo &&
+      state.returnTo.startsWith("/") &&
+      !state.returnTo.startsWith("//")
+    ) {
       redirectUrl.pathname = state.returnTo;
       redirectUrl.search = "";
       redirectUrl.hash = "";

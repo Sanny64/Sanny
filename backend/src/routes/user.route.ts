@@ -28,15 +28,15 @@ import {
   userListQuerySchema,
   linkUserAccountsSchema,
 } from "../schemas/user.schema.js";
-import {
-  requirePermissions,
-  requireRoles,
-} from "../utils/auth0-guards.js";
+import { requirePermissions, requireRoles } from "../utils/auth0-guards.js";
 import {
   requireRecentAuthentication,
-  requireMfaAuthentication,
   requireSession,
 } from "../utils/session.js";
+import {
+  requireEmailMfaAuthentication,
+  requireMfaAuthentication,
+} from "../utils/mfa-reauth.js";
 
 async function userRoutes(server: FastifyInstance) {
   // self read
@@ -105,7 +105,7 @@ async function userRoutes(server: FastifyInstance) {
   server.post(
     "/me/password-reset",
     {
-      preHandler: [requireSession],
+      preHandler: [requireSession, requireEmailMfaAuthentication()],
       schema: {
         security: [{ sessionCookie: [] }],
       },
@@ -136,6 +136,7 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["read:users"]),
         requireRoles(["admin"]),
+        requireMfaAuthentication(),
       ],
       schema: {
         querystring: userEmailQuerySchema,
@@ -156,6 +157,7 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["read:users"]),
         requireRoles(["admin"]),
+        requireMfaAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
@@ -172,6 +174,7 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["read:users"]),
         requireRoles(["admin"]),
+        requireMfaAuthentication(),
       ],
       schema: {
         params: userIdParamSchema,
@@ -192,6 +195,7 @@ async function userRoutes(server: FastifyInstance) {
         requireSession,
         requirePermissions(["read:users"]),
         requireRoles(["admin"]),
+        requireMfaAuthentication(),
       ],
       schema: {
         querystring: userListQuerySchema,
@@ -282,10 +286,7 @@ async function userRoutes(server: FastifyInstance) {
   server.get(
     "/roles/available",
     {
-      preHandler: [
-        requireSession,
-        requireRoles(["admin"]),
-      ],
+      preHandler: [requireSession, requireRoles(["admin"])],
       schema: {
         security: [{ sessionCookie: [] }],
       },

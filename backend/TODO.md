@@ -2,7 +2,7 @@
 
 ## Ongoing tasks
 
-2. [ ] Re-authentication flow
+2. [x] Re-authentication flow
 
 - in multiple instances an admin is required to reauthenticate themselves before doing changes to users.
     - in those cases the admin usually already inserted values in the user field but after reauthentication the role values, username changes, etc. are gone and need to be inserted again; that should change. 
@@ -12,7 +12,7 @@
             - note: user name only changes do not require reauthentication with the Authenticator App. Only role promotion and password reset.
 
 - self password reset should not require authenticator app based reauthentication but instead use an email OTP verification.
-- loading a single user 
+- Loading an individual user, looking up a user, reading roles, and loading the user list require recent MFA authentication.
 
 Diskussion:
 Hierzu einige Punkte:

@@ -101,9 +101,15 @@ TRUST_PROXY=false
    - Name: `mfaStepUp`
    - Trigger: `Post-Login`
    - Deploy `backend/auth0/post-login/mfaStepUp.js`
-   - Enable TOTP and/or WebAuthn in **Security > Multi-factor Auth** before
-     binding the Action. It challenges only authorization requests carrying
-     the standard MFA `acr_values` request.
+   - Set the Action secrets `MFA_ACR` to
+     `http://schemas.openid.net/pape/policies/2007/06/multi-factor` and
+     `EMAIL_MFA_ACR` to `https://sanny64.de/acr/email-otp`.
+   - Enable the factors used for admin step-up and the Email factor in
+     **Security > Multi-factor Auth**. Self-service password resets request
+     the Email factor only; users must have a verified, enrolled email factor.
+   - Bind this Action before enabling admin reauthentication or self-service
+     password reset. It handles the standard MFA request with any enrolled
+     factor and the email ACR with an email OTP challenge only.
 
 7. **Create a Post User Registration Action**:
    - Name: `assignDefaultUserRole`

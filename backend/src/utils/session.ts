@@ -37,11 +37,16 @@ type Session = {
   lastTouchedAt: number;
   authenticatedAt: number;
   mfaAuthenticatedAt?: number | undefined;
+  emailMfaAuthenticatedAt?: number | undefined;
   refreshToken?: string | undefined;
   previousRefreshTokens?: string[] | undefined;
   expiresAt?: number | undefined;
 };
-export type LoginState = { codeVerifier: string; returnTo?: string };
+export type LoginState = {
+  codeVerifier: string;
+  returnTo?: string;
+  emailMfa?: boolean;
+};
 export type AccountLinkProofState = {
   codeVerifier: string;
   continuationState: string;
@@ -73,12 +78,12 @@ export async function getSessionSubject(sessionId: string) {
 
 export async function initializeSessionStore() {
   if (redis) return;
-    const redisUrl = `rediss://:${requiredEnv("REDIS_PASSWORD")}@redis:6379`
-    const client = createClient({
+  const redisUrl = `rediss://:${requiredEnv("REDIS_PASSWORD")}@redis:6379`;
+  const client = createClient({
     url: redisUrl,
     socket: {
       tls: true,
-      ca: readFileSync("/app/redis-ca.crt")
+      ca: readFileSync("/app/redis-ca.crt"),
     },
   });
   client.on("error", (error: Error) =>
@@ -168,6 +173,7 @@ export async function createSession(
   identity: AccessTokenIdentity,
   refreshToken?: string,
   mfaAuthenticated = false,
+  emailMfaAuthenticated = false,
 ) {
   const sessionId = randomUUID();
   const csrfToken = randomBytes(32).toString("base64url");
@@ -179,6 +185,7 @@ export async function createSession(
     lastTouchedAt: now,
     authenticatedAt: now,
     mfaAuthenticatedAt: mfaAuthenticated ? now : undefined,
+    emailMfaAuthenticatedAt: emailMfaAuthenticated ? now : undefined,
     refreshToken: refreshToken ?? undefined,
     previousRefreshTokens: [],
     expiresAt: refreshToken ? now + 60 * 60 * 1000 : undefined,
@@ -238,6 +245,7 @@ export async function getSession(
       lastTouchedAt: now,
       authenticatedAt: session.authenticatedAt ?? rotated.createdAt,
       mfaAuthenticatedAt: session.mfaAuthenticatedAt,
+      emailMfaAuthenticatedAt: session.emailMfaAuthenticatedAt,
     };
 
     await getRedis()
@@ -398,6 +406,7 @@ export async function refreshSessionIdentity(
       lastTouchedAt: Date.now(),
       authenticatedAt: session.authenticatedAt ?? Date.now(),
       mfaAuthenticatedAt: session.mfaAuthenticatedAt,
+      emailMfaAuthenticatedAt: session.emailMfaAuthenticatedAt,
     };
 
     await getRedis().set(sessionKey(sessionId), JSON.stringify(nextSession), {
@@ -495,34 +504,10 @@ export function requireRecentAuthentication(maxAgeMs = 15 * 60 * 1000) {
   };
 }
 
-export function requireMfaAuthentication(maxAgeMs = 15 * 60 * 1000) {
-  return async function mfaAuthenticationGuard(
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) {
-    const session = request.sannySessionRecord ?? (await getSession(request));
-    const mfaAuthenticatedAt = session?.mfaAuthenticatedAt;
-    if (
-      !session ||
-      !mfaAuthenticatedAt ||
-      Date.now() - mfaAuthenticatedAt >= maxAgeMs
-    ) {
-      logSecurityEvent("mfa_authentication_required", {
-        sessionId: session?.sessionId,
-        maxAgeMs,
-        mfaAuthenticatedAt: mfaAuthenticatedAt ?? null,
-      });
-      return reply.code(401).send({
-        error: "Unauthorized",
-        message: "MFA authentication required",
-      });
-    }
-  };
-}
-
 export async function createLoginState(
   codeVerifier: string,
   returnTo?: string,
+  emailMfa = false,
 ) {
   const state = randomBytes(32).toString("base64url");
   await getRedis().set(
@@ -530,6 +515,7 @@ export async function createLoginState(
     JSON.stringify({
       codeVerifier,
       ...(returnTo ? { returnTo } : {}),
+      ...(emailMfa ? { emailMfa: true } : {}),
     } satisfies LoginState),
     { EX: stateTtlSeconds },
   );
