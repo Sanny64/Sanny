@@ -2,7 +2,11 @@
 
 ## Local Auth0 configuration
 
-The Auth0 application must allow `http://localhost:5173` as a callback URL, logout URL, and web origin.
+Run `npm run dev:login` from the workspace root and open `https://localhost:5174`.
+The dev server uses a self-signed certificate; accept it in your browser for local testing.
+Configure the backend's development CORS origins to include `https://localhost:5174`
+and its account-link frontend URL as `https://localhost:5174/confirm-linking`.
+OAuth callbacks remain on the backend at `https://localhost:8443/api/v001/auth/callback`.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

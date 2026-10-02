@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { proofResumeKey } from "./proof-resume";
 
 const channelName = "sanny-account-link-proof";
 
@@ -15,6 +16,15 @@ export default function AccountLinkingProofPage() {
             error ??
             "Secondary authentication could not be completed. Please try again.",
         };
+    if (proof) {
+      try {
+        sessionStorage.removeItem(proofResumeKey);
+      } catch {
+        console.error(
+          "Could not clear the completed account verification state.",
+        );
+      }
+    }
     const channel = new BroadcastChannel(channelName);
 
     channel.postMessage(message);

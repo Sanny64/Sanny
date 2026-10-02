@@ -52,6 +52,7 @@ export type AccountLinkProofState = {
   continuationState: string;
   primaryUserId: string;
   secondaryUserId: string;
+  proofUserId: string;
   temporaryUserId?: string;
 };
 let redis: RedisClientType | null = null;
