@@ -58,7 +58,7 @@ Sanny/ (Root Workspace)
 ├── .github/                         # CI/CD workflows & actions
 │
 ├── backend/                         # Fastify server engine
-│   ├── auth0/                       
+│   ├── auth0/
 │   │    ├── database-action/        # Scripts to manage the custom database connection
 │   │    ├── post-login/             # Scripts that run after user login
 │   │    └── post-user-registration/ # Scripts that run after user registration
@@ -68,7 +68,7 @@ Sanny/ (Root Workspace)
 │   ├── nginx/                       # Reverse proxy, rate limiting safety net, 429-error handling
 │   ├── prisma/                      # Prisma Schema
 │   ├── redis/                       # Memory-NoSQL database
-│   └── src/                         # Custom backend implementation 
+│   └── src/                         # Custom backend implementation
 │        ├── controllers/
 │        ├── routes/
 │        ├── schemas/
@@ -131,7 +131,7 @@ Sanny/ (Root Workspace)
 - Nginx is used as a reverse proxy for traffic management
 - Auth0 custom database authentication
 - Role-Based Access Control (RBAC) through Auth0
-- MySQL (MariaDB + HeidiSQL) 
+- MySQL (MariaDB + HeidiSQL)
 - Cloudflare (through Auth0) + Fastify-Helmet (@fastify/helmet)
 
 ### Deployment

@@ -1,7 +1,7 @@
 /**
  * Handler that sets custom role/profile claims during Post Login.
  * Falls back to checking user_metadata for roles if authorization roles are empty.
- * 
+ *
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {String} name - Name of the action secret to retrieve.
  */
@@ -18,13 +18,13 @@ function getActionSecret(event, name) {
  */
 exports.onExecutePostLogin = async (event, api) => {
   const namespace = getActionSecret(event, "AUTH0_CLAIM_NAMESPACE");
-  
+
   // Get roles from authorization (assigned via Management API) or fallback to user_metadata
   let roles = event.authorization?.roles ?? [];
   if (!Array.isArray(roles)) {
     roles = [];
   }
-  
+
   // Fallback: check user_metadata.roles if authorization.roles is empty
   if (roles.length === 0 && event.user.user_metadata?.roles) {
     const metadataRoles = event.user.user_metadata.roles;
@@ -32,11 +32,8 @@ exports.onExecutePostLogin = async (event, api) => {
       roles = metadataRoles;
     }
   }
-  
-  api.accessToken.setCustomClaim(
-    `${namespace}/roles`,
-    roles,
-  );
+
+  api.accessToken.setCustomClaim(`${namespace}/roles`, roles);
 
   if (event.user.email) {
     api.accessToken.setCustomClaim(`${namespace}/email`, event.user.email);

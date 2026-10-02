@@ -1,17 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import {
-  getAllRoles,
-  isRoleSyncEnabled,
-} from "../utils/auth0-management.js";
+import { getAllRoles, isRoleSyncEnabled } from "../utils/auth0-management.js";
 
 test("role sync stays disabled by default and only allows configured roles", async () => {
   const previousEnvironment = process.env.NODE_ENV;
   const previous = process.env.AUTH0_ROLE_SYNC_ENABLED;
   const originalFetch = globalThis.fetch;
-  const auth0Keys = ["AUTH0_DOMAIN", "AUTH0_M2M_CLIENT_ID", "AUTH0_M2M_CLIENT_SECRET", "AUTH0_MGMT_AUDIENCE"];
-  const originalEnvValues = Object.fromEntries(auth0Keys.map(key => [key, process.env[key]]));
+  const auth0Keys = [
+    "AUTH0_DOMAIN",
+    "AUTH0_M2M_CLIENT_ID",
+    "AUTH0_M2M_CLIENT_SECRET",
+    "AUTH0_MGMT_AUDIENCE",
+  ];
+  const originalEnvValues = Object.fromEntries(
+    auth0Keys.map((key) => [key, process.env[key]]),
+  );
 
   globalThis.fetch = (async (url: string) => {
     if (url.endsWith("/oauth/token")) {
@@ -20,7 +24,7 @@ test("role sync stays disabled by default and only allows configured roles", asy
     if (url.includes("/roles?")) {
       return Response.json([
         { id: "1", name: "admin" },
-        { id: "2", name: "user" }
+        { id: "2", name: "user" },
       ]);
     }
     return new Response(null, { status: 404 });
@@ -28,10 +32,14 @@ test("role sync stays disabled by default and only allows configured roles", asy
 
   try {
     process.env.NODE_ENV = "development";
-    process.env.AUTH0_ROLE_SYNC_ENABLED = "false"; 
-    
+    process.env.AUTH0_ROLE_SYNC_ENABLED = "false";
+
     assert.equal(isRoleSyncEnabled(), false, "Sync should be disabled");
-    assert.deepEqual(await getAllRoles(), [], "Should return an empty array when disabled");
+    assert.deepEqual(
+      await getAllRoles(),
+      [],
+      "Should return an empty array when disabled",
+    );
 
     Object.assign(process.env, {
       AUTH0_ROLE_SYNC_ENABLED: "true",
@@ -42,15 +50,17 @@ test("role sync stays disabled by default and only allows configured roles", asy
     });
 
     assert.equal(isRoleSyncEnabled(), true, "Sync should be enabled");
-    assert.deepEqual(await getAllRoles(), [
-      { id: "1", name: "admin" },
-      { id: "2", name: "user" }
-    ], "Should return roles array when enabled");
-
+    assert.deepEqual(
+      await getAllRoles(),
+      [
+        { id: "1", name: "admin" },
+        { id: "2", name: "user" },
+      ],
+      "Should return roles array when enabled",
+    );
   } finally {
-
     globalThis.fetch = originalFetch;
-    
+
     if (previousEnvironment === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousEnvironment;
 

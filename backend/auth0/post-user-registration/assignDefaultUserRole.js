@@ -3,7 +3,7 @@
  *
  * Required Action secrets: AUTH0_DOMAIN, AUTH0_M2M_CLIENT_ID,
  * AUTH0_M2M_CLIENT_SECRET, AUTH0_MGMT_AUDIENCE, and AUTH0_DEFAULT_ROLE_ID.
- * 
+ *
  * @param {object} event - The event object containing user and secrets.
  * @param {string} name - The name of the Action secret to retrieve.
  */

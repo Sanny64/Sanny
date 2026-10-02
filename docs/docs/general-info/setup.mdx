@@ -20,7 +20,6 @@ _In the root directory, run one of the workspace scripts:_
 - npm run dev:docs-de
 - npm run start:backend (once you finished working on the backend always do: `npm run stop:backend`)
 
-
 Running the dev scripts will open http://localhost:5173 for frontend projects and https://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 
 _For quality checks:_
@@ -37,10 +36,9 @@ _For local builds:_
 - npm run build:docs
 - npm run serve:docs (builds the docs beforehand)
 - npm run build:backend -> builds and autostarts the backend in docker.desktop if NODE_ENV is set to "development". Otherwise you will at first need to setup a VPS.
-- npm run restart:backend -> will rebuild your -app; redis and nginx are excluded from this action. 
+- npm run restart:backend -> will rebuild your -app; redis and nginx are excluded from this action.
 
-Note: Use `npm run build:backend` to rebuild everything.
-    - in case of problems: backend/docker/ `docker-compose down` followed by `docker-compose up --build`.
+Note: Use `npm run build:backend` to rebuild everything. - in case of problems: backend/docker/ `docker-compose down` followed by `docker-compose up --build`.
 
 ---
 
@@ -60,7 +58,7 @@ Sanny/ (Root Workspace)
 │   ├── nginx/                       # Reverse proxy, rate limiting safety net, 429-error handling
 │   ├── prisma/                      # Prisma Schema
 │   ├── redis/                       # Memory-NoSQL database
-│   └── src/                         # Custom backend implementation 
+│   └── src/                         # Custom backend implementation
 │        ├── controllers/
 │        ├── routes/
 │        ├── schemas/

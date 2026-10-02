@@ -15,7 +15,9 @@ test("role synchronization assigns requested roles and removes unrequested roles
     Object.keys(auth0Environment).map((key) => [key, process.env[key]]),
   );
 
-  Object.assign(process.env, auth0Environment, { AUTH0_ROLE_SYNC_ENABLED: "true" });
+  Object.assign(process.env, auth0Environment, {
+    AUTH0_ROLE_SYNC_ENABLED: "true",
+  });
 
   const requests: Array<{ url: string; init?: RequestInit }> = [];
   globalThis.fetch = (async (url: string, init?: RequestInit) => {

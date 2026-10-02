@@ -145,7 +145,6 @@ function encodeAuth0Sub(auth0Sub: string): string {
 }
 
 export async function getAllRoles(): Promise<Auth0Role[]> {
-
   if (!isRoleSyncEnabled()) {
     return [];
   }
@@ -160,11 +159,10 @@ export async function getAllRoles(): Promise<Auth0Role[]> {
     );
   }
 
-  return await response.json() as Auth0Role[];
+  return (await response.json()) as Auth0Role[];
 }
 
 export async function getUserRoles(auth0Sub: string): Promise<Auth0Role[]> {
-
   if (!isRoleSyncEnabled()) {
     return [];
   }
@@ -181,7 +179,7 @@ export async function getUserRoles(auth0Sub: string): Promise<Auth0Role[]> {
     );
   }
 
-  return await response.json() as Auth0Role[];
+  return (await response.json()) as Auth0Role[];
 }
 
 async function assignRoles(auth0Sub: string, roleIds: string[]): Promise<void> {

@@ -34,11 +34,10 @@ _Für lokale Builds:_
 - npm run build:login
 - npm run build:docs
 - npm run serve:docs (baut die Docs vorher)
-- npm run build:backend ->  baut und startet das backend in Docker Desktop, wenn NODE_ENV auf "development" gesetzt ist. Ansonsten muss zunächst ein VPS eingerichtet werden.
-- npm run restart:backend -> baut deine -app erneut. redis und nginx sind von dieser Aktion nicht betroffen. 
+- npm run build:backend -> baut und startet das backend in Docker Desktop, wenn NODE_ENV auf "development" gesetzt ist. Ansonsten muss zunächst ein VPS eingerichtet werden.
+- npm run restart:backend -> baut deine -app erneut. redis und nginx sind von dieser Aktion nicht betroffen.
 
-Info: Nutze `npm run build:backend` erneut um das Ganze backend neu zu bauen 
-    - bei Problemen: backend/docker/ `docker-compose down` und dann `docker-compose up --build`. 
+Info: Nutze `npm run build:backend` erneut um das Ganze backend neu zu bauen - bei Problemen: backend/docker/ `docker-compose down` und dann `docker-compose up --build`.
 
 ---
 

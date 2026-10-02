@@ -28,7 +28,7 @@
 }
 
 .admin-settings__left-column > .admin-settings__actions {
-  margin-top: auto; 
+  margin-top: auto;
 }
 
 .admin-settings__fields {
@@ -106,10 +106,14 @@
   outline: 2px solid #e67e22 !important;
   outline-offset: 1px;
   box-shadow: 0 0 8px rgba(230, 126, 34, 0.5) !important;
-  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
 }
 
-.admin-settings__user-actions .admin-settings__btn--unsaved:hover:not(:disabled) {
+.admin-settings__user-actions
+  .admin-settings__btn--unsaved:hover:not(:disabled) {
   background-color: var(--accent-hover, #d35400) !important;
   border-color: var(--accent-hover, #d35400) !important;
   outline-color: #d35400 !important;
@@ -117,7 +121,8 @@
   transform: translateY(-1px);
 }
 
-.admin-settings__user-actions .admin-settings__btn--unsaved:active:not(:disabled) {
+.admin-settings__user-actions
+  .admin-settings__btn--unsaved:active:not(:disabled) {
   transform: translateY(0);
 }
 

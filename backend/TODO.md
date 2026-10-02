@@ -2,21 +2,37 @@
 
 ## Ongoing tasks
 
-1. [ ] Implement error handling 
- - all error redirects must lead to an error handler page not a json response.
-    - e.g. rate limiting response
- - implement toasts
-    - e.g. show the user they must relogin soon 15mins before the TTL session has been exceeded after 8hrs.
-    - integrate toasts into @sanny/ui so it can be used in login, as well as sanny
-
-2. [ ] Verify the deployed Auth0 tenant and claim contract **!! OP-TASK !!**
+1. [ ] Verify the deployed Auth0 tenant and claim contract **!! OP-TASK !!**
 
 - Database action scripts were tested manually; callback/logout URLs, PKCE, refresh-token rotation, offline access, Management API scopes, actions, and namespaced claims still require full tenant verification.
 - Source validation covers issuer, audience, signature, subject, expiry, permissions, roles, email/name, email verification handling, and HTTPS-only production redirect URLs; automated coverage passes.
 - Required authorization claims fail closed, and the non-secret contract checklist is documented in `docs/docs/backend/auth0-tenant-contract.mdx`.
 
-3. [ ] Verify features
+2. [ ] Verify features
 
+- Add playwright integration to test all features
+  - create social google test user
+  - create password + email test user
+  - link google social user to password user
+  - link password user to google social user
+  - login as google social user
+  - login as password user
+  - login as password user to a linked account
+  - login as google social user to a linked account
+  - change roles as admin for different user
+  - change roles as admin for self
+  - change user name for self
+  - change user name as admin for different user
+  - send reset password mail
+  - send reset password mail as admin
+  - delete google user
+  - delete password user
+  - delete linked user
+  - test all buttons on all pages (change language, theme, loadUsers, etc. etc.)
+  - test if all MFA guards are in place
+- Add automated endpoint testing
+  - build an automated testing suite for all api-endpoints to check if all security guards are in place.
+  - exceed the rate limiting
 - Full Fastify hook/pre-handler integration, including cookie replacement during rotation.
 - Redis-backed session rotation, refresh expiry, malformed records, concurrent refresh, and atomic replacement.
 - Proof that refresh-token fields survive session-ID rotation.
@@ -29,20 +45,21 @@
 - Production-mode HSTS and Swagger exposure policy.
 - Rate-limit unique-query, IPv6, proxy, multi-process, OAuth-GET, and route-group behavior.
 - Deployed Auth0 action/claim contract verification.
+- Check if freshly created users get auto assigned the user role.
 
-4. [ ] Address Aikido findings
+3. [ ] Address Aikido findings
 
 - See "problems" tab after triggering an AIKAIDO Workspace Scan
 - npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
 - npm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported
 - npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
-- npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+- npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported. For ESM codebases, update to uuid@latest. For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
 
 **Remaining:** Complete and verify the live management API sync flow before exposing the endpoint.
 
 ### Security hardening and deployment
 
-5. [ ] Validate the full deployment in staging.
+4. [ ] Validate the full deployment in staging.
 
 - Verify NGINX and application limits block abuse without breaking normal auth flows.
 - Confirm JWT/session handling and forwarding-header behavior behind the proxy.
@@ -51,7 +68,7 @@
 
 ## Finishing touches
 
-6. [ ] Add extensive documentation to `docs/docs/backend`
+5. [ ] Add extensive documentation to `docs/docs/backend`
 
 - Started `docs/docs/backend/operations.mdx` with environment, Auth0, Redis, proxy, monitoring, staging, and incident-response guidance.
 - Make sure no secrets are leaked.

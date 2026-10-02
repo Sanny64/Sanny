@@ -5,10 +5,7 @@ import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 
 const scriptPath = fileURLToPath(
-  new URL(
-    "../../auth0/database-action/changePassword.js",
-    import.meta.url,
-  ),
+  new URL("../../auth0/database-action/changePassword.js", import.meta.url),
 );
 
 type ChangePasswordCallback = (err: unknown, result?: unknown) => void;
