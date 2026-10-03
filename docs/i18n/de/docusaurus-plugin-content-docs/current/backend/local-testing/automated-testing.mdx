@@ -3,15 +3,31 @@ title: Automatisierte Tests
 description: Die gemockten und Live-Playwright-End-to-End-Tests lokal ausführen.
 ---
 
-## Playwright-Test-Suites
+## Testbefehle
 
-Führe diese Befehle im Repository-Stammverzeichnis aus:
+Führe die Befehle im Repository-Stammverzeichnis aus. Installiere die drei Playwright-Browser einmalig mit `npx playwright install chromium firefox msedge`. Der vollständige Befehl `npm run test` benötigt außerdem eine erreichbare Entwicklungs-API/Auth0-Umgebung sowie dedizierte Zugangsdaten unter `TESTUSER_EMAIL` und `TESTUSER_PASSWORD`.
 
-| Befehl                         | Zweck                                                                         |
-| ------------------------------ | ----------------------------------------------------------------------------- |
-| `npm run test:e2e:mocked`      | Führt End-to-End-Tests mit gemockten externen Diensten aus.                   |
-| `npm run test:e2e:real`        | Führt die Live-Auth0-End-to-End-Tests in einem Headless-Browser aus.          |
-| `npm run test:e2e:real:headed` | Führt die Live-Auth0-End-to-End-Tests in einem sichtbaren Browserfenster aus. |
+| Befehl                             | Zweck                                                              |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| `npm run test:backend`             | Typprüfung und Backend-Unit-Tests.                                 |
+| `npm run test:backend:redis`       | Redis-Session-Integrationstest; Docker erforderlich.               |
+| `npm run test:e2e:mocked`          | Gemockte UI-E2E-Tests in Chromium, Firefox und Edge.               |
+| `npm run test:e2e`                 | Gemockte E2E-Tests plus Live-Passwort-Flow in sichtbarem Chromium. |
+| `npm run test:e2e:mocked:chromium` | Gemockte UI-Suite nur in Chromium.                                 |
+| `npm run test:e2e:mocked:firefox`  | Gemockte UI-Suite nur in Firefox.                                  |
+| `npm run test:e2e:mocked:edge`     | Gemockte UI-Suite nur in Edge.                                     |
+| `npm run test`                     | Alle Prüfungen einschließlich Live-Passwort-Flow bei Auth0.        |
+
+Die gemockte UI-Suite prüft anonyme und authentifizierte Sitzungsaktionen (einschließlich CSRF beim Abmelden), Self-Service- und Admin-Rolleninteraktionen, Account-Verknüpfung, WCAG-2.2-AA-Regeln mit axe, Tastaturbedienung, horizontalen mobilen Überlauf und einen Chromium-Screenshot-Baseline. Gemockte Anfragen prüfen nur Frontend-Verhalten und API-Verträge; verwende Backend-Tests oder den lokalen Docker-Stack, wenn das echte Backend-Verhalten relevant ist.
+
+Visuelle Baselines liegen bei den E2E-Tests. Nach einer beabsichtigten UI-Änderung kannst du den Chromium-Screenshot mit `npx playwright test e2e/mock/accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots` aktualisieren und den Bildvergleich prüfen.
+
+Live-Auth0-Prüfungen:
+
+| Befehl                         | Zweck                                                |
+| ------------------------------ | ---------------------------------------------------- |
+| `npm run test:e2e:real`        | Live-Auth0-Prüfungen in sichtbarem Chromium.         |
+| `npm run test:e2e:real:headed` | Live-Auth0-Prüfungen in Edge mit sichtbarem Fenster. |
 
 Die Live-Suite verwendet dedizierte Testkonten. Stelle `TESTUSER_EMAIL`, `TESTUSER_PASSWORD`, `TESTGOOGLEUSER_EMAIL` und `TESTGOOGLEUSER_PASSWORD` über eine lokale Umgebungskonfiguration bereit. Committe niemals echte Zugangsdaten und verwende keine persönlichen Konten für automatisierte Tests.
 
@@ -19,4 +35,4 @@ Die Live-Suite verwendet dedizierte Testkonten. Stelle `TESTUSER_EMAIL`, `TESTUS
 
 Google kann Anmeldungen blockieren, wenn erkannt wird, dass ein Browser durch Software-Automatisierung gesteuert wird. Das kann auch bei sichtbarem Edge passieren: Das Fenster ist zwar sichtbar, aber Playwright steuert den Browser weiterhin. Google kann dann „Dieser Browser oder diese App ist möglicherweise nicht sicher“ anzeigen und den Live-Social-Login verhindern. Diese Einschränkung liegt beim Anbieter und weist für sich genommen nicht auf einen Fehler der Anwendung hin.
 
-Für regelmäßige automatisierte Prüfungen ist die gemockte Suite vorzuziehen. Prüfe den Live-Google-Ablauf bei Bedarf manuell in einem unterstützten Browser. Siehe Googles [Hinweise zur Anmeldung mit unterstützten Browsern](https://support.google.com/accounts/answer/7675428?hl=de) und Playwrights Empfehlung, [Drittanbieter-Abhängigkeiten nicht zu testen](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).
+Der vollständige Befehl `npm run test` kontaktiert Auth0 für den dedizierten Passwort-Test; der Google-Automatisierungstest wird explizit übersprungen. Prüfe Google-Anmeldung und Account-Verknüpfung manuell in einem unterstützten Browser. Siehe Googles [Hinweise zur Anmeldung mit unterstützten Browsern](https://support.google.com/accounts/answer/7675428?hl=de) und Playwrights Empfehlung, [Drittanbieter-Abhängigkeiten nicht zu testen](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).

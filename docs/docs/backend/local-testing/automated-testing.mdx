@@ -3,15 +3,31 @@ title: Automated Testing
 description: Run the mocked and live Playwright end-to-end suites locally.
 ---
 
-## Playwright suites
+## Test commands
 
-Run these commands from the repository root:
+Run commands from the repository root. Install the three Playwright browser targets once with `npx playwright install chromium firefox msedge`. The full `npm run test` gate also needs a reachable development API/Auth0 tenant and dedicated `TESTUSER_EMAIL`/`TESTUSER_PASSWORD` credentials.
 
-| Command                        | Purpose                                                          |
-| ------------------------------ | ---------------------------------------------------------------- |
-| `npm run test:e2e:mocked`      | Run the end-to-end tests that use mocked external services.      |
-| `npm run test:e2e:real`        | Run the live Auth0 end-to-end tests in a headless browser.       |
-| `npm run test:e2e:real:headed` | Run the live Auth0 end-to-end tests in a visible browser window. |
+| Command                            | Purpose                                                              |
+| ---------------------------------- | -------------------------------------------------------------------- |
+| `npm run test:backend`             | Type-check and run backend unit tests.                               |
+| `npm run test:backend:redis`       | Run the real-Redis session integration test; requires Docker.        |
+| `npm run test:e2e:mocked`          | Run mocked UI E2E tests in Chromium, Firefox, and branded Edge.      |
+| `npm run test:e2e`                 | Run mocked E2E plus live password-user Auth0 E2E in headed Chromium. |
+| `npm run test:e2e:mocked:chromium` | Run the mocked UI suite in Chromium only.                            |
+| `npm run test:e2e:mocked:firefox`  | Run the mocked UI suite in Firefox only.                             |
+| `npm run test:e2e:mocked:edge`     | Run the mocked UI suite in branded Edge only.                        |
+| `npm run test`                     | Run all checks, including live password-user Auth0 E2E.              |
+
+The mocked UI suite checks anonymous/authenticated session controls (including logout CSRF), self-service and admin role interactions, account linking, WCAG 2.2 AA rules with axe, keyboard operation, mobile horizontal overflow, and a Chromium screenshot baseline. Mocked requests verify frontend behavior and API contracts only; use backend tests or the local Docker stack when real backend behavior matters.
+
+Visual baselines are stored with the E2E tests. To review and update the Chromium screenshot after an intentional UI change, run `npx playwright test e2e/mock/accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots` and inspect the resulting image diff.
+
+Live Auth0 checks:
+
+| Command                        | Purpose                                        |
+| ------------------------------ | ---------------------------------------------- |
+| `npm run test:e2e:real`        | Run live Auth0 checks in headed Chromium.      |
+| `npm run test:e2e:real:headed` | Run live Auth0 checks in branded Edge, headed. |
 
 The live suite uses dedicated test accounts. Provide `TESTUSER_EMAIL`, `TESTUSER_PASSWORD`, `TESTGOOGLEUSER_EMAIL`, and `TESTGOOGLEUSER_PASSWORD` through local environment configuration. Never commit real credentials or use personal accounts for automated tests.
 
@@ -19,4 +35,4 @@ The live suite uses dedicated test accounts. Provide `TESTUSER_EMAIL`, `TESTUSER
 
 Google may block sign-in when it detects that a browser is controlled by software automation. This can happen in headed Edge too: the window is visible, but Playwright still controls the browser. Google may show “This browser or app may not be secure,” and the live social sign-in flow may not complete. This is a provider-side restriction and does not by itself indicate an application regression.
 
-For routine automated checks, prefer the mocked suite. Validate the live Google flow manually in a supported browser when needed. See Google's [supported-browser sign-in guidance](https://support.google.com/accounts/answer/7675428?hl=en) and Playwright's recommendation to [avoid testing third-party dependencies](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).
+The full `npm run test` command contacts Auth0 for the dedicated password-user flow; the Google automation test is explicitly skipped. Validate Google sign-in and account linking manually in a supported browser. See Google's [supported-browser sign-in guidance](https://support.google.com/accounts/answer/7675428?hl=en) and Playwright's recommendation to [avoid testing third-party dependencies](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).

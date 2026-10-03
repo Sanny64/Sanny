@@ -47,7 +47,9 @@ For quality checks:
 - npm run lint
 - npm run build
 - npm run test
-- npm run type-check
+- npm run lint:backend
+
+`npm run test` runs formatting, backend unit/type and Redis integration tests, frontend lint/build, mocked UI end-to-end tests in Chromium, Firefox, and branded Edge, and a live password-user Auth0 flow in headed Chromium. Install the browsers with `npx playwright install chromium firefox msedge` and provide dedicated `TESTUSER_EMAIL`/`TESTUSER_PASSWORD` credentials for the live flow. The mocked suite covers role-gated workflows, WCAG 2.2 AA axe scans, keyboard/mobile checks, and a Chromium screenshot baseline. The Google automation case is intentionally skipped because Google may block controlled browsers; verify Google sign-in and account linking manually. See the [automated testing guide](docs/docs/backend/local-testing/automated-testing.mdx).
 
 That will open https://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 

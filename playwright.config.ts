@@ -4,7 +4,6 @@ import { config as loadDotenv } from "dotenv";
 const selectedRealSuite = process.argv.some((argument) =>
   argument.replaceAll("\\", "/").includes("e2e/real"),
 );
-const headedSuite = process.argv.includes("--headed");
 
 if (selectedRealSuite) {
   const backendEnvironment: Record<string, string | undefined> = {};
@@ -34,19 +33,23 @@ export default defineConfig({
   fullyParallel: true,
   reporter: "list",
   use: {
-    ...devices["Desktop Chrome"],
     baseURL: "https://127.0.0.1:5175",
     ignoreHTTPSErrors: true,
-    ...(headedSuite
-      ? {
-          launchOptions: {
-            channel: "msedge",
-            headless: false,
-            slowMo: 300,
-          },
-        }
-      : {}),
   },
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "edge",
+      use: { ...devices["Desktop Chrome"], channel: "msedge" },
+    },
+  ],
   webServer: [
     {
       command: "npm run dev -w login -- --host 127.0.0.1 --port 5175",

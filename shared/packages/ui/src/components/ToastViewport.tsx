@@ -8,7 +8,11 @@ export default function ToastViewport() {
   const t = translations[useLanguage().language];
 
   return (
-    <div className="toast-viewport" aria-label={t.shared.notifications.title}>
+    <div
+      className="toast-viewport"
+      role="region"
+      aria-label={t.shared.notifications.title}
+    >
       {toasts.map((toast) => (
         <section
           key={toast.id}

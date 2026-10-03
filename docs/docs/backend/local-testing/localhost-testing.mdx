@@ -14,7 +14,7 @@ Updated with clearer comments and added `VITE_LOGIN_URL` for consistency:
 VITE_AUTH0_DOMAIN="YOUR_AUTH0_TENANT_DOMAIN"
 VITE_AUTH0_CLIENT_ID="your auth0 client id"
 VITE_AUTH0_AUDIENCE="https://api.example.com"
-VITE_API_URL="https://localhost:8443"
+VITE_DEV_API_URL="https://localhost:8443"
 VITE_LOGIN_URL="https://localhost:5174"
 ```
 
@@ -26,7 +26,7 @@ Updated with clearer comments and added `VITE_LOGIN_URL`:
 VITE_AUTH0_DOMAIN="YOUR_AUTH0_TENANT_DOMAIN"
 VITE_AUTH0_CLIENT_ID="your auth0 client id"
 VITE_AUTH0_AUDIENCE="https://api.example.com"
-VITE_API_URL="https://localhost:8443"
+VITE_DEV_API_URL="https://localhost:8443"
 VITE_LOGIN_URL="https://localhost:5174"
 ```
 
@@ -108,11 +108,11 @@ Localhost Development Flow:
 
 ```
 frontend (localhost:5173)
-├── VITE_API_URL = "https://localhost:8443"
+├── VITE_DEV_API_URL = "https://localhost:8443"
 └── VITE_LOGIN_URL = "https://localhost:5174"
 
 login (localhost:5174)
-├── VITE_API_URL = "https://localhost:8443"
+├── VITE_DEV_API_URL = "https://localhost:8443"
 └── VITE_LOGIN_URL = "https://localhost:5174"
 
 backend (localhost:3000)
@@ -126,11 +126,11 @@ backend (localhost:3000)
 
 ```
 frontend (app.example.com)
-├── VITE_API_URL = "https://api.example.com"
+├── VITE_DEV_API_URL = "https://api.example.com"
 └── VITE_LOGIN_URL = "https://login.example.com"
 
 login (login.example.com)
-├── VITE_API_URL = "https://api.example.com"
+├── VITE_DEV_API_URL = "https://api.example.com"
 └── VITE_LOGIN_URL = "https://login.example.com"
 
 backend (api.example.com)
@@ -222,7 +222,7 @@ tenant and backend/frontend instances.
 ### Quality gates
 
 - [x] Backend logs show successful account merge
-- [x] All backend tests pass (`npm run test` in `backend/`)
+- [x] Backend type-check and unit tests pass (`npm run test:backend` from the repository root)
 - [x] ESLint passes without errors
 - [x] TypeScript type-check passes without errors
 - [x] Prettier formatting is clean

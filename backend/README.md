@@ -19,6 +19,12 @@ and `DEV_ACCOUNT_LINK_CONFIRMATION_URL` pointing to the backend's
 The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the login frontend's
 `/confirm-linking` page.
 
+## Automated testing
+
+Run `npm run test:backend` from the repository root for the backend type-check and unit suite. Run `npm run test:backend:redis` for the Redis-backed session integration test; Docker must be available.
+
+The full root `npm run test` also builds the frontends and runs mocked Playwright UI tests in Chromium, Firefox, and branded Edge. Those UI tests verify frontend behavior and API contracts, including session sign-in/sign-out and CSRF handling, not the deployed backend. The gate also runs the live password-user Auth0 flow in headed Chromium and therefore needs a reachable development API/Auth0 tenant and dedicated test credentials. The Google automation case remains skipped because Google may block controlled browsers; see the [automated testing guide](../docs/docs/backend/local-testing/automated-testing.mdx) for accessibility, keyboard, mobile, visual regression, and browser setup details.
+
 ## Rate limiting and proxy trust
 
 The backend uses an atomic Redis fixed-window limiter. OAuth initiation and callback, logout, self-service mutations, and admin mutations use separate route groups. Keys contain Fastify's resolved client IP, the authenticated session subject when available, and the normalized route group; query strings are never included.

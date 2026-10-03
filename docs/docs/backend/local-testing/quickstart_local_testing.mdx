@@ -165,14 +165,14 @@ DEV_CORS_ORIGINS="https://localhost:5173,https://localhost:5174"  # CORS allowli
 ### Login App (`login/.env.local`)
 
 ```
-VITE_API_URL="https://localhost:8443"  # Backend
+VITE_DEV_API_URL="https://localhost:8443"  # Backend
 VITE_LOGIN_URL="https://localhost:5174"  # Self
 ```
 
 ### Main App (`sanny/.env.local`)
 
 ```
-VITE_API_URL="https://localhost:8443"  # Backend
+VITE_DEV_API_URL="https://localhost:8443"  # Backend
 VITE_LOGIN_URL="https://localhost:5174"  # Login app
 ```
 
@@ -188,7 +188,7 @@ VITE_LOGIN_URL="https://localhost:5174"  # Login app
 2. **Prepare for Production**:
    - [ ] Update Auth0 callback URLs to production domains
    - [ ] Update environment variables for production
-   - [ ] Run test suite: `npm run test` in backend
+   - [ ] Run backend type-check and unit tests: `npm run test:backend` from the repository root
    - [ ] Deploy to production infrastructure
 
 3. **Monitor & Support**:

@@ -471,6 +471,7 @@ test("broadcasts a completed proof and clears its resume state", async ({
   page,
 }) => {
   await page.addInitScript(() => {
+    window.close = () => {};
     sessionStorage.setItem(
       "sanny-account-link-proof-resume",
       JSON.stringify({ state: "d".repeat(43), expiresAt: Date.now() + 60_000 }),
@@ -501,6 +502,7 @@ test("broadcasts proof errors without clearing the pending resume state", async 
   page,
 }) => {
   await page.addInitScript(() => {
+    window.close = () => {};
     sessionStorage.setItem(
       "sanny-account-link-proof-resume",
       JSON.stringify({ state: "e".repeat(43), expiresAt: Date.now() + 60_000 }),

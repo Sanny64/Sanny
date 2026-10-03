@@ -61,7 +61,7 @@ The file is already configured for localhost. For local testing:
 VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
 VITE_AUTH0_CLIENT_ID=<your-client-id>
 VITE_AUTH0_AUDIENCE=https://api.example.com
-VITE_API_URL=https://localhost:8443
+VITE_DEV_API_URL=https://localhost:8443
 ```
 
 #### Main Frontend (`sanny/.env.local`)
@@ -72,7 +72,7 @@ Create or update to match:
 VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
 VITE_AUTH0_CLIENT_ID=<your-client-id>
 VITE_AUTH0_AUDIENCE=https://api.example.com
-VITE_API_URL=https://localhost:8443
+VITE_DEV_API_URL=https://localhost:8443
 VITE_LOGIN_URL=https://localhost:5174
 ```
 
@@ -124,7 +124,7 @@ npm run dev
 ### "Invalid redirect_uri" Error
 
 - Ensure localhost callback URLs are registered in Auth0 dashboard
-- Verify `VITE_API_URL` is correct in frontend .env files
+- Verify `VITE_DEV_API_URL` is correct in frontend .env files
 - Check backend `AUTH0_CALLBACK_URL` matches registered URL
 
 ### Account Linking Page Not Appearing

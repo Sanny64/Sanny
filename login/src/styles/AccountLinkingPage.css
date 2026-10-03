@@ -77,7 +77,7 @@
 
 .account-label {
   font-size: 0.75rem;
-  color: var(--color-text-tertiary, #999);
+  color: var(--color-text-tertiary, #666);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
