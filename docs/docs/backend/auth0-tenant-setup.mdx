@@ -1,0 +1,330 @@
+---
+title: Set Up the Auth0 Tenant
+description: Step-by-step Auth0 configuration for the existing Sanny backend.
+sidebar_position: 2
+---
+
+# Set up the Auth0 tenant
+
+This procedure configures Auth0 for the existing Sanny backend. It follows the
+repository's current OAuth, custom database, token-claim, account-linking, and
+MFA contracts. Complete it once for each environment you operate. Never put
+client secrets, database passwords, certificates, or API tokens in this guide,
+source control, or Action logs.
+
+Auth0 hosts the login and runs the custom database scripts, but the Sanny
+database remains the user store. The Auth0 `create` script creates the local
+user row during signup; do not add a second signup path that creates a separate
+Auth0 database user.
+
+## 1. Choose environment URLs
+
+The backend selects `DEV_` or `PROD_` URL settings from `NODE_ENV`. In
+production, all configured public URLs must use HTTPS. Use the exact same host
+for authorization and its `/continue` redirect; do not mix a tenant domain and
+a custom domain within one login transaction.
+
+| Setting                            | Local development example                                      | Production value                                           |
+| ---------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------- |
+| Auth0 callback                     | `https://localhost:8443/api/v001/auth/callback`                | `https://<api-host>/api/v001/auth/callback`                |
+| Successful login redirect          | `https://localhost:5173/`                                      | `https://<app-host>/`                                      |
+| Logout redirect                    | `https://localhost:5173/`                                      | `https://<app-host>/`                                      |
+| Account-link confirmation frontend | `https://localhost:5174/confirm-linking`                       | `https://<login-host>/confirm-linking`                     |
+| Account-link confirmation endpoint | `https://localhost:8443/api/v001/auth/confirm-account-linking` | `https://<api-host>/api/v001/auth/confirm-account-linking` |
+| Account-link proof resume route    | `https://localhost:5174/account-link-proof-resume`             | `https://<login-host>/account-link-proof-resume`           |
+
+The examples match the repository's local HTTPS services. For production,
+replace each placeholder with the deployed origin and path; do not register
+wildcards. The account-link endpoint is for the Post-Login Action redirect, not
+the frontend confirmation page.
+
+The current Actions use tenant-level secrets, including one `NODE_ENV` value,
+and each custom database connection has one set of database settings. Therefore
+one tenant/Action flow is configured for one environment at a time; two
+applications in that tenant do not get separate Action secrets. Use separate
+tenants for concurrently running development and production environments. If
+you must share a tenant, first change the Actions to select configuration by
+application and verify that database connections and flows are isolated; do
+not assume separate backend `.env` values isolate the Auth0 side.
+
+## 2. Create the application
+
+In **Applications > Applications**, create a **Regular Web Application** for
+each backend environment. Record its domain, Client ID, and Client Secret in
+that environment's secret store.
+
+In the application's settings:
+
+1. Add only the callback URL from the table above to **Allowed Callback URLs**.
+2. Add only the logout URL from the table to **Allowed Logout URLs**. It must
+   match exactly, including the trailing slash. The successful-login redirect
+   is validated and used by the backend after the Auth0 callback; it is not an
+   Auth0 logout URL.
+3. Enable the **Authorization Code** and **Refresh Token** grant types. Do not
+   enable the Implicit grant.
+4. Enable refresh-token rotation. The backend requests `offline_access` and
+   stores rotated refresh tokens in its session.
+5. Set the application's **Application Login URI** to the account-link proof
+   resume route from the table. This is the password-reset completion route
+   used during account-link ownership proof; it is not the OAuth callback.
+6. Enable the database and Google connections created below for this
+   application.
+
+The backend uses Authorization Code with PKCE (`S256`) and requests these
+scopes: `openid profile email offline_access update:me delete:me`. The OAuth
+callback is handled by the backend, not by the login frontend. Add frontend
+origins to **Allowed Web Origins** only if a browser client in your deployment
+calls Auth0 directly; they are not callback URLs.
+
+## 3. Create the API
+
+In **Applications > APIs**, create an API and set its identifier to the exact
+value used for `AUTH0_AUDIENCE`. The identifier can be a URI; it does not need
+to resolve in a browser. Configure it to sign access tokens with RS256.
+
+Add the API permissions used by the backend:
+
+| Permission     | Use                                  |
+| -------------- | ------------------------------------ |
+| `update:me`    | Update the signed-in user's profile  |
+| `delete:me`    | Delete the signed-in user's profile  |
+| `read:users`   | Read user profiles (admin)           |
+| `write:users`  | Create users or manage roles (admin) |
+| `update:users` | Update users (admin)                 |
+| `delete:users` | Delete users (admin)                 |
+
+Assign the self-service permissions to the normal `user` role and the admin
+permissions only to the reviewed `admin` role. The backend accepts permissions
+from the `permissions` token claim, or from `scope` when that claim is absent.
+Never use email or name claims to grant access.
+
+## 4. Configure the custom database connection
+
+In **Authentication > Database**, create a custom database connection for the
+Sanny user database. Enable **Use my own database** and configure the
+connection's database action scripts with the files in
+`backend/auth0/database-action/`:
+
+| Auth0 script    | Repository file     |
+| --------------- | ------------------- |
+| Login           | `login.js`          |
+| Get User        | `getUser.js`        |
+| Create          | `create.js`         |
+| Verify          | `verify.js`         |
+| Change Password | `changePassword.js` |
+| Delete          | `delete.js`         |
+
+Provide these connection configuration values to the scripts:
+
+| Configuration key | Value                                                               |
+| ----------------- | ------------------------------------------------------------------- |
+| `DB_HOST`         | Database hostname reachable from Auth0's custom database runtime    |
+| `DB_PORT`         | Database port, normally `3306`                                      |
+| `DB_USER`         | Dedicated database account with only the required user-table access |
+| `DB_PASSWORD`     | Secret for that database account                                    |
+| `DB_NAME`         | Database containing the Prisma `User` table                         |
+| `DB_SSL_CA`       | Trusted CA certificate for the database TLS connection              |
+
+The scripts require TLS certificate validation; do not disable it. Grant the
+database account only the select/insert/update/delete permissions needed on the
+`User` table. Optional signup policy configuration keys are
+`EMAIL_MAX_LENGTH` (default `254`), `USERNAME_MIN_LENGTH` (default `3`),
+`USERNAME_MAX_LENGTH` (default `30`), `PASSWORD_MIN_LENGTH` (default `15`),
+`PASSWORD_MAX_BYTES` (default `72`), and `PASSWORD_MIN_CLASS_COUNT` (default
+`3`). Keep the same policy across create and change-password scripts.
+
+Enable the connection for the Regular Web Application. Copy its connection name
+and connection ID for `AUTH0_DATABASE_CONNECTION` and
+`AUTH0_DATABASE_CONNECTION_ID` respectively. Use the dashboard's **Try**
+controls to test every script against a non-production test user before
+connecting a production database. See [the script contract](/docs/backend/auth0-database-action-scripts)
+for the expected inputs and callback behavior.
+
+## 5. Configure Google login
+
+In **Authentication > Social**, configure the Google connection using the
+Google OAuth client credentials, then enable it for the same Regular Web
+Application. The account-link Action recognizes the `google-oauth2` provider
+and the custom database provider `auth0`. Keep account linking confirmation
+enabled: users must prove ownership of the other identity, and matching email
+addresses alone are not sufficient.
+
+## 6. Create Management API clients
+
+Use separate machine-to-machine applications for Auth0 Actions and backend
+server operations. In **Applications > APIs > Auth0 Management API**, authorize
+each client only for its operations. Use the audience
+`https://<AUTH0_DOMAIN>/api/v2/` (the same tenant domain used by the app).
+
+For the Actions client, grant the scopes needed by the deployed Actions:
+
+| Scope                       | Action operation                                     |
+| --------------------------- | ---------------------------------------------------- |
+| `update:users`              | Assign the default role and set `email_verified`     |
+| `read:users`                | Find candidate accounts by email during linking      |
+| `create:user_identities`    | Link the proven secondary identity                   |
+| `update:users_app_metadata` | Store the account-link decision                      |
+| `delete:users`              | Remove a cancelled, newly created duplicate identity |
+
+The Post User Registration and role-claim Actions require `update:users`.
+Include the other scopes only when deploying the Action that uses them.
+
+For the backend Management API client, grant `create:user_tickets` for password
+reset tickets. Add only the scopes for enabled backend operations. If
+`AUTH0_ROLE_SYNC_ENABLED=true`, also grant the role/user read and update scopes
+required to list and replace user roles. Keep role sync disabled unless it is
+deliberately part of the deployment. Do not reuse a broad tenant administrator
+credential as either client.
+
+## 7. Deploy the Actions
+
+Create Actions from the repository files, add each Action's listed secrets, and
+deploy the versions. Bind the four Post Login Actions to the **Login** flow in
+this order:
+
+1. `verifyEmail.js`
+2. `linkAccounts.js`
+3. `mfaStepUp.js`
+4. `roleClaims.js`
+
+Bind `assignDefaultUserRole.js` to the **Post User Registration** flow. A source
+file or backend deployment does not update an Action already deployed in
+Auth0; publish the Action and place it in its flow explicitly.
+
+### `verifyEmail.js`
+
+Required Action secrets:
+
+| Secret                       | Value                                                         |
+| ---------------------------- | ------------------------------------------------------------- |
+| `AUTH0_DOMAIN`               | Auth0 domain hostname, without `https://` or a trailing slash |
+| `AUTH0_M2M_CLIENT_ID`        | Actions Management API client ID                              |
+| `AUTH0_M2M_CLIENT_SECRET`    | Actions Management API client secret                          |
+| `AUTH0_MGMT_AUDIENCE`        | `https://<AUTH0_DOMAIN>/api/v2/`                              |
+| `AUTH0_EMAIL_VERIFIED_CLAIM` | `https://sanny64.app/email_verified`                          |
+
+### `linkAccounts.js`
+
+Required Action secrets:
+
+| Secret                                                                      | Value                                                         |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `AUTH0_DOMAIN`                                                              | Same Auth0 domain hostname as the application                 |
+| `AUTH0_M2M_CLIENT_ID`                                                       | Actions Management API client ID                              |
+| `AUTH0_M2M_CLIENT_SECRET`                                                   | Actions Management API client secret                          |
+| `AUTH0_MGMT_AUDIENCE`                                                       | `https://<AUTH0_DOMAIN>/api/v2/`                              |
+| `NODE_ENV`                                                                  | Exactly `development` or `production`                         |
+| `DEV_ACCOUNT_LINK_CONFIRMATION_URL` or `PROD_ACCOUNT_LINK_CONFIRMATION_URL` | The matching backend confirmation endpoint from the URL table |
+| `ACCOUNT_LINK_ALLOWED_PROVIDERS`                                            | `auth0,google-oauth2`                                         |
+
+Set only the URL secret for the environment used by this Action deployment,
+matching its `NODE_ENV`. The Login flow is tenant-wide, so one deployed Action
+cannot select a different environment per application. The Action requires a
+recent `pending` decision before suppressing a repeat confirmation; do not
+bypass proof or enable automatic linking.
+
+### `mfaStepUp.js`
+
+Set these Action secrets exactly; the backend sends these ACR values when
+requesting step-up:
+
+| Secret          | Value                                                          |
+| --------------- | -------------------------------------------------------------- |
+| `MFA_ACR`       | `http://schemas.openid.net/pape/policies/2007/06/multi-factor` |
+| `EMAIL_MFA_ACR` | `https://sanny64.de/acr/email-otp`                             |
+
+Enable the intended factors in **Security > Multi-factor Auth**. The Action
+requests MFA only when the backend explicitly includes the matching ACR value.
+If using Action-based MFA factor customization, enable **Customize MFA Factors
+using Actions** under the MFA additional settings.
+
+### `roleClaims.js`
+
+Required Action secrets:
+
+| Secret                       | Value                                         |
+| ---------------------------- | --------------------------------------------- |
+| `AUTH0_CLAIM_NAMESPACE`      | `https://sanny64.app`                         |
+| `AUTH0_EMAIL_VERIFIED_CLAIM` | `https://sanny64.app/email_verified`          |
+| `AUTH0_DOMAIN`               | Same Auth0 domain hostname as the application |
+| `AUTH0_M2M_CLIENT_ID`        | Actions Management API client ID              |
+| `AUTH0_M2M_CLIENT_SECRET`    | Actions Management API client secret          |
+| `AUTH0_MGMT_AUDIENCE`        | `https://<AUTH0_DOMAIN>/api/v2/`              |
+| `AUTH0_DEFAULT_ROLE_ID`      | ID of the reviewed Auth0 role named `user`    |
+
+This Action puts roles, email, and name into the access token as
+`https://sanny64.app/roles`, `https://sanny64.app/email`, and
+`https://sanny64.app/name`. The backend's default claim names match these
+values. If you change the namespace, update the backend's corresponding
+`AUTH0_ROLES_CLAIM`, `AUTH0_EMAIL_CLAIM`, `AUTH0_NAME_CLAIM`, and
+`AUTH0_EMAIL_VERIFIED_CLAIM` settings at the same time.
+
+### `assignDefaultUserRole.js`
+
+Required Post User Registration Action secrets:
+
+- `AUTH0_DOMAIN`
+- `AUTH0_M2M_CLIENT_ID`
+- `AUTH0_M2M_CLIENT_SECRET`
+- `AUTH0_MGMT_AUDIENCE`
+- `AUTH0_DEFAULT_ROLE_ID`
+
+Use the same reviewed `user` role ID as `roleClaims.js`. This Action assigns
+that role to database users at registration; `roleClaims.js` assigns it to
+non-database users if they do not already have it.
+
+## 8. Configure backend values
+
+Set common backend values in the deployment's secret/configuration store:
+
+- `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`
+- `AUTH0_AUDIENCE` (the API identifier from step 3)
+- `AUTH0_DATABASE_CONNECTION` and `AUTH0_DATABASE_CONNECTION_ID`
+- `AUTH0_M2M_CLIENT_ID`, `AUTH0_M2M_CLIENT_SECRET`, and optionally
+  `AUTH0_MGMT_AUDIENCE`
+- `AUTH0_EMAIL_VERIFIED_CLAIM=https://sanny64.app/email_verified`
+- `AUTH0_ROLES_CLAIM=https://sanny64.app/roles`
+- `AUTH0_EMAIL_CLAIM=https://sanny64.app/email`
+- `AUTH0_NAME_CLAIM=https://sanny64.app/name`
+
+Set environment-specific values with the matching prefix:
+
+- `DEV_AUTH0_CALLBACK_URL`, `DEV_AUTH0_SUCCESS_REDIRECT`,
+  `DEV_AUTH0_LOGOUT_REDIRECT`, `DEV_ACCOUNT_LINK_FRONTEND_URL`,
+  `DEV_CORS_ORIGINS`
+- `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT`,
+  `PROD_AUTH0_LOGOUT_REDIRECT`, `PROD_ACCOUNT_LINK_FRONTEND_URL`,
+  `PROD_CORS_ORIGINS`
+
+`DEV_CORS_ORIGINS` and `PROD_CORS_ORIGINS` are comma-separated exact origins
+for the frontends that call the backend. Production values must use HTTPS.
+Set `NODE_ENV` to exactly `development` or `production`; do not set both
+environments' values to the same production database or callback accidentally.
+
+## 9. Verify the tenant
+
+Before enabling real users, check each item in the intended environment:
+
+1. Use each database script's Auth0 **Try** control with a non-production
+   account. Verify signup writes one local row, login returns the correct
+   `email_verified` state, verification updates the row, password reset writes
+   the new password, and deletion removes the row.
+2. Complete a database login and a Google login through the backend. Confirm
+   the callback and redirects exactly match the registered URLs.
+3. Inspect a test access token. Check `iss`, API `aud`, `sub`, permissions,
+   namespaced roles/profile claims, and
+   `https://sanny64.app/email_verified`.
+4. Test self-service API access with `update:me` / `delete:me`, then confirm an
+   ordinary user cannot call admin routes.
+5. Test MFA step-up. It should challenge only when the backend requests one of
+   the configured ACR values.
+6. Test account linking with two verified test identities. Confirm the user
+   must authenticate the other identity before Auth0 links them, and that the
+   backend reconciles the linked account afterward.
+7. Test password reset end to end, including the Auth0 ticket, email delivery,
+   and the configured Application Login URI.
+
+Record the tenant/environment and verification date in the deployment
+runbook. For detailed source contracts, see [the tenant contract](/docs/backend/auth0-tenant-contract),
+[the database script reference](/docs/backend/auth0-database-action-scripts), and
+[environment configuration](/docs/backend/environment-configuration).
