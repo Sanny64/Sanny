@@ -12,6 +12,52 @@ function getActionSecret(event, name) {
   return value;
 }
 
+async function assignDefaultRole(event) {
+  const domain = getActionSecret(event, "AUTH0_DOMAIN");
+  const tokenResponse = await fetch(`https://${domain}/oauth/token`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      grant_type: "client_credentials",
+      client_id: getActionSecret(event, "AUTH0_M2M_CLIENT_ID"),
+      client_secret: getActionSecret(event, "AUTH0_M2M_CLIENT_SECRET"),
+      audience: getActionSecret(event, "AUTH0_MGMT_AUDIENCE"),
+    }),
+  });
+
+  if (!tokenResponse.ok) {
+    throw new Error(
+      `Management token request failed (${tokenResponse.status})`,
+    );
+  }
+
+  const tokenPayload = await tokenResponse.json();
+  if (!tokenPayload || !tokenPayload.access_token) {
+    throw new Error("Management token response missing access token");
+  }
+
+  const userId = event.user.user_id;
+  if (!userId) throw new Error("Login user is missing user_id");
+
+  const response = await fetch(
+    `https://${domain}/api/v2/users/${encodeURIComponent(userId)}/roles`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokenPayload.access_token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        roles: [getActionSecret(event, "AUTH0_DEFAULT_ROLE_ID")],
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Default role assignment failed (${response.status})`);
+  }
+}
+
 /**
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
@@ -20,17 +66,24 @@ exports.onExecutePostLogin = async (event, api) => {
   const namespace = getActionSecret(event, "AUTH0_CLAIM_NAMESPACE");
 
   // Get roles from authorization (assigned via Management API) or fallback to user_metadata
-  let roles = event.authorization?.roles ?? [];
-  if (!Array.isArray(roles)) {
-    roles = [];
-  }
+  const authorizationRoles = Array.isArray(event.authorization?.roles)
+    ? event.authorization.roles
+    : [];
+  let roles = [...authorizationRoles];
 
   // Fallback: check user_metadata.roles if authorization.roles is empty
   if (roles.length === 0 && event.user.user_metadata?.roles) {
     const metadataRoles = event.user.user_metadata.roles;
     if (Array.isArray(metadataRoles)) {
-      roles = metadataRoles;
+      roles = [...metadataRoles];
     }
+  }
+
+  const isDatabaseConnection =
+    event.connection && event.connection.strategy === "auth0";
+  if (!isDatabaseConnection && !authorizationRoles.includes("user")) {
+    await assignDefaultRole(event);
+    if (!roles.includes("user")) roles.push("user");
   }
 
   api.accessToken.setCustomClaim(`${namespace}/roles`, roles);
@@ -39,8 +92,6 @@ exports.onExecutePostLogin = async (event, api) => {
     api.accessToken.setCustomClaim(`${namespace}/email`, event.user.email);
   }
 
-  const isDatabaseConnection =
-    event.connection && event.connection.strategy === "auth0";
   const managedUsername = event.user.user_metadata?.username;
   const name = isDatabaseConnection
     ? (event.user.username ?? event.user.name ?? event.user.nickname)

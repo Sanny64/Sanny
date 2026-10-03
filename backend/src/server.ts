@@ -20,6 +20,7 @@ import {
 } from "./utils/session.js";
 import packageJson from "../package.json" with { type: "json" };
 import authRoutes from "./routes/auth.route.js";
+import internalRoutes from "./routes/internal.route.js";
 import {
   getCorsOrigins,
   getSuccessRedirectUrl,
@@ -28,14 +29,14 @@ import {
   validateProductionConfig,
 } from "./utils/config.js";
 import { applyRateLimit } from "./utils/rate-limit.js";
-import { applySecurityHeaders } from "./utils/security-headers.js";
+import {
+  applySecurityHeaders,
+  getHstsPolicy,
+} from "./utils/security-headers.js";
 import { startPendingAccountLinkCleanup } from "./utils/account-link-cleanup.js";
 import { startOrphanedSocialUserCleanup } from "./utils/orphaned-social-user-cleanup.js";
 import { createSafeErrorResponse } from "./utils/safe-error.js";
-import {
-  acceptsHtmlNavigation,
-  getErrorPageRedirectUrl,
-} from "./utils/error-response.js";
+import { getHtmlErrorRedirectUrl } from "./utils/error-response.js";
 
 const version = packageJson.version;
 
@@ -122,21 +123,22 @@ async function main() {
       },
     },
     frameguard: { action: "deny" },
-    hsts:
-      process.env.NODE_ENV === "production"
-        ? { maxAge: 31536000, includeSubDomains: true }
-        : false,
+    hsts: getHstsPolicy(),
     referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   });
   server.addHook("onSend", async (request, reply) => {
-    if (reply.statusCode >= 400 && acceptsHtmlNavigation(request)) {
-      const errorStatus = reply.statusCode;
+    const errorPageUrl =
+      reply.statusCode >= 400
+        ? getHtmlErrorRedirectUrl(
+            request,
+            reply.statusCode,
+            getSuccessRedirectUrl(),
+          )
+        : null;
+    if (errorPageUrl) {
       reply
         .code(303)
-        .header(
-          "Location",
-          getErrorPageRedirectUrl(getSuccessRedirectUrl(), errorStatus),
-        )
+        .header("Location", errorPageUrl)
         .type("text/plain; charset=utf-8");
       applySecurityHeaders(request, reply);
       return "";
@@ -157,6 +159,8 @@ async function main() {
     if (["POST", "PATCH", "PUT", "DELETE"].includes(request.method))
       return requireCsrf(request, reply);
   });
+
+  await server.register(internalRoutes);
 
   // swagger registration
   await server.register(swagger, {

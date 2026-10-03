@@ -12,6 +12,7 @@
     "restart": "docker compose --project-directory docker --env-file .env up -d --build --force-recreate app",
     "build": "docker compose --project-directory docker --env-file .env up --build --force-recreate",
     "test": "tsx --test \"src/tests/*.test.ts\"",
+    "test:redis:integration": "tsx --test src/tests/session-rotation.test.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -38,7 +39,6 @@
     "@types/nodemailer": "^8.0.2",
     "prisma": "^7.9.1",
     "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
     "tsx": "^4.23.13",
     "typescript": "~6.0.2"
   }

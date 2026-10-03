@@ -12,15 +12,33 @@ type RoleClaimsAction = {
   onExecutePostLogin: (event: object, api: object) => Promise<void>;
 };
 
-async function loadAction() {
+async function loadAction(
+  fetchImpl: typeof fetch = async (input) => {
+    if (String(input).endsWith("/oauth/token")) {
+      return Response.json({ access_token: "management-token" });
+    }
+    return new Response(null, { status: 204 });
+  },
+) {
   const source = await readFile(actionPath, "utf8");
   const module = { exports: {} as RoleClaimsAction };
   vm.runInNewContext(source, {
     exports: module.exports,
     console,
+    fetch: (...args: Parameters<typeof fetch>) => fetchImpl(...args),
   });
   return module.exports;
 }
+
+const socialActionSecrets = {
+  AUTH0_CLAIM_NAMESPACE: "https://sanny64.app",
+  AUTH0_EMAIL_VERIFIED_CLAIM: "https://sanny64.app/email_verified",
+  AUTH0_DOMAIN: "tenant.example.test",
+  AUTH0_M2M_CLIENT_ID: "client-id",
+  AUTH0_M2M_CLIENT_SECRET: "client-secret",
+  AUTH0_MGMT_AUDIENCE: "https://tenant.example.test/api/v2/",
+  AUTH0_DEFAULT_ROLE_ID: "role-user-id",
+};
 
 function createApi() {
   const claims: Record<string, unknown> = {};
@@ -70,16 +88,14 @@ test("social-connection users get their resolved display name, not the email-der
     {
       connection: { strategy: "google-oauth2" },
       user: {
+        user_id: "google-oauth2|social-user",
         email: "test.user00@gmail.com",
         name: "Test User",
         nickname: "test.user00",
         email_verified: true,
       },
       authorization: { roles: [] },
-      secrets: {
-        AUTH0_CLAIM_NAMESPACE: "https://sanny64.app",
-        AUTH0_EMAIL_VERIFIED_CLAIM: "https://sanny64.app/email_verified",
-      },
+      secrets: socialActionSecrets,
     },
     api,
   );
@@ -95,16 +111,14 @@ test("social primary users prefer the managed username after account linking", a
     {
       connection: { strategy: "google-oauth2" },
       user: {
+        user_id: "google-oauth2|linked-user",
         email: "user@example.com",
         name: "Google Profile Name",
         user_metadata: { username: "managed-username" },
         email_verified: true,
       },
       authorization: { roles: [] },
-      secrets: {
-        AUTH0_CLAIM_NAMESPACE: "https://sanny64.app",
-        AUTH0_EMAIL_VERIFIED_CLAIM: "https://sanny64.app/email_verified",
-      },
+      secrets: socialActionSecrets,
     },
     api,
   );
@@ -120,18 +134,56 @@ test("social-connection users fall back to nickname only when no display name is
     {
       connection: { strategy: "google-oauth2" },
       user: {
+        user_id: "google-oauth2|nickname-user",
         email: "test.user00@gmail.com",
         nickname: "test.user00",
         email_verified: true,
       },
       authorization: { roles: [] },
-      secrets: {
-        AUTH0_CLAIM_NAMESPACE: "https://sanny64.app",
-        AUTH0_EMAIL_VERIFIED_CLAIM: "https://sanny64.app/email_verified",
-      },
+      secrets: socialActionSecrets,
     },
     api,
   );
 
   assert.equal(claims["https://sanny64.app/name"], "test.user00");
+});
+
+test("social users receive the default Auth0 role and role claim when missing", async () => {
+  const requests: Array<{ url: string; init?: RequestInit }> = [];
+  const action = await loadAction(async (input, init) => {
+    requests.push({ url: String(input), ...(init ? { init } : {}) });
+    if (String(input).endsWith("/oauth/token")) {
+      return Response.json({ access_token: "management-token" });
+    }
+    return new Response(null, { status: 204 });
+  });
+  const { api, claims } = createApi();
+
+  await action.onExecutePostLogin(
+    {
+      connection: { strategy: "google-oauth2" },
+      user: {
+        user_id: "google-oauth2|new-user",
+        email: "new-user@example.com",
+        email_verified: true,
+      },
+      authorization: { roles: [] },
+      secrets: socialActionSecrets,
+    },
+    api,
+  );
+
+  assert.equal(requests[0]?.url, "https://tenant.example.test/oauth/token");
+  assert.equal(
+    requests[1]?.url,
+    "https://tenant.example.test/api/v2/users/google-oauth2%7Cnew-user/roles",
+  );
+  assert.equal(requests[1]?.init?.method, "POST");
+  assert.deepEqual(JSON.parse(String(requests[1]?.init?.body)), {
+    roles: ["role-user-id"],
+  });
+  assert.equal(
+    JSON.stringify(claims["https://sanny64.app/roles"]),
+    JSON.stringify(["user"]),
+  );
 });

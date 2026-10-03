@@ -4,69 +4,53 @@ This guide explains how to properly configure the application for different envi
 
 ## Overview
 
-The application uses environment variables to switch between dev and production configurations. The key variables that control this behavior are:
+The application requires common Auth0/database settings plus environment-specific URLs. `NODE_ENV` must be exactly `development` or `production`; URL and proxy settings use the matching `DEV_` or `PROD_` prefix. Examples below are placeholders using reserved domains, not working credentials or deployment values.
 
 - **NODE_ENV**: Controls production mode (`production` or `development`)
 - **AUTH0_DOMAIN**: Your Auth0 tenant domain
 - **AUTH0_CLIENT_ID**: Auth0 application client ID
 - **AUTH0_CLIENT_SECRET**: Auth0 application client secret
 - **AUTH0_AUDIENCE**: Auth0 API audience identifier
-- **AUTH0_CALLBACK_URL**: OAuth callback URL (must be registered in Auth0)
-- **AUTH0_SUCCESS_REDIRECT**: URL to redirect to after successful login
-- **AUTH0_LOGOUT_REDIRECT**: URL to redirect to after logout
-- **AUTH0_LOGIN_FRONTEND_URL**: URL for the account linking confirmation page
-- **CORS_ORIGINS**: Comma-separated list of allowed CORS origins
+- **DEV\_/PROD_AUTH0_CALLBACK_URL**: OAuth callback URL (must be registered in Auth0)
+- **DEV\_/PROD_AUTH0_SUCCESS_REDIRECT** and **DEV\_/PROD_AUTH0_LOGOUT_REDIRECT**: approved frontend destinations
+- **DEV\_/PROD_ACCOUNT_LINK_FRONTEND_URL**: login frontend account-linking page
+- **DEV\_/PROD_CORS_ORIGINS**: comma-separated exact origins
+- **DEV\_/PROD_TRUST_PROXY**: `false`, `true`, or trusted proxy IP/CIDR; numeric hop counts are unsupported
 
 ## Development Environment Setup
 
 ### Environment Variables
 
-For local development on `localhost`, use these settings in your `.env`:
+For local Docker development, put required values in the backend environment file. Do not copy this example literally; generate local secrets and use isolated development services.
 
 ```bash
-# Backend configuration
+# Common backend settings
 NODE_ENV=development
-PORT=3000
+AUTH0_DOMAIN=tenant.example.invalid
+AUTH0_CLIENT_ID=replace-with-development-client-id
+AUTH0_CLIENT_SECRET=replace-with-development-client-secret
+AUTH0_AUDIENCE=https://api.example.com
+DATABASE_URL=mysql://<user>:<password>@<private-host>:3306/<database>
+REDIS_PASSWORD=replace-with-a-random-local-secret
 
-# Auth0 (Development Tenant)
-AUTH0_DOMAIN=your-dev-tenant.auth0.com
-AUTH0_CLIENT_ID=your_dev_client_id
-AUTH0_CLIENT_SECRET=your_dev_client_secret
-AUTH0_AUDIENCE=https://api.sanny64.local
-AUTH0_EMAIL_NOTICE_JWT_SECRET=your_jwt_secret_for_email_verification
+# Development-specific URL and proxy settings
+DEV_AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
+DEV_AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
+DEV_AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
+DEV_ACCOUNT_LINK_FRONTEND_URL=http://localhost:5174/confirm-linking
+DEV_CORS_ORIGINS=http://localhost:5173,http://localhost:5174
+DEV_TRUST_PROXY=false
 
-# Callback and redirect URLs (development)
-# These default to localhost URLs if not set:
-# AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
-# AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
-# AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
-# AUTH0_LOGIN_FRONTEND_URL=http://localhost:5174/
-
-# CORS origins
-CORS_ORIGINS=https://sanny64.de,http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174
-
-# Redis (local development)
-REDIS_PASSWORD="some random string"
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/sanny_dev
-
-# Role synchronization (disabled by default in dev)
+# Optional privileged feature; keep disabled unless intentionally tested
 AUTH0_ROLE_SYNC_ENABLED=false
-AUTH0_ASSIGNABLE_ROLES=admin,moderator,user
-
-# Swagger documentation (optional in dev)
-ENABLE_SWAGGER=true
-
-# Session configuration
-TRUST_PROXY=false
 ```
 
 ### Auth0 Development Tenant Setup
 
 1. **Create a new Auth0 application** for your development tenant:
    - Application type: `Regular Web Application`
-   - Name: `Sanny Dev Local`
+
+- Name: `Example Development Application`
 
 2. **Configure OAuth settings**:
    - Allowed Callback URLs:
@@ -103,7 +87,7 @@ TRUST_PROXY=false
    - Deploy `backend/auth0/post-login/mfaStepUp.js`
    - Set the Action secrets `MFA_ACR` to
      `http://schemas.openid.net/pape/policies/2007/06/multi-factor` and
-     `EMAIL_MFA_ACR` to `https://sanny64.de/acr/email-otp`.
+     `EMAIL_MFA_ACR` to `https://example.invalid/acr/email-otp` for this documentation example; configure the actual namespace in the Auth0 tenant.
    - Enable the factors used for admin step-up and the Email factor in
      **Security > Multi-factor Auth**. Self-service password resets request
      the Email factor only; users must have a verified, enrolled email factor.
@@ -140,9 +124,8 @@ TRUST_PROXY=false
 Start services with:
 
 ```bash
-# Terminal 1 - Backend
-cd backend
-npm run dev
+# Terminal 1 - Backend (from repository root)
+npm run start:backend
 
 # Terminal 2 - Main frontend
 cd sanny
@@ -160,57 +143,41 @@ npm run dev
 For production deployment, use these settings in your production `.env`:
 
 ```bash
-# Backend configuration
-NODE_ENV=production
-PORT=3000
+# Compose sets NODE_ENV=production for the production service.
+# Common settings (load from the production secret store)
+AUTH0_DOMAIN=tenant.example.invalid
+AUTH0_CLIENT_ID=replace-with-production-client-id
+AUTH0_CLIENT_SECRET=replace-with-production-client-secret
+AUTH0_AUDIENCE=https://api.example.com
+DATABASE_URL=mysql://<user>:<password>@<private-host>:3306/<database>
+REDIS_PASSWORD=replace-with-a-production-secret
 
-# Auth0 (Production Tenant)
-AUTH0_DOMAIN=your-prod-tenant.auth0.com
-AUTH0_CLIENT_ID=your_prod_client_id
-AUTH0_CLIENT_SECRET=your_prod_client_secret
-AUTH0_AUDIENCE=https://api.sanny64.de
-AUTH0_EMAIL_NOTICE_JWT_SECRET=your_jwt_secret_for_email_verification
-
-# Callback and redirect URLs (production)
-AUTH0_CALLBACK_URL=https://api.sanny64.de/api/v001/auth/callback
-AUTH0_SUCCESS_REDIRECT=https://sanny64.de/
-AUTH0_LOGOUT_REDIRECT=https://sanny64.de/
-AUTH0_LOGIN_FRONTEND_URL=https://auth.sanny64.de/
-
-# CORS origins (only production domains)
-CORS_ORIGINS=https://sanny64.de,https://auth.sanny64.de
-
-# Redis
-REDIS_PASSWORD="some random string"
-
-# Database
-DATABASE_URL=postgresql://prod_user:secure_password@prod-db-host:5432/sanny_prod
-
-# Role synchronization (enabled in production)
-AUTH0_ROLE_SYNC_ENABLED=true
-AUTH0_ASSIGNABLE_ROLES=admin,moderator,user
-
-# Swagger documentation (disabled in production)
+# Production URL and proxy settings (replace reserved example origins)
+PROD_AUTH0_CALLBACK_URL=https://api.example.com/api/v001/auth/callback
+PROD_AUTH0_SUCCESS_REDIRECT=https://app.example.com/
+PROD_AUTH0_LOGOUT_REDIRECT=https://app.example.com/
+PROD_ACCOUNT_LINK_FRONTEND_URL=https://login.example.com/confirm-linking
+PROD_CORS_ORIGINS=https://app.example.com,https://login.example.com
+PROD_TRUST_PROXY=192.0.2.10
 ENABLE_SWAGGER=false
-
-# Session configuration (behind NGINX proxy)
-TRUST_PROXY=1
+AUTH0_ROLE_SYNC_ENABLED=false
 ```
 
 ### Auth0 Production Tenant Setup
 
 1. **Create a production Auth0 application**:
    - Application type: `Regular Web Application`
-   - Name: `Sanny Production`
+
+- Name: `Example Production Application`
 
 2. **Configure OAuth settings**:
    - Allowed Callback URLs:
-     - `https://api.sanny64.de/api/v001/auth/callback`
+   - `https://api.example.com/api/v001/auth/callback`
    - Allowed Logout URLs:
-     - `https://sanny64.de/`
+   - `https://app.example.com/`
    - Allowed Web Origins (CORS):
-     - `https://sanny64.de`
-     - `https://auth.sanny64.de`
+   - `https://app.example.com`
+   - `https://login.example.com`
 
 3. **Configure Database Connections**:
    - Same scripts as development, but ensure they use production database credentials
@@ -219,16 +186,16 @@ TRUST_PROXY=1
 4. **Post-Login Actions**:
    - Deploy the same actions as development
    - Ensure claims use production domains:
-     - e.g., `https://sanny64.de/email_verified` instead of `https://sanny64.local/email_verified`
+   - Use the same custom-claim namespace in the tenant and token consumers; the actual namespace is deployment configuration and is intentionally not included here.
 
 5. **Management API Configuration**:
    - Same scopes as development (see above)
 
 ### Production Domain Setup
 
-- **Main application**: `https://sanny64.de`
-- **Auth/Login application**: `https://auth.sanny64.de`
-- **Backend API**: `https://api.sanny64.de`
+- **Main application**: `https://app.example.com`
+- **Auth/Login application**: `https://login.example.com`
+- **Backend API**: `https://api.example.com`
 
 ### Deployment with NGINX
 
@@ -241,13 +208,13 @@ upstream backend {
 
 server {
     listen 443 ssl http2;
-    server_name api.sanny64.de;
+    server_name api.example.com;
 
-    ssl_certificate /etc/ssl/certs/sanny64.de.crt;
-    ssl_certificate_key /etc/ssl/private/sanny64.de.key;
+    ssl_certificate /path/to/deployment-certificate.crt;
+    ssl_certificate_key /path/to/deployment-private-key.key;
 
     # Set trust proxy for forwarded headers
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+   proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Host $host;
 
@@ -266,8 +233,8 @@ The application follows this priority when loading URLs:
 
 ### Development (NODE_ENV != "production")
 
-1. Use env variable if explicitly set (e.g., `AUTH0_CALLBACK_URL`)
-2. Fall back to development default (e.g., `https://localhost:8443/api/v001/auth/callback`)
+1. Read the environment-specific value (for example, `DEV_AUTH0_CALLBACK_URL`).
+2. Required callback, redirect, account-link frontend, and CORS values do not have application defaults.
 
 ### Production (NODE_ENV == "production")
 
@@ -276,10 +243,10 @@ The application follows this priority when loading URLs:
 
 ## Account Linking URL Configuration
 
-Account linking uses the `AUTH0_LOGIN_FRONTEND_URL` variable:
+Account linking uses `DEV_ACCOUNT_LINK_FRONTEND_URL` or `PROD_ACCOUNT_LINK_FRONTEND_URL`, selected using `NODE_ENV`:
 
-- **Development**: `http://localhost:5174/confirm-linking` (default)
-- **Production**: `https://auth.sanny64.de/confirm-linking` (must be set)
+- **Development example**: `http://localhost:5174/confirm-linking`
+- **Production example**: `https://login.example.com/confirm-linking` (must use the deployed HTTPS origin)
 
 The backend automatically constructs the full URL with query parameters.
 
@@ -313,20 +280,20 @@ npm test            # Run automated tests
 
 ### Account linking redirects to wrong URL
 
-- Verify `AUTH0_LOGIN_FRONTEND_URL` is set correctly
-- In development, it should be `http://localhost:5174/` or unset (uses default)
-- In production, it must be `https://auth.sanny64.de/`
+- Verify the `DEV_` or `PROD_ACCOUNT_LINK_FRONTEND_URL` value selected by `NODE_ENV`.
+- Production values must use HTTPS and match the registered Auth0 redirect origins.
 
 ### Role sync returning 503
 
 - Check `AUTH0_ROLE_SYNC_ENABLED=true` in production `.env`
-- Verify `AUTH0_ASSIGNABLE_ROLES` is configured
 - Check Auth0 Management API credentials
+
+When role sync is enabled, the backend accepts any role name that exists in Auth0; there is no assignable-role allowlist. The endpoint is restricted to admins with `write:users` permission and recent MFA. Enable this mode only if that policy is intended.
 
 ## Security Considerations
 
 1. **Never commit `.env` to version control**
-2. **Use strong secrets** for `AUTH0_CLIENT_SECRET` and `AUTH0_EMAIL_NOTICE_JWT_SECRET`
+2. **Use strong secrets** for Auth0 client credentials, Redis, database access, and any enabled Auth0 Management API integration.
 3. **Rotate credentials regularly**, especially if exposed
 4. **Use separate Auth0 tenants** for development and production
 5. **Restrict CORS origins** to only necessary domains

@@ -1,0 +1,54 @@
+---
+title: Monitoring und Verifizierung
+description: Backend-Beobachtbarkeit, sichere Logs, Alarme und Prüfnachweise.
+sidebar_position: 6
+---
+
+# Monitoring und Verifizierung
+
+## Signale und Alarme
+
+Anwendung, NGINX, Redis, Datenbank und Auth0-Anbindung überwachen. Alarme einrichten für:
+
+- Fastify-Neustarts, fehlgeschlagene Healthchecks, erhöhte 5xx-Antworten, Datenbankverbindungsfehler und ungewöhnliche Abfragelatenz.
+- Wiederholte `429` nach normalisierter Routengruppe sowie Redis-Fehler oder Nutzung des Fallback-Limiters.
+- OAuth-Start-/Callback-Spitzen, abgelehnten OAuth-Status, fehlgeschlagene Token-Rotation und erkannte Wiederverwendung von Refresh-Tokens.
+- Fehler der Auth0 Management API und wiederholte Abweichungen bei Kontolöschungen.
+- Fehlgeschlagene NGINX-/Exporter-Scrapes und erschöpften Monitoring-Speicher.
+
+Metriklabels begrenzen: normalisierte Routengruppe und Statusklasse sind sinnvoll; rohe URLs, Querystrings, Benutzerkennungen, Tokens und beliebige Eingaben nicht. Prometheus- und Exporter-Endpunkte bleiben privat.
+
+## Logs und Datenschutz
+
+Logs dürfen keine Access-/Refresh-Tokens, Session-IDs, CSRF-Tokens, Autorisierungscodes, Client-Secrets, Datenbank-Zugangsdaten oder Request-Bodies enthalten. Das konfigurierte NGINX-Access-Log schreibt den URI-Pfad ohne Querystring, enthält aber Client-IP, Referrer und User-Agent. Zugriff beschränken, Aufbewahrungsdauer festlegen und prüfen, ob Referrer benötigt werden. Keine rohen Logs in Tickets oder Chats kopieren.
+
+Loki/Promtail und Monitoring-Volumes sind betriebliche Datenspeicher, keine öffentlichen Endpunkte. Zugriff und Aufbewahrung entsprechend schützen.
+
+## Netzfreigaben
+
+- NGINX Stub Status lauscht intern auf Port `8081` und ist auf das Docker-Netz begrenzt. Nicht am Host veröffentlichen oder über den öffentlichen TLS-Listener erreichbar machen.
+- Der NGINX-Exporter fragt `http://nginx:8081/nginx_status` über das private Compose-Netz ab.
+- Die Compose-Dateien veröffentlichen den Node-Exporter-Port am Host. Für nicht vertrauenswürdige Netze an der Host-Firewall sperren oder Host-Veröffentlichung entfernen und intern abfragen.
+- Grafana/Prometheus nur über den vorgesehenen authentifizierten Proxy-Pfad bereitstellen.
+- Die Produktions-Compose-Datei ordnet HTTP/HTTPS den Host-Ports `8080`/`8443` zu. Vor einem gehosteten Deployment Host-Ports bewusst für die Zielplattform konfigurieren.
+
+## Lokale Prüfnachweise
+
+Diese Einträge dokumentieren ausschließlich lokale Prüfungen, keine Staging- oder Produktionsfreigabe.
+
+### Docker-Entwicklung, 2026-10-03
+
+- HTTPS `/healthcheck` lieferte `200`; HTTP wurde auf HTTPS umgeleitet.
+- Backend und Redis hatten keine veröffentlichten Host-Ports. Öffentliches `/nginx_status` lieferte `404`, Host-Port `8081` war nicht erreichbar, interner Docker-Zugriff funktionierte und der Exporter meldete `nginx_up 1`.
+- Auth-Start lieferte `302`; wiederholte Requests `429` mit `Retry-After: 60`; Health blieb danach `200`.
+- Ein Callback-Fehlerrequest mit gefälschten Forwarding-Headern leitete weiterhin zum konfigurierten lokalen Frontend-Origin.
+- Backend-Tests: 146 bestanden, 1 übersprungen; echte-Redis-Integration: 6 bestanden; gemockte Browser-E2E: 28 bestanden; Docs-Build erfolgreich.
+- Nicht geprüft wurden gehostete Firewall/Compose-Konfiguration und echte Auth0-Kontoflüsse.
+
+### Lokaler Smoke-Test im Produktionsmodus, 2026-10-03
+
+- Der lokale Backend-Prozess meldete `NODE_ENV=production`; HTTPS `/healthcheck` lieferte `200` mit HSTS, öffentliches `/nginx_status` blieb nicht erreichbar.
+- Der konfigurierte API-Origin war vom Testhost nicht auflösbar. Automatisierte Google-Anmeldung wurde blockiert; der Passwortfluss erreichte den Callback nicht.
+- Es wurden keine Konto-Löschungen oder Account-Verknüpfungen ausgeführt. Dies war weder ein Produktivdeployment noch ein erfolgreicher echter Authentifizierungstest.
+
+Künftige Prüfergebnisse mit Umgebungslabel, Datum, Build-ID, Umfang, Ergebnis und offenen Risiken in einem zugriffsbeschränkten Deployment-Protokoll festhalten. Keine Tenant-Namen/-IDs, echten Hostnamen, Testernamen, Tokens, Secrets oder Benutzerdaten in dieses Repository eintragen.

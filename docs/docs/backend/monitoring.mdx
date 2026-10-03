@@ -1,0 +1,54 @@
+---
+title: Monitoring and Verification
+description: Backend observability, safe logging, alerting, and verification records.
+sidebar_position: 6
+---
+
+# Monitoring and verification
+
+## Signals and alerts
+
+Monitor the application, NGINX, Redis, database, and Auth0 integration. Alert on:
+
+- Fastify restarts, health-check failures, elevated 5xx responses, database connection failures, and abnormal query latency.
+- Repeated `429` responses by normalized route group and Redis failures or fallback limiter use.
+- OAuth initiation/callback spikes, rejected OAuth state, refresh rotation failures, and refresh-token reuse detection.
+- Auth0 Management API failures and repeated divergence during account deletion.
+- Failed NGINX/exporter scrapes and monitoring storage exhaustion.
+
+Use bounded metric labels: normalized route group and status class are useful; raw URLs, query strings, user identifiers, tokens, and arbitrary input are not. Keep Prometheus and exporter endpoints private.
+
+## Logs and privacy
+
+Logs must not contain access/refresh tokens, session IDs, CSRF tokens, authorization codes, client secrets, database credentials, or request bodies. The configured NGINX access-log format records the URI path without its query string, but includes client IP, referrer, and user-agent. Restrict access, define retention, and assess whether referrer collection is necessary. Do not paste raw logs into tickets or chat.
+
+Loki/Promtail and monitoring volumes are operational data stores, not public endpoints. Restrict access and retention as for application logs.
+
+## Network exposure
+
+- NGINX stub status listens on internal port `8081` and is restricted to the Docker network. Do not publish it on the host or expose it through the public TLS listener.
+- The NGINX exporter scrapes `http://nginx:8081/nginx_status` over the private compose network.
+- The compose files publish Node Exporter's port on the host; block it at the host firewall from untrusted networks or remove the host publication and scrape it internally.
+- Expose Grafana/Prometheus only through the intended authenticated proxy path.
+- The production compose currently maps proxy HTTP/HTTPS to host ports `8080`/`8443`. Verify and intentionally configure host-facing ports for the target platform rather than assuming standard public ports.
+
+## Local verification record
+
+These records describe local checks only; they are not staging or production sign-off.
+
+### Docker development, 2026-10-03
+
+- HTTPS `/healthcheck` returned `200`; HTTP redirected to HTTPS.
+- Backend and Redis had no host-published ports. Public `/nginx_status` returned `404`, host port `8081` was unreachable, internal Docker access succeeded, and the exporter reported `nginx_up 1`.
+- Auth initiation returned `302`; repeated requests returned `429` with `Retry-After: 60`; health remained `200` after throttling.
+- A callback error request with spoofed forwarded host/protocol headers still redirected to the configured local frontend origin.
+- Backend tests: 146 passed, 1 skipped; real-Redis integration: 6 passed; mocked browser E2E: 28 passed; docs build succeeded.
+- Scope excludes hosted firewall/compose behavior and live Auth0 account flows.
+
+### Local production-mode smoke check, 2026-10-03
+
+- The local backend reported `NODE_ENV=production`; HTTPS `/healthcheck` returned `200` with HSTS, and public `/nginx_status` remained unavailable.
+- The configured API origin did not resolve from the test host. Automated Google sign-in was blocked and the password flow did not reach the callback.
+- No account deletion or account-linking mutation was run. This was not a production deployment or a successful live authentication test.
+
+Record future checks using an environment label, date, build identifier, scope, outcomes, and unresolved risks in a restricted deployment record. Do not include tenant names/IDs, real hostnames, tester names, tokens, secrets, or user data in this repository.

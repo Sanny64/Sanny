@@ -41,8 +41,9 @@
     emailVerificationRequired: "Please verify your email before signing in.",
   },
   shared: {
-    setupProbe: {
-      title: "Setup Check",
+    settings: {
+      title: "Settings",
+      appearanceTitle: "Appearance",
       theme: "Theme",
       language: "Language",
       toggleThemeButton: (theme: string): string =>
@@ -53,9 +54,6 @@
         nextLanguage === "en" ? "English" : "German",
       descriptionSwitchLanguageButton: (nextLanguage: string): string =>
         nextLanguage === "en" ? "Switch to English" : "Switch to German",
-    },
-    settings: {
-      title: "Settings",
       accountTitle: "Your account",
       adminTitle: "Admin users",
       username: "Username",

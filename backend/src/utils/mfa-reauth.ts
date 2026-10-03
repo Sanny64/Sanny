@@ -51,20 +51,35 @@ const sensitiveKeys = new Set([
   "verificationcode",
 ]);
 
-function sanitize(value: unknown, depth = 0): unknown {
+const unsafeObjectKeys = new Set(["__proto__", "constructor", "prototype"]);
+
+export function sanitizePendingActionValue(value: unknown, depth = 0): unknown {
   if (depth > 5) return null;
 
   if (Array.isArray(value)) {
-    return value.slice(0, 200).map((entry) => sanitize(entry, depth + 1));
+    return value
+      .slice(0, 200)
+      .map((entry) => sanitizePendingActionValue(entry, depth + 1));
   }
 
   if (value && typeof value === "object") {
-    const result: Record<string, unknown> = {};
+    const result = Object.create(null) as Record<string, unknown>;
     for (const [key, entry] of Object.entries(
       value as Record<string, unknown>,
     )) {
-      if (sensitiveKeys.has(key.toLowerCase())) continue;
-      result[key] = sanitize(entry, depth + 1); // AIKAIDO
+      const normalizedKey = key.toLowerCase();
+      if (
+        sensitiveKeys.has(normalizedKey) ||
+        unsafeObjectKeys.has(normalizedKey)
+      ) {
+        continue;
+      }
+      Object.defineProperty(result, key, {
+        value: sanitizePendingActionValue(entry, depth + 1),
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      });
     }
     return result;
   }
@@ -101,8 +116,11 @@ export async function createPendingAction(
     method: request.method,
     path: request.url,
     routePath: request.routeOptions?.url ?? undefined,
-    params: (sanitize(request.params ?? {}) ?? {}) as Record<string, unknown>,
-    body: sanitize(request.body ?? null),
+    params: (sanitizePendingActionValue(request.params ?? {}) ?? {}) as Record<
+      string,
+      unknown
+    >,
+    body: sanitizePendingActionValue(request.body ?? null),
     createdAt: Date.now(),
   };
 

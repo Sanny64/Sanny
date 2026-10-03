@@ -23,7 +23,7 @@ test("email/password creation stores the Auth0 database subject from its user id
   assert.match(source, /id: String\(insertResult\.insertId\)/);
 });
 
-test("subject reconciliation fails closed for an unlinked or legacy user row", async () => {
+test("legacy user rows reconcile by normalized email while linked-subject conflicts fail closed", async () => {
   const [userService, authRoute] = await Promise.all([
     readFile(userServicePath, "utf8"),
     readFile(authRoutePath, "utf8"),
@@ -31,8 +31,13 @@ test("subject reconciliation fails closed for an unlinked or legacy user row", a
 
   assert.match(
     userService,
-    /if \(existingByEmail\.auth0Sub !== input\.auth0Sub\)/,
+    /if\s*\(\s*existingByEmail\.auth0Sub\s*&&\s*existingByEmail\.auth0Sub\s*!==\s*input\.auth0Sub\s*\)/,
   );
+  assert.match(
+    userService,
+    /const normalizedEmail = normalizeEmail\(input\.email\)/,
+  );
+  assert.match(userService, /auth0Sub: input\.auth0Sub/);
   assert.match(
     authRoute,
     /existingUser\.auth0Sub \?\? `auth0\|\$\{existingUser\.id\}`/,

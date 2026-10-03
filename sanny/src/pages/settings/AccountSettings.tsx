@@ -7,7 +7,11 @@ import {
   takePendingActionCredentials,
   type PendingAction,
 } from "../../utils/reauthentication";
-import { showErrorToast, showToast } from "@sanny/ui";
+import {
+  Settings as AppearanceSettings,
+  showErrorToast,
+  showToast,
+} from "@sanny/ui";
 
 type Identity = {
   email: string | null;
@@ -306,88 +310,94 @@ export default function AccountSettings() {
     }
   }
 
-  if (isLoading)
-    return <div className="content">{t.shared.settings.loading}</div>;
-
   return (
     <div className="content">
       <h1>{t.shared.settings.title}</h1>
+      <AppearanceSettings />
 
-      <section>
-        <h2>{t.shared.settings.testTitle}</h2>
-        <Button
-          type="button"
-          onClick={() => void testAccountEndpoints()}
-          disabled={isBusy}
-        >
-          {t.shared.settings.testAccountEndpoints}
-        </Button>
-        {canManageUsers && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => navigate("/admin/settings")}
-            disabled={isBusy}
-          >
-            {t.shared.settings.openAdminSettings}
-          </Button>
-        )}
-      </section>
-
-      {!user ? (
-        <section>
-          <h2>{t.shared.settings.accountTitle}</h2>
-          <p>{t.shared.settings.noLocalAccount}</p>
-          <Button
-            type="button"
-            onClick={() => void createAccount()}
-            disabled={isBusy}
-          >
-            {t.shared.settings.createAccount}
-          </Button>
-        </section>
+      {isLoading ? (
+        <p>{t.shared.settings.loading}</p>
       ) : (
-        <section>
-          <h2>{t.shared.settings.accountTitle}</h2>
-          <p>{user.email}</p>
-          <label>
-            {t.shared.settings.username}
-            <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              disabled={!canUpdateSelf || isBusy}
-            />
-          </label>
-          <div className="btn-group btn-group--horizontal">
+        <>
+          <section>
+            <h2>{t.shared.settings.testTitle}</h2>
             <Button
               type="button"
-              variant="secondary"
-              onClick={() => void requestPasswordReset()}
+              onClick={() => void testAccountEndpoints()}
               disabled={isBusy}
             >
-              {t.shared.settings.resetPassword}
+              {t.shared.settings.testAccountEndpoints}
             </Button>
-            {canUpdateSelf && (
-              <Button
-                type="button"
-                onClick={() => void updateAccount()}
-                disabled={isBusy || !username.trim()}
-              >
-                {t.shared.settings.updateAccount}
-              </Button>
-            )}
-            {canDeleteSelf && (
+            {canManageUsers && (
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => void deleteAccount()}
+                onClick={() => navigate("/admin/settings")}
                 disabled={isBusy}
               >
-                {t.shared.settings.deleteAccount}
+                {t.shared.settings.openAdminSettings}
               </Button>
             )}
-          </div>
-        </section>
+          </section>
+
+          {!user ? (
+            <section>
+              <h2>{t.shared.settings.accountTitle}</h2>
+              <p>{t.shared.settings.noLocalAccount}</p>
+              <Button
+                type="button"
+                onClick={() => void createAccount()}
+                disabled={isBusy}
+              >
+                {t.shared.settings.createAccount}
+              </Button>
+            </section>
+          ) : (
+            <section>
+              <h2>{t.shared.settings.accountTitle}</h2>
+              <p>{user.email}</p>
+              <label>
+                {t.shared.settings.username}
+                <input
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  disabled={!canUpdateSelf || isBusy}
+                />
+              </label>
+              <div className="btn-group btn-group--horizontal">
+                {canUpdateSelf && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void requestPasswordReset()}
+                    disabled={isBusy}
+                  >
+                    {t.shared.settings.resetPassword}
+                  </Button>
+                )}
+                {canUpdateSelf && (
+                  <Button
+                    type="button"
+                    onClick={() => void updateAccount()}
+                    disabled={isBusy || !username.trim()}
+                  >
+                    {t.shared.settings.updateAccount}
+                  </Button>
+                )}
+                {canDeleteSelf && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => void deleteAccount()}
+                    disabled={isBusy}
+                  >
+                    {t.shared.settings.deleteAccount}
+                  </Button>
+                )}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
   );

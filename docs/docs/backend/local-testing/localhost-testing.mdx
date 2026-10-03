@@ -11,9 +11,9 @@ This document summarizes the configuration changes made to enable local developm
 Updated with clearer comments and added `VITE_LOGIN_URL` for consistency:
 
 ```env
-VITE_AUTH0_DOMAIN="tenant.location.auth0.com"
+VITE_AUTH0_DOMAIN="YOUR_AUTH0_TENANT_DOMAIN"
 VITE_AUTH0_CLIENT_ID="your auth0 client id"
-VITE_AUTH0_AUDIENCE="https://api.example.de"
+VITE_AUTH0_AUDIENCE="https://api.example.com"
 VITE_API_URL="https://localhost:8443"
 VITE_LOGIN_URL="http://localhost:5174"
 ```
@@ -23,9 +23,9 @@ VITE_LOGIN_URL="http://localhost:5174"
 Updated with clearer comments and added `VITE_LOGIN_URL`:
 
 ```env
-VITE_AUTH0_DOMAIN="sanny64.eu.auth0.com"
+VITE_AUTH0_DOMAIN="YOUR_AUTH0_TENANT_DOMAIN"
 VITE_AUTH0_CLIENT_ID="your auth0 client id"
-VITE_AUTH0_AUDIENCE="https://api.example.de"
+VITE_AUTH0_AUDIENCE="https://api.example.com"
 VITE_API_URL="https://localhost:8443"
 VITE_LOGIN_URL="http://localhost:5174"
 ```
@@ -34,18 +34,19 @@ VITE_LOGIN_URL="http://localhost:5174"
 
 #### Backend Environment (`backend/.env`)
 
-Updated `ACCOUNT_LINK_CONFIRMATION_URL` to use localhost for development:
+The backend frontend URL and the Auth0 Action callback URL are separate settings:
 
 ```env
-ACCOUNT_LINK_CONFIRMATION_URL="http://localhost:5174"
+DEV_ACCOUNT_LINK_FRONTEND_URL="http://localhost:5174/confirm-linking"
 ```
 
 **Note**: The existing configuration already supported localhost for:
 
-- `AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"`
-- `AUTH0_SUCCESS_REDIRECT="http://localhost:5173/"`
-- `AUTH0_LOGOUT_REDIRECT="http://localhost:5173/"`
-- `CORS_ORIGINS` includes both localhost frontends
+- `DEV_AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"`
+- `DEV_AUTH0_SUCCESS_REDIRECT="http://localhost:5173/"`
+- `DEV_AUTH0_LOGOUT_REDIRECT="http://localhost:5173/"`
+- `DEV_CORS_ORIGINS` includes both localhost frontends
+- Auth0 Action secret `DEV_ACCOUNT_LINK_CONFIRMATION_URL` points to the backend's account-link confirmation endpoint.
 
 ### 3. Frontend Code Changes
 
@@ -63,7 +64,7 @@ This ensures the component works correctly in both development and production en
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Auth0 Tenant                          │
-│                   (sanny64.eu.auth0.com)                        │
+│                   (YOUR_AUTH0_TENANT_DOMAIN)                    │
 ├─────────────────────────────────────────────────────────────┤
 │  Post-Login Actions:                                        │
 │  • linkAccount.js (detects & redirects to linking page)    │
@@ -115,28 +116,28 @@ login (localhost:5174)
 └── VITE_LOGIN_URL = "http://localhost:5174"
 
 backend (localhost:3000)
-├── AUTH0_CALLBACK_URL = "https://localhost:8443/api/v001/auth/callback"
-├── AUTH0_SUCCESS_REDIRECT = "http://localhost:5173/"
-├── ACCOUNT_LINK_CONFIRMATION_URL = "http://localhost:5174"
-└── CORS_ORIGINS = "...http://localhost:5173,http://localhost:5174..."
+├── DEV_AUTH0_CALLBACK_URL = "https://localhost:8443/api/v001/auth/callback"
+├── DEV_AUTH0_SUCCESS_REDIRECT = "http://localhost:5173/"
+├── DEV_ACCOUNT_LINK_FRONTEND_URL = "http://localhost:5174/confirm-linking"
+└── DEV_CORS_ORIGINS = "http://localhost:5173,http://localhost:5174"
 ```
 
 ### Production Environment (Future)
 
 ```
-frontend (sanny64.de)
-├── VITE_API_URL = "https://api.sanny64.de"
-└── VITE_LOGIN_URL = "https://auth.sanny64.de"
+frontend (app.example.com)
+├── VITE_API_URL = "https://api.example.com"
+└── VITE_LOGIN_URL = "https://login.example.com"
 
-login (auth.sanny64.de)
-├── VITE_API_URL = "https://api.sanny64.de"
-└── VITE_LOGIN_URL = "https://auth.sanny64.de"
+login (login.example.com)
+├── VITE_API_URL = "https://api.example.com"
+└── VITE_LOGIN_URL = "https://login.example.com"
 
-backend (api.sanny64.de)
-├── AUTH0_CALLBACK_URL = "https://api.sanny64.de/api/v001/auth/callback"
-├── AUTH0_SUCCESS_REDIRECT = "https://sanny64.de/"
-├── ACCOUNT_LINK_CONFIRMATION_URL = "https://auth.sanny64.de"
-└── CORS_ORIGINS = "https://sanny64.de,https://auth.sanny64.de,https://www.sanny64.de"
+backend (api.example.com)
+├── PROD_AUTH0_CALLBACK_URL = "https://api.example.com/api/v001/auth/callback"
+├── PROD_AUTH0_SUCCESS_REDIRECT = "https://app.example.com/"
+├── PROD_ACCOUNT_LINK_FRONTEND_URL = "https://login.example.com/confirm-linking"
+└── PROD_CORS_ORIGINS = "https://app.example.com,https://login.example.com"
 ```
 
 ## Required Auth0 Configuration

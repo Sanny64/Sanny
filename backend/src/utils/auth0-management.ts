@@ -88,19 +88,27 @@ function getManagementConfig() {
 async function getManagementAccessToken(signal?: AbortSignal): Promise<string> {
   const { domain, clientId, clientSecret, audience } = getManagementConfig();
 
-  const response = await fetch(`https://${domain}/oauth/token`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      grant_type: "client_credentials",
-      client_id: clientId,
-      client_secret: clientSecret,
-      audience,
-    }),
-    ...(signal ? { signal } : {}),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`https://${domain}/oauth/token`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        grant_type: "client_credentials",
+        client_id: clientId,
+        client_secret: clientSecret,
+        audience,
+      }),
+      ...(signal ? { signal } : {}),
+    });
+  } catch {
+    throw new Auth0ManagementError(
+      "Auth0 Management API token request could not be completed",
+      502,
+    );
+  }
 
   if (!response.ok) {
     const text = await response.text();
@@ -128,14 +136,22 @@ async function auth0ManagementRequest(
   const { domain } = getManagementConfig();
   const accessToken = await getManagementAccessToken(init.signal ?? undefined);
 
-  const response = await fetch(`https://${domain}/api/v2${path}`, {
-    ...init,
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "content-type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`https://${domain}/api/v2${path}`, {
+      ...init,
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch {
+    throw new Auth0ManagementError(
+      "Auth0 Management API request could not be completed",
+      502,
+    );
+  }
 
   return response;
 }

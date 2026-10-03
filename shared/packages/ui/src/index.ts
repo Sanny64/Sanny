@@ -1,7 +1,6 @@
 export { Button } from "./components/Button";
 export { ButtonGroup } from "./components/ButtonGroup";
 export { Section } from "./components/Section";
-export { SharedSetupProbe } from "./components/SharedSetupProbe";
 export { Checkbox } from "./components/Checkbox";
 export { default as ToastViewport } from "./components/ToastViewport";
 export { showToast, showErrorToast, dismissToast } from "./utils/toast";

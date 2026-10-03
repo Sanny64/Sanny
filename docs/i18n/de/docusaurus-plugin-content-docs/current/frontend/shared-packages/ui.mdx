@@ -58,11 +58,11 @@ export default function Hello() {
       // Dynamisches Rendern eines Buttons
       <Button
         className="toggle-theme-button"
-        aria-label={t.shared.setupProbe.descriptionToggleThemeButton(theme)} // wechselt die Beschreibung abhängig vom Theme
+        aria-label={t.shared.settings.descriptionToggleThemeButton(theme)} // wechselt die Beschreibung abhängig vom Theme
         variant={themeVariant} // wechselt das Aussehen des Buttons (oder jeder anderen Komponente) abhängig vom Theme
         onClick={toggleTheme} // wechselt das Theme
       >
-        {t.shared.setupProbe.toggleThemeButton(theme)} // wechselt den angezeigten Button-Text abhängig vom Theme
+        {t.shared.settings.toggleThemeButton(theme)} // wechselt den angezeigten Button-Text abhängig vom Theme
       </Button>
     </div>
   );

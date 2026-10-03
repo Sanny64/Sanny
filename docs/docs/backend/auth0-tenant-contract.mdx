@@ -25,15 +25,15 @@ The backend source and its automated tests verify the local OAuth and token-hand
 - Configure the API identifier to match `AUTH0_AUDIENCE`.
 - Tokens must have the configured issuer, the API audience, a non-empty `sub`, and valid expiry/signature.
 - Permissions are read from the `permissions` claim, or from OAuth `scope` when the explicit claim is absent.
-- Roles are read from `https://sanny64.app/roles` unless `AUTH0_ROLES_CLAIM` overrides it.
-- Email and name are read from `https://sanny64.app/email` and `https://sanny64.app/name` unless their environment overrides are configured; standard `email` and `name` claims are fallback values.
+- Roles, email, and name use configured custom-claim namespaces (for documentation examples, use the reserved `https://example.invalid/` namespace); `AUTH0_ROLES_CLAIM` and the corresponding email/name overrides must match the tenant's deployed Action configuration. Standard `email` and `name` claims are fallback values.
 - Local account creation requires `email_verified === true`.
 - Missing required permissions or roles must deny the request; email or name must never grant authorization.
+- The Login-flow `roleClaims.js` Action assigns the Auth0 `user` role to non-database users when it is absent, then includes it in the roles claim for that login. Configure its `AUTH0_DEFAULT_ROLE_ID` to the reviewed `user` role ID used by the Post User Registration Action, and provide `AUTH0_DOMAIN`, `AUTH0_M2M_CLIENT_ID`, `AUTH0_M2M_CLIENT_SECRET`, and `AUTH0_MGMT_AUDIENCE`. The M2M client needs `update:users`; database registrations continue to use `assignDefaultUserRole.js`.
 
 ## Privileged management API
 
 - Keep role synchronization disabled unless `AUTH0_ROLE_SYNC_ENABLED=true` is intentional.
-- `AUTH0_ASSIGNABLE_ROLES` must contain only reviewed, exact role names.
+- When role synchronization is enabled, admins with `write:users` and recent MFA can assign any role that exists in Auth0; no role allowlist is enforced.
 - Grant the machine-to-machine client only the least-privilege Management API scopes required by the enabled operation.
 
 ## MFA step-up and password reset

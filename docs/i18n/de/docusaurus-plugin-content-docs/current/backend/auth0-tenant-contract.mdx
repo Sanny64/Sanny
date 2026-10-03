@@ -1,0 +1,67 @@
+---
+title: Auth0-Tenant-Vertrag
+description: Nicht geheime Auth0-Einstellungen und Anforderungen für das Backend.
+sidebar_position: 2
+---
+
+# Auth0-Tenant-Vertrag
+
+Die Tenant-Konfiguration wird in Auth0 verwaltet und muss unabhängig vom Quellcode geprüft werden. Client-Secrets, Datenbankpasswörter, Zertifikate, private Schlüssel und Access-Tokens dürfen nicht in diesem Dokument stehen.
+
+## Prüfstatus
+
+Quellcode und automatisierte Tests prüfen den lokalen OAuth- und Token-Vertrag. Der gehostete Auth0-Tenant muss noch durch Verantwortliche im Staging verifiziert werden. Einen Punkt erst nach Prüfung im vorgesehenen Tenant und Dokumentation von Datum und Ergebnis als abgeschlossen markieren. Tenant-Kennung und Prüferdaten gehören in ein zugriffsbeschränktes Deployment-Protokoll.
+
+## Anmeldung im Browser
+
+- Das Backend erzeugt für jeden Login einen PKCE-Verifier und `S256`-Challenge. Im Tenant Authorization Code Flow mit PKCE und `S256` verwenden.
+- Nur die exakten HTTPS-Callback-, Erfolgs- und Logout-URLs der Bereitstellung registrieren.
+- Refresh-Token-Rotation aktivieren und die Wiederverwendungserkennung gemäß Tenant-Richtlinie einschalten.
+- Den Scope `offline_access` für die Anwendung zulassen.
+- Database Actions bereitstellen und mit der vorgesehenen MariaDB verbinden.
+
+## API und Claims
+
+- Der API-Identifier muss `AUTH0_AUDIENCE` entsprechen.
+- Tokens müssen den konfigurierten Issuer, die Audience, ein nicht leeres `sub`, gültige Ablaufzeit und gültige Signatur besitzen.
+- Berechtigungen werden aus dem Claim `permissions` oder, falls dieser fehlt, aus OAuth-`scope` gelesen.
+- Rollen, E-Mail und Name verwenden konfigurierte Custom-Claim-Namespaces. Für Dokumentationsbeispiele ist `https://example.invalid/` reserviert; der tatsächliche Namespace muss zur Tenant-Action und API-Konfiguration passen. `AUTH0_ROLES_CLAIM` sowie die E-Mail-/Namens-Overrides können ihn ändern. Standardclaims `email` und `name` sind Fallbacks.
+- Lokale Kontoerstellung erfordert `email_verified === true`.
+- Fehlende erforderliche Berechtigungen oder Rollen müssen den Zugriff verweigern. E-Mail und Name dürfen niemals Berechtigungen erteilen.
+- Die Login-Action `roleClaims.js` weist Nicht-Database-Nutzern bei Bedarf die Auth0-Rolle `user` zu und fügt sie dem Rollen-Claim hinzu. `AUTH0_DEFAULT_ROLE_ID` muss der geprüften Rolle entsprechen. Die M2M-Anwendung benötigt `update:users`; Database-Registrierungen verwenden weiterhin `assignDefaultUserRole.js`.
+
+## Privilegierte Management API
+
+- Rollen-Synchronisierung deaktiviert lassen, sofern `AUTH0_ROLE_SYNC_ENABLED=true` nicht ausdrücklich beabsichtigt ist.
+- Wenn aktiviert, können Administratoren mit `write:users` und kürzlich abgeschlossener MFA jede in Auth0 vorhandene Rolle zuweisen. Es gibt keine Rollen-Allowlist.
+- Der M2M-Anwendung nur die minimal notwendigen Management-API-Berechtigungen erteilen.
+
+## MFA-Step-up und Passwort-Reset
+
+- `backend/auth0/post-login/mfaStepUp.js` im Login-Flow bereitstellen. `MFA_ACR` auf `http://schemas.openid.net/pape/policies/2007/06/multi-factor` setzen. Die Action fordert MFA nur an, wenn dieser Wert explizit angefordert wird.
+- Beabsichtigte Faktoren unter **Security > Multi-factor Auth** aktivieren. Bei eigener Faktorauswahl durch Actions muss **Customize MFA Factors using Actions** eingeschaltet sein. Die Meldung `MFA customized via PostLogin action but feature is not enabled` weist auf eine fehlende Tenant-Funktion hin.
+- Passwort-Reset durch Nutzer erfordert eine gültige Sanny-Session, aber kein MFA-Step-up. Admin-Reset erfordert zusätzlich Admin-Rolle, `write:users` und MFA innerhalb der letzten 15 Minuten.
+- Beide Handler erstellen über Management API `/tickets/password-change` ein Ticket mit `AUTH0_CLIENT_ID`, `AUTH0_DATABASE_CONNECTION_ID` und der gespeicherten E-Mail-Adresse. Die nicht geheime Connection-ID mit Präfix `con_` muss zur konfigurierten Database Connection passen. Diese muss für die Anwendung aktiviert sein; dem M2M-Client ist `create:user_tickets` zu gewähren.
+- Tickets laufen nach 15 Minuten ab, markieren die E-Mail nicht als verifiziert und enthalten keine E-Mail-Adresse in Redirects. Zieladresse ist ausschließlich die gespeicherte E-Mail des Nutzers. Social-only-Konten setzen ihr Passwort beim jeweiligen Identity Provider zurück.
+- Sanny versendet zweisprachige Klartext-E-Mails über `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` und `SMTP_FROM_ADDRESS`. Port 465 verwendet implizites TLS, andere Ports STARTTLS. Die Zertifikatsprüfung wird nicht deaktiviert. SMTP-Annahme bestätigt nicht die Zustellung im Postfach.
+- Der öffentliche Endpunkt `/dbconnections/change_password` wird nicht mehr verwendet. Ein Bot-Detection-Fehler dort kann durch einen serverseitigen Aufruf nicht interaktiv abgeschlossen werden. Bot Detection nicht deaktivieren; Management-API-Tickets und SMTP vermeiden diesen inkompatiblen Ablauf.
+- Auth0-Fehler werden serverseitig mit Upstream-Status/Details protokolliert. Reset-Endpunkte geben sichere `502`-Fehler oder `429` bei Rate-Limit aus; SMTP-Fehler ergeben sichere `503`. Ein Auth0-`401` wird nicht als Sanny-Session-`401` ausgegeben.
+
+Siehe auch [Auth0-Voraussetzungen zur MFA-Anpassung](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa/customize-mfa-selection-universal-login).
+
+## Verknüpfte Identitäten und kanonische Subjects
+
+- `backend/auth0/post-login/linkAccounts.js` im Auth0-Login-Flow bereitstellen. Änderungen am Quellcode oder Backend-Container deployen die Actions nicht.
+- Bei späteren Database-Logins muss die Action `api.authentication.setPrimaryUser` aufrufen, wenn die verifizierte Google-Primäridentität genau diese Database-Identität enthält. Ein vorhandenes `confirmed`-Metadatum darf die Kanonisierung nicht überspringen.
+- Sind Identitäten noch nicht verknüpft, muss trotz `confirmed` erneut Besitznachweis verlangt werden. Nur ein aktueller `pending`-Status unterdrückt fünf Minuten lang doppelte Prompts.
+- Sekundäre Besitznachweis-Logins (`link_proof=true`) behalten absichtlich das Database-Subject und dürfen nicht vor der Prüfung kanonisiert werden.
+- Google ist stets die kanonische Primäridentität. Der Besitznachweis muss für das jeweils nicht verwendete Konto erfolgen. Das Backend prüft das exakte `proofUserId`; der signierte Nachweis enthält `authenticatedUserId`.
+- Actions und Backend gemeinsam bereitstellen. Bei `account_linking_needed` trotz gespeicherter Google-Identität Token-Subject und bereitgestellte Action-Version untersuchen. Nicht durch Umkehrung der Link-Prüfung oder Umschreiben lokaler Subjects umgehen.
+- Bei fehlender Verknüpfung prüfen, ob beide Accounts `email_verified: true` haben, Provider zugelassen sind und die Action im Login-Flow aktiv ist. `ACCOUNT_LINK_CONFIRMATION_URL` muss je Umgebung auf die Backend-Route `/api/v001/auth/confirm-account-linking` zeigen.
+
+### Passwort-Reset während des Besitznachweises
+
+- Für lokale Tests kann die Auth0-Anwendungs-Login-URI auf `https://localhost:5174/account-link-proof-resume` zeigen. In Produktion muss dort die entsprechende Route des bereitgestellten Login-Frontends eingetragen sein. Das ist nicht die OAuth-Callback-URL.
+- Das Popup speichert den undurchsichtigen ausstehenden Status und Ablauf in `sessionStorage`. Nach dem Reset setzt dieselbe Popup-Instanz den Besitznachweis über die Resume-Route fort.
+- Ein Passwort-Reset allein gilt nicht als Besitznachweis. Abgelaufener Status erfordert einen Neustart der Verknüpfung; ein Reset in einem anderen Tab setzt das ursprüngliche Popup nicht automatisch fort.
+- Fortsetzungen werden mit `AUTH0_DOMAIN` erstellt. Tenant- und Custom-Domain nicht innerhalb derselben Auth0-Transaktion mischen.

@@ -6,6 +6,7 @@ import {
   getAccountLinkFrontendUrl,
   getLogoutRedirectUrl,
   getSuccessRedirectUrl,
+  getTrustProxy,
 } from "../utils/config.js";
 
 test("production Auth0 redirects require HTTPS URLs", () => {
@@ -62,5 +63,40 @@ test("production Auth0 redirects require HTTPS URLs", () => {
       delete process.env.PROD_ACCOUNT_LINK_FRONTEND_URL;
     else
       process.env.PROD_ACCOUNT_LINK_FRONTEND_URL = previousAccountLinkFrontend;
+  }
+});
+
+test("trusted proxy config requires explicit false, true, or IP/CIDR values", () => {
+  const keys = ["NODE_ENV", "DEV_TRUST_PROXY", "PROD_TRUST_PROXY"] as const;
+  const previous = Object.fromEntries(
+    keys.map((key) => [key, process.env[key]]),
+  );
+
+  try {
+    process.env.NODE_ENV = "development";
+    delete process.env.DEV_TRUST_PROXY;
+    assert.equal(getTrustProxy(), false);
+
+    process.env.DEV_TRUST_PROXY = "false";
+    assert.equal(getTrustProxy(), false);
+    process.env.DEV_TRUST_PROXY = "true";
+    assert.equal(getTrustProxy(), true);
+    process.env.DEV_TRUST_PROXY = "127.0.0.1,10.0.0.0/8";
+    assert.equal(getTrustProxy(), "127.0.0.1,10.0.0.0/8");
+    process.env.DEV_TRUST_PROXY = "2";
+    assert.throws(
+      () => getTrustProxy(),
+      /numeric hop counts are not supported/,
+    );
+
+    process.env.NODE_ENV = "production";
+    process.env.DEV_TRUST_PROXY = "false";
+    process.env.PROD_TRUST_PROXY = "192.0.2.10";
+    assert.equal(getTrustProxy(), "192.0.2.10");
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 });

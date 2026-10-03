@@ -344,17 +344,14 @@ export async function refreshSessionIdentity(
     }
     const activeRefreshToken = session.refreshToken ?? refreshToken;
     const previousRefreshTokens = session.previousRefreshTokens ?? [];
-    const rotationDecision = deriveRefreshTokenRotation({
-      activeRefreshToken,
-      previousRefreshTokens,
-      nextRefreshToken: refreshToken,
-    });
-
-    if (!rotationDecision.allowed) {
+    if (
+      refreshToken !== activeRefreshToken ||
+      previousRefreshTokens.includes(refreshToken)
+    ) {
       await getRedis().del(sessionKey(sessionId));
       logSecurityEvent("refresh_token_replay_detected", {
         sessionId,
-        reason: rotationDecision.reason,
+        reason: "refresh-token-replay",
         refreshTokenPresent: Boolean(refreshToken),
       });
       throw new Error("Refresh token replay detected");
@@ -397,13 +394,29 @@ export async function refreshSessionIdentity(
     const identity = await verifyAccessTokenIdentity(payload.access_token);
     const nextRefreshToken =
       payload.refresh_token ?? session.refreshToken ?? refreshToken;
+    let nextPreviousRefreshTokens = previousRefreshTokens;
+    if (payload.refresh_token) {
+      const rotationDecision = deriveRefreshTokenRotation({
+        activeRefreshToken,
+        previousRefreshTokens,
+        nextRefreshToken: payload.refresh_token,
+      });
+      if (!rotationDecision.allowed) {
+        await getRedis().del(sessionKey(sessionId));
+        logSecurityEvent("refresh_token_replay_detected", {
+          sessionId,
+          reason: rotationDecision.reason,
+          refreshTokenPresent: true,
+        });
+        throw new Error("Refresh token replay detected");
+      }
+      nextPreviousRefreshTokens = rotationDecision.previousRefreshTokens;
+    }
     const nextSession: Session = {
       ...session,
       identity,
       refreshToken: nextRefreshToken,
-      previousRefreshTokens: payload.refresh_token
-        ? rotationDecision.previousRefreshTokens
-        : previousRefreshTokens,
+      previousRefreshTokens: nextPreviousRefreshTokens,
       expiresAt: Date.now() + Number(payload.expires_in ?? 3600) * 1000,
       lastTouchedAt: Date.now(),
       authenticatedAt: session.authenticatedAt ?? Date.now(),
@@ -654,21 +667,25 @@ declare module "fastify" {
 
 export async function destroySessionsForSubject(auth0Sub: string) {
   const matchingKeys: string[] = [];
-  for await (const key of getRedis().scanIterator({
+  for await (const scannedKeys of getRedis().scanIterator({
     MATCH: "sanny:session:*",
     COUNT: 100,
   })) {
-    const sessionKeyValue = Array.isArray(key) ? key[0] : key;
-    if (!sessionKeyValue) continue;
-    const raw = await getRedis().get(sessionKeyValue);
-    if (!raw) continue;
+    const sessionKeys = Array.isArray(scannedKeys)
+      ? scannedKeys
+      : [scannedKeys];
+    for (const sessionKeyValue of sessionKeys) {
+      if (!sessionKeyValue) continue;
+      const raw = await getRedis().get(sessionKeyValue);
+      if (!raw) continue;
 
-    try {
-      const session = JSON.parse(raw) as Session;
-      if (session.identity?.sub === auth0Sub)
+      try {
+        const session = JSON.parse(raw) as Session;
+        if (session.identity?.sub === auth0Sub)
+          matchingKeys.push(sessionKeyValue);
+      } catch {
         matchingKeys.push(sessionKeyValue);
-    } catch {
-      matchingKeys.push(sessionKeyValue);
+      }
     }
   }
 

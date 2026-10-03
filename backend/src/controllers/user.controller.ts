@@ -273,7 +273,7 @@ export async function updateSelfUserHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    const safe = createSafeErrorResponse(err, 400);
+    const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });
@@ -315,7 +315,7 @@ export async function deleteSelfUserHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    const safe = createSafeErrorResponse(err, 400);
+    const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });
@@ -354,7 +354,6 @@ export async function requestSelfPasswordResetHandler(
       console.error(
         "Auth0 error requesting password reset email:",
         err instanceof Auth0ManagementError ? err.statusCode : "SMTP",
-        err.message,
       );
       const safe = createPasswordResetErrorResponse(err);
       return reply
@@ -387,6 +386,7 @@ export async function updateUserHandler(
   }
 
   const body = request.body as UpdateUserInput;
+  const username = body.username.trim();
 
   try {
     const target = await findUserByIdWithAuth0Sub(userId);
@@ -397,16 +397,16 @@ export async function updateUserHandler(
         .send({ error: safe.error, message: safe.message });
     }
     if (target.auth0Sub) {
-      await updateAuth0UsernameBySub(target.auth0Sub, body.username.trim());
+      await updateAuth0UsernameBySub(target.auth0Sub, username);
     }
-    const user = await updateUserById(userId, body);
+    const user = await updateUserById(userId, { username });
     return reply.code(200).send(user);
   } catch (err) {
     if (err instanceof Auth0ManagementError) {
       logSecurityEvent("admin_user_update_failed", {
         userId,
         statusCode: err.statusCode,
-        reason: err.message,
+        reason: "Auth0 username update failed",
       });
       const safe = createSafeErrorResponse(err, err.statusCode);
       return reply
@@ -423,7 +423,7 @@ export async function updateUserHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    const safe = createSafeErrorResponse(err, 400);
+    const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });
@@ -472,7 +472,7 @@ export async function deleteUserHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    const safe = createSafeErrorResponse(err, 400);
+    const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)
       .send({ error: safe.error, message: safe.message });
@@ -597,7 +597,6 @@ export async function requestUserPasswordResetHandler(
       console.error(
         "Auth0 error requesting password reset email:",
         err instanceof Auth0ManagementError ? err.statusCode : "SMTP",
-        err.message,
       );
       const safe = createPasswordResetErrorResponse(err);
       return reply
@@ -689,7 +688,6 @@ export async function getAvailableRolesHandler(
       console.error(
         "Auth0 Management API error fetching roles:",
         err.statusCode,
-        err.message,
       );
       const safe = createSafeErrorResponse(err, statusCode);
       return reply
@@ -739,7 +737,6 @@ export async function getUserRolesHandler(
       console.error(
         "Auth0 Management API error fetching user roles:",
         err.statusCode,
-        err.message,
       );
       const safe = createSafeErrorResponse(err, statusCode);
       return reply

@@ -47,10 +47,19 @@ export const createUserResponseSchema = userCoreSchema.extend({
   id: z.number(),
 });
 
-export const linkUserAccountsSchema = z.object({
-  primaryAuth0Sub: z.string().min(1),
-  secondaryAuth0Sub: z.string().min(1),
-});
+export const linkUserAccountsSchema = z
+  .object({
+    primaryAuth0Sub: z.string().min(1),
+    secondaryAuth0Sub: z.string().min(1),
+  })
+  .refine(
+    ({ primaryAuth0Sub, secondaryAuth0Sub }) =>
+      primaryAuth0Sub.trim() !== secondaryAuth0Sub.trim(),
+    {
+      path: ["secondaryAuth0Sub"],
+      message: "Primary and secondary accounts must be different.",
+    },
+  );
 
 export const userSchemas = {
   createSelfUserSchema,

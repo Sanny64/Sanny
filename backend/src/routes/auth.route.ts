@@ -387,6 +387,10 @@ async function authRoutes(server: FastifyInstance) {
 
     const state = await consumeLoginState(request.query.state);
     if (!state) {
+      setLoginStates(
+        reply,
+        outstandingStates.filter((value) => value !== request.query.state),
+      );
       logSecurityEvent("oauth_state_rejected", {
         reason: "Authentication state expired",
         state: request.query.state,

@@ -1,0 +1,42 @@
+---
+title: Incident Response
+description: Triage and contain backend, identity-provider, and data-service incidents.
+sidebar_position: 7
+---
+
+# Incident response
+
+## First response
+
+1. **Contain:** identify the environment and affected service. Restrict public traffic or disable the affected integration when needed. Do not disable TLS, authentication, MFA, CSRF, or rate limits as a workaround.
+2. **Preserve safely:** record UTC time, deployment identifier, affected route/service, status codes, and sanitized log references. Do not copy tokens, cookies, authorization codes, request bodies, database URLs, or user-identifying data into incident notes.
+3. **Classify:** check `/healthcheck`, container restarts, database and Redis reachability, proxy errors, Auth0 logs, and monitoring availability. Separate provider outages from local configuration/connectivity failures.
+4. **Mitigate:** use the narrowest reversible action. For suspected credential compromise, revoke/rotate in the owning system and invalidate affected sessions as appropriate. For a failed release, halt promotion and use the approved rollback/recovery procedure.
+5. **Verify recovery:** check health, HTTPS/security headers, authentication and logout, critical user operations, and alert clearance in staging before restoring normal traffic.
+6. **Close:** document impact, timeline, root cause, recovery, and follow-up actions in the restricted incident record. Remove temporary access and verify rotation without recording replacement values.
+
+## Service-specific checks
+
+### Auth0 login or callback failures
+
+Check provider status/logs, registered callback/logout URLs, consistent tenant domain, PKCE state, clock synchronization, and deployed Action versions. Do not log callback query strings or manually accept unlinked identities based only on matching email.
+
+### Redis errors or widespread sign-outs
+
+Check Redis health, TLS certificate validity, password injection, private-network reachability, and client errors. Redis fallback rate limiting is bounded and process-local; it is not equivalent to shared Redis enforcement. Do not weaken TLS or expose Redis publicly to restore service.
+
+### Database failures
+
+Check database availability, TLS/network policy, connection limits, and recent schema changes. The database is external to the checked-in compose stack. Do not expose SQL diagnostics to clients or run ad hoc destructive repair commands.
+
+### Unexpected account deletion or linking
+
+Suspend the affected operation and preserve sanitized backend/Auth0 event references. Verify Auth0 identity-link state before changing local records. Do not rewrite account subjects or link identities based on matching email alone.
+
+### Secret or token exposure
+
+Revoke the credential/token at its issuer, rotate it in the deployment secret store, invalidate affected sessions as appropriate, and inspect repository history and log sinks. Follow the organization's notification process. Never paste the compromised value into an issue, commit, log, or chat message.
+
+## After recovery
+
+Confirm client errors remain generic and sanitized. Review whether the incident requires changes to alert thresholds, backup/restore evidence, access controls, or deployment procedures. Track corrective actions in the restricted incident record; keep secrets and personal data out of repository documentation.

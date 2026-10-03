@@ -1,0 +1,63 @@
+---
+title: Bereitstellung und Wiederherstellung
+description: Staging-Prüfung, Release, Rollback und Datensicherung.
+sidebar_position: 5
+---
+
+# Bereitstellung und Wiederherstellung
+
+## Bereitstellungsstatus
+
+Das Backend läuft derzeit lokal mit Docker. Es gibt noch keine gehostete Staging- oder Produktionsumgebung. Ein lokaler Container mit `NODE_ENV=production` prüft nur die Produktionskonfiguration und gilt nicht als Deployment-Freigabe. Vor dem öffentlichen Produktivbetrieb muss eine isolierte Staging-Umgebung eingerichtet werden.
+
+Auth0-, Datenbank- und Redis-Ressourcen müssen je Umgebung getrennt sein. Zugangsdaten kommen aus dem zugehörigen Secret-Store. Echte Hostnamen, Tenant-Kennungen oder Zugangsdaten gehören nicht in dieses Repository.
+
+## Laufzeitgrenzen
+
+- Fastify läuft hinter NGINX. Sein Port bleibt privat und darf nicht direkt öffentlich erreichbar sein.
+- NGINX beendet TLS, leitet HTTP auf HTTPS um und überschreibt Forwarding-Header. Produktionsseitiges Proxy-Vertrauen darf nur die tatsächliche vertrauenswürdige Proxy-IP bzw. das CIDR erlauben.
+- Redis ist auf das private Compose-Netz beschränkt und verwendet TLS mit Passwortschutz. Compose erstellt die Redis-TLS-URL aus `REDIS_PASSWORD`.
+- MariaDB wird über `DATABASE_URL` konfiguriert und ist kein Dienst der Backend-Compose-Datei. Bereitstellung, Netzrichtlinien, Backups und Wiederherstellung benötigen eigene Verantwortliche.
+- Die npm-Skripte für Entwicklung sind kein Produktions-Release-Verfahren.
+
+## Lokaler Betrieb
+
+Im Verzeichnis `backend/` ausführen:
+
+```bash
+npm run start
+npm run stop
+npm run restart
+npm run test
+npm run type-check
+```
+
+`npm run build` erstellt das Development-Compose-Image neu und startet den Stack. Für eine Vorabprüfung der Produktions-Compose-Datei aus `backend/docker/`:
+
+```bash
+docker compose --env-file ../.env -f docker-compose.prod.yml config --quiet
+```
+
+Nur `config --quiet` verwenden. `docker compose config` gibt die interpolierte Konfiguration aus und kann Secrets in Terminalaufzeichnungen oder CI-Logs offenlegen. Die Produktions-Compose-Datei allein beweist nicht, dass eine gehostete Umgebung sicher ist.
+
+## Staging-Freigabe
+
+1. Ausschließlich Staging-Secrets laden und Umgebung, Auth0-Tenant, Datenbank und Redis-Ziel prüfen.
+2. Backend-, Prisma-Schema-, Auth0-Action- und Deployment-Änderungen getrennt prüfen. Ein Backend-Neubau deployt keine Auth0 Actions.
+3. Vor Schema- oder Datenmigrationen ein aktuelles Datenbank-Backup und einen getesteten Wiederherstellungsweg bestätigen.
+4. Compose-Konfiguration ohne Ausgabe validieren und veränderliche Monitoring-Image-Tags vor Produktion fest pinnen.
+5. Über das freigegebene Host-Verfahren deployen und Container-Health, HTTPS-`/healthcheck`, Security-Header, Datenbank-/Redis-Verbindung und Monitoring-Scrapes prüfen.
+6. Interaktives Login/Logout, PKCE-Replay-Abweisung, Token-Erneuerung und Replay-Erkennung, Profil-/Änderungs-/Löschabläufe, Admin-Berechtigung und Pagination, Rate Limits, Browserfehler, Ablaufwarnung und Proxy-Header prüfen.
+7. Logs und Alarme auf Secrets und personenbezogene Daten prüfen. Build-ID, Ergebnisse, offene Risiken, Rollback-Schritte und Freigabe in einem zugriffsbeschränkten Deployment-Protokoll festhalten.
+8. Erst nach bestandenem Staging freigeben. Öffentliches `/nginx_status` muss gesperrt sein; der interne Exporter muss es erreichen können.
+
+## Rollback
+
+Es gibt noch keinen gehosteten Release- oder Rollback-Ablauf. Vor dem ersten gehosteten Release Verfahren und verantwortliche Person festlegen. Bei Fehlern die Freigabe stoppen und Image/Konfiguration über das genehmigte Verfahren zurückrollen. Datenbankmigrationen nur dann rückgängig machen, wenn dies nachweislich rückwärtskompatibel ist; andernfalls den freigegebenen Wiederherstellungsplan verwenden. Redis ist kein Ersatz für die Wiederherstellung von Benutzerkonten.
+
+## Backup und Wiederherstellung
+
+- MariaDB über einen eigenen geschützten Prozess sichern. Backups verschlüsseln, Zugriffe begrenzen, Aufbewahrungsfristen festlegen und regelmäßig isoliert wiederherstellen. Ein erfolgreicher Backup-Job ist noch kein Wiederherstellungstest.
+- Redis speichert Sessions und Rate-Limit-Zustand, nicht die maßgeblichen Benutzerprofile. Nach Verlust der Session-Daten müssen sich Benutzer erneut anmelden. Die eingecheckte Redis-Konfiguration definiert kein explizites Aufbewahrungs- oder Wiederherstellungsziel; dieses muss vor dem gehosteten Produktivbetrieb festgelegt werden.
+- Compose-Volumes enthalten Redis- und Monitoring-Daten. Docker-Host und Volume-Backups schützen; Monitoring-Daten können Client-IP-Adressen und Dienstmetadaten enthalten.
+- Datenbank-Dumps, Redis-Snapshots, Zertifikate und Backup-Zugangsdaten gehören weder ins Repository noch in öffentliche Incident-Berichte.

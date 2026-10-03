@@ -12,9 +12,9 @@ This guide explains how to test the account linking flow locally with localhost 
 
 ### Production Environment
 
-- **Login Frontend**: https://auth.sanny64.de
-- **Main Frontend**: https://sanny64.de
-- **Backend**: https://api.sanny64.de
+- **Login Frontend**: https://login.example.com
+- **Main Frontend**: https://app.example.com
+- **Backend**: https://api.example.com
 
 ## Auth0 Configuration for Local Testing
 
@@ -46,10 +46,11 @@ For local development testing, you must configure your Auth0 application to acce
 Already has defaults for development. Verify or set:
 
 ```
-AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
-AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
-AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
-CORS_ORIGINS=https://localhost:8443,http://localhost:5173,http://localhost:5174
+DEV_AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
+DEV_AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
+DEV_AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
+DEV_ACCOUNT_LINK_FRONTEND_URL=http://localhost:5174/confirm-linking
+DEV_CORS_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
 
 #### Login Frontend (`login/.env.local`)
@@ -57,9 +58,9 @@ CORS_ORIGINS=https://localhost:8443,http://localhost:5173,http://localhost:5174
 The file is already configured for localhost. For local testing:
 
 ```
-VITE_AUTH0_DOMAIN=tenant.locaction.auth0.com
+VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
 VITE_AUTH0_CLIENT_ID=<your-client-id>
-VITE_AUTH0_AUDIENCE=https://api.sanny64.de
+VITE_AUTH0_AUDIENCE=https://api.example.com
 VITE_API_URL=https://localhost:8443
 ```
 
@@ -68,9 +69,9 @@ VITE_API_URL=https://localhost:8443
 Create or update to match:
 
 ```
-VITE_AUTH0_DOMAIN=tenant.location.auth0.com
+VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
 VITE_AUTH0_CLIENT_ID=<your-client-id>
-VITE_AUTH0_AUDIENCE=https://api.sanny64.de
+VITE_AUTH0_AUDIENCE=https://api.example.com
 VITE_API_URL=https://localhost:8443
 VITE_LOGIN_URL=http://localhost:5174
 ```
@@ -80,9 +81,8 @@ VITE_LOGIN_URL=http://localhost:5174
 ### Step 1: Start All Services
 
 ```bash
-# Terminal 1: Backend
-cd backend
-npm run dev
+# Terminal 1: Backend (from repository root)
+npm run start:backend
 
 # Terminal 2: Login Frontend
 cd login
@@ -136,8 +136,8 @@ npm run dev
 ### "email_verified" Claim Missing
 
 - Ensure both `linkAccount.js` and `roleClaims.js` Actions are deployed in Auth0
-- Verify claim namespace is correct (should be `https://sanny64.de/email_verified`)
-- Check token includes custom claims by decoding at jwt.io
+- Verify the email-verification claim namespace matches the Auth0 Action and API configuration. Do not copy a production namespace from documentation.
+- If claim inspection is required, use an approved local decoder with a non-production test token. Never paste active tokens into an online decoder.
 
 ### CORS Errors
 
@@ -153,29 +153,29 @@ When ready to deploy to production:
    - Replace localhost URLs with production domains
    - Set Allowed Callback URLs to:
      ```
-     https://api.sanny64.de/api/v001/auth/callback,
-     https://auth.sanny64.de/,
-     https://sanny64.de/
+     https://api.example.com/api/v001/auth/callback,
+     https://login.example.com/,
+     https://app.example.com/
      ```
    - Update CORS to use production domains
 
 2. **Update Environment Variables**:
-   - Backend: Use HTTPS URLs for `AUTH0_CALLBACK_URL`, `AUTH0_SUCCESS_REDIRECT`, `AUTH0_LOGOUT_REDIRECT`
+   - Backend: Set HTTPS values for `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT`, and `PROD_AUTH0_LOGOUT_REDIRECT`.
    - Login Frontend: Update `VITE_AUTH0_DOMAIN` if using a production tenant
-   - Main Frontend: Update `VITE_LOGIN_URL` to `https://auth.sanny64.de`
+   - Main Frontend: Update `VITE_LOGIN_URL` to the deployed login frontend HTTPS origin.
 
 3. **Database Deployment**:
-   - Run `npm run migrate:prod` in backend before deploying
-   - Verify custom database connection scripts are active in Auth0
+   - Review the Prisma schema changes and the deployment's approved database migration procedure before deploying.
+   - Verify custom database connection scripts are active in the intended Auth0 tenant.
 
 ## Key URLs for Testing
 
-| Component      | Dev URL                                       | Prod URL                                      |
-| -------------- | --------------------------------------------- | --------------------------------------------- |
-| Login          | http://localhost:5174                         | https://auth.sanny64.de                       |
-| Main App       | http://localhost:5173                         | https://sanny64.de                            |
-| Backend        | https://localhost:8443                        | https://api.sanny64.de                        |
-| Auth0 Callback | https://localhost:8443/api/v001/auth/callback | https://api.sanny64.de/api/v001/auth/callback |
+| Component      | Dev URL                                       | Prod URL                                       |
+| -------------- | --------------------------------------------- | ---------------------------------------------- |
+| Login          | http://localhost:5174                         | https://login.example.com                      |
+| Main App       | http://localhost:5173                         | https://app.example.com                        |
+| Backend        | https://localhost:8443                        | https://api.example.com                        |
+| Auth0 Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |
 
 ## Reference Documentation
 

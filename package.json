@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@types/node": "^26.0.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -57,7 +58,12 @@
     "lint": "npm run format:check && npm run lint:frontends && npm run lint:backend",
     "test:frontends": "npm run lint:frontends && npm run build:frontends",
     "test:backend": "npm run lint:backend && npm run test -w backend",
-    "test": "npm run format:check && npm run test:backend && npm run test:frontends"
+    "test:backend:redis": "docker compose --project-directory backend/docker --env-file backend/.env run --rm --no-deps --build -e RUN_REAL_REDIS_TESTS=true app node --import=tsx --test src/tests/session-rotation.test.ts",
+    "test:e2e:mocked": "playwright test e2e/mock",
+    "test:e2e:real": "playwright test e2e/real --workers=1",
+    "test:e2e:real:headed": "playwright test e2e/real --workers=1 --headed",
+    "test:e2e": "npm run test:e2e:mocked",
+    "test": "npm run format:check && npm run test:backend && npm run test:backend:redis && npm run test:frontends && npm run test:e2e && npm run test:e2e:real"
   },
   "overrides": {
     "image-size@<= >2.0.2": " >2.0.2",

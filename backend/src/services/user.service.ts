@@ -256,7 +256,10 @@ export async function createOrGetSelfUser(input: {
   });
 
   if (existingByEmail) {
-    if (existingByEmail.auth0Sub !== input.auth0Sub) {
+    if (
+      existingByEmail.auth0Sub &&
+      existingByEmail.auth0Sub !== input.auth0Sub
+    ) {
       throw new Auth0SubjectConflictError(
         "This email is already linked to another Auth0 identity. Link accounts in Auth0 before continuing.",
       );
@@ -373,6 +376,10 @@ export async function mergeUserAccounts(
   primaryAuth0Sub: string,
   secondaryAuth0Sub: string,
 ) {
+  if (primaryAuth0Sub === secondaryAuth0Sub) {
+    throw new Error("Primary and secondary accounts must be different");
+  }
+
   const primaryUser = await findUserByAuth0SubFull(primaryAuth0Sub);
   if (!primaryUser) {
     throw new Error(`Primary user not found: ${primaryAuth0Sub}`);

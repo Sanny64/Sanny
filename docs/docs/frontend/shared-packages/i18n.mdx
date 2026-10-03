@@ -76,7 +76,6 @@ Then within every page that uses translations, derive `t` as follows:
 
 ```typescript
 import { useLanguage, translations } from '@sanny/i18n';
-import { SharedSetupProbe } from '@sanny/ui';
 
 export default function Sample() {
   const { language } = useLanguage();
@@ -84,7 +83,6 @@ export default function Sample() {
   return (
     <div className="content">
       {t.main.sample}
-      <SharedSetupProbe />
     </div>
   );
 }
@@ -129,11 +127,11 @@ The dynamic naming could be implemented like this:
 ```typescript
 <Button
   className="switch-language-button"
-  aria-label={t.shared.setupProbe.descriptionSwitchLanguageButton(nextLanguage)}
+  aria-label={t.shared.settings.descriptionSwitchLanguageButton(nextLanguage)}
   variant="primary" // this makes it different from regular buttons.
   onClick={() => setLanguage(nextLanguage)}
 > // Button is a shared UI component from @sanny/ui available to all frontend projects.
-{t.shared.setupProbe.switchLanguageButton(nextLanguage)}
+{t.shared.settings.switchLanguageButton(nextLanguage)}
 </Button>
 ```
 

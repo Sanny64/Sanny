@@ -1,3 +1,9 @@
+export function getHstsPolicy(environment = process.env.NODE_ENV) {
+  return environment === "production"
+    ? { maxAge: 31536000, includeSubDomains: true }
+    : false;
+}
+
 export function applySecurityHeaders(
   request: { url?: string; method?: string },
   reply: { header: (name: string, value: string) => unknown },

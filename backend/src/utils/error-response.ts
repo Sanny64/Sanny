@@ -12,6 +12,15 @@ export function getErrorPageRedirectUrl(
   return url.toString();
 }
 
+export function getHtmlErrorRedirectUrl(
+  request: { headers: { accept?: string | string[] | undefined } },
+  status: number,
+  frontendUrl: string,
+): string | null {
+  if (status < 400 || !acceptsHtmlNavigation(request)) return null;
+  return getErrorPageRedirectUrl(frontendUrl, status);
+}
+
 export function acceptsHtmlNavigation(request: {
   headers: { accept?: string | string[] | undefined };
 }): boolean {

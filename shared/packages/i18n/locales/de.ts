@@ -45,8 +45,9 @@ export const de: Translations = {
       "Bitte verifiziere deine E-Mail-Adresse, bevor du dich anmeldest.",
   },
   shared: {
-    setupProbe: {
-      title: "Einrichtungsüberprüfung",
+    settings: {
+      title: "Einstellungen",
+      appearanceTitle: "Darstellung",
       theme: "Darstellung",
       language: "Sprache",
       toggleThemeButton: (theme: string): string =>
@@ -59,9 +60,6 @@ export const de: Translations = {
         nextLanguage === "en" ? "Englisch" : "Deutsch",
       descriptionSwitchLanguageButton: (nextLanguage: string): string =>
         nextLanguage === "en" ? "Wechselt zu Englisch" : "Wechselt zu Deutsch",
-    },
-    settings: {
-      title: "Einstellungen",
       accountTitle: "Dein Konto",
       adminTitle: "Admin-Benutzer",
       username: "Benutzername",
