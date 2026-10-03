@@ -1,0 +1,256 @@
+# Localhost-Testkonfiguration für Account Linking
+
+Dieses Dokument fasst die Konfigurationsänderungen zusammen, die lokale Entwicklung und Tests der Account-Verknüpfung über Localhost ermöglichen.
+
+## Vorgenommene Änderungen
+
+### 1. Umgebungsvariablen des Frontends
+
+#### Login-App (`login/.env.local`)
+
+Die Kommentare wurden präzisiert und `VITE_LOGIN_URL` zur Vereinheitlichung ergänzt:
+
+```env
+VITE_AUTH0_DOMAIN="YOUR_AUTH0_TENANT_DOMAIN"
+VITE_AUTH0_CLIENT_ID="your auth0 client id"
+VITE_AUTH0_AUDIENCE="https://api.example.com"
+VITE_API_URL="https://localhost:8443"
+VITE_LOGIN_URL="https://localhost:5174"
+```
+
+#### Haupt-App (`sanny/.env.local`)
+
+Die Kommentare wurden präzisiert und `VITE_LOGIN_URL` ergänzt:
+
+```env
+VITE_AUTH0_DOMAIN="YOUR_AUTH0_TENANT_DOMAIN"
+VITE_AUTH0_CLIENT_ID="your auth0 client id"
+VITE_AUTH0_AUDIENCE="https://api.example.com"
+VITE_API_URL="https://localhost:8443"
+VITE_LOGIN_URL="https://localhost:5174"
+```
+
+### 2. Backend-Konfiguration
+
+#### Backend-Umgebung (`backend/.env`)
+
+Die Frontend-URL des Backends und die Callback-URL der Auth0-Action sind separate Einstellungen:
+
+```env
+DEV_ACCOUNT_LINK_FRONTEND_URL="https://localhost:5174/confirm-linking"
+```
+
+**Hinweis:** Die bestehende Konfiguration unterstützte Localhost bereits für:
+
+- `DEV_AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"`
+- `DEV_AUTH0_SUCCESS_REDIRECT="https://localhost:5173/"`
+- `DEV_AUTH0_LOGOUT_REDIRECT="https://localhost:5173/"`
+- `DEV_CORS_ORIGINS` enthält beide Localhost-Frontends.
+- Das Auth0-Action-Secret `DEV_ACCOUNT_LINK_CONFIRMATION_URL` verweist auf den Bestätigungs-Endpunkt für die Account-Verknüpfung im Backend.
+
+### 3. Änderungen am Frontend-Code
+
+#### AccountLinkingPage.tsx
+
+- Die Funktion `getCallbackUrl()` wurde hinzugefügt, um HTTP oder HTTPS abhängig von der Umgebung zu bestimmen.
+- Entwicklung: verwendet `https://localhost:8443/api/v001/auth/callback`.
+- Produktion: verwendet das `https://`-URL-Format.
+- `handleConfirm()` wurde so angepasst, dass die neue Callback-URL-Funktion verwendet wird.
+
+Dadurch funktioniert die Komponente sowohl in der Entwicklungs- als auch in der Produktionsumgebung, ohne URLs fest einzucodieren.
+
+## Architekturübersicht
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Auth0-Tenant                          │
+│                   (YOUR_AUTH0_TENANT_DOMAIN)                  │
+├─────────────────────────────────────────────────────────────┤
+│  Post-Login-Actions:                                          │
+│  • linkAccount.js (erkennt Accounts und leitet zur Verknüpfung)│
+│  • roleClaims.js (setzt den email_verified-Claim)             │
+│  • verifyEmail.js (markiert die E-Mail als verifiziert)       │
+└─────────────────────────────────────────────────────────────┘
+              ↓                          ↑
+              │                          │
+        [OAuth-Code]             [/continue-Weiterleitung]
+              │                          │
+    ┌─────────▼──────────┐  ┌───────────┴─────────┐
+    │ Backend-API        │  │ Login-Frontend     │
+    │ (localhost:3000)   │  │ (localhost:5174)   │
+    │                    │  │                    │
+    │ • /auth/callback   │  │ • AccountLinking   │
+    │ • /account-linking │  │   Page             │
+    │ • /user-Endpunkte  │  │ • Re-Auth-Popup    │
+    └────────┬───────────┘  └───────────┬─────────┘
+             │                          │
+             └──────────────┬───────────┘
+                            │
+                   ┌────────▼────────┐
+                   │ Haupt-Frontend  │
+                   │ (localhost:5173)│
+                   │                 │
+                   │ • User-Dashboard│
+                   │ • Profilseite   │
+                   └─────────────────┘
+
+Lokaler Entwicklungsablauf:
+1. Der Benutzer meldet sich unter localhost:5174 an.
+2. Bei doppelter E-Mail-Adresse leitet Auth0 zur AccountLinkingPage weiter.
+3. Der Benutzer bestätigt die Verknüpfung und authentifiziert sich beim sekundären Anbieter.
+4. Das Backend führt die Accounts zusammen und gibt Tokens mit email_verified-Claim zurück.
+5. Die Weiterleitung führt zur Haupt-App (localhost:5173).
+```
+
+## Struktur der Umgebungsdateien
+
+### Entwicklungsumgebung
+
+```
+Frontend (localhost:5173)
+├── VITE_API_URL = "https://localhost:8443"
+└── VITE_LOGIN_URL = "https://localhost:5174"
+
+Login (localhost:5174)
+├── VITE_API_URL = "https://localhost:8443"
+└── VITE_LOGIN_URL = "https://localhost:5174"
+
+Backend (localhost:3000)
+├── DEV_AUTH0_CALLBACK_URL = "https://localhost:8443/api/v001/auth/callback"
+├── DEV_AUTH0_SUCCESS_REDIRECT = "https://localhost:5173/"
+├── DEV_ACCOUNT_LINK_FRONTEND_URL = "https://localhost:5174/confirm-linking"
+└── DEV_CORS_ORIGINS = "https://localhost:5173,https://localhost:5174"
+```
+
+### Produktionsumgebung (zukünftig)
+
+```
+Frontend (app.example.com)
+├── VITE_API_URL = "https://api.example.com"
+└── VITE_LOGIN_URL = "https://login.example.com"
+
+Login (login.example.com)
+├── VITE_API_URL = "https://api.example.com"
+└── VITE_LOGIN_URL = "https://login.example.com"
+
+Backend (api.example.com)
+├── PROD_AUTH0_CALLBACK_URL = "https://api.example.com/api/v001/auth/callback"
+├── PROD_AUTH0_SUCCESS_REDIRECT = "https://app.example.com/"
+├── PROD_ACCOUNT_LINK_FRONTEND_URL = "https://login.example.com/confirm-linking"
+└── PROD_CORS_ORIGINS = "https://app.example.com,https://login.example.com"
+```
+
+## Erforderliche Auth0-Konfiguration
+
+Damit Tests über Localhost funktionieren, muss die Auth0-Anwendung wie folgt konfiguriert sein:
+
+### Allowed Callback URLs
+
+```
+https://localhost:8443/api/v001/auth/callback,
+https://localhost:5174/,
+https://localhost:5173/
+```
+
+### Allowed Logout URLs
+
+```
+https://localhost:5173/,
+https://localhost:5174/
+```
+
+### Cross-Origin Authentication (CORS)
+
+```
+https://localhost:5173
+https://localhost:5174
+```
+
+## Manuelle Testsuite
+
+Prüfe vor einem Produktions-Deployment jeden der folgenden Bereiche mit einem lokalen Auth0-Tenant sowie laufendem Backend und Frontend.
+
+### Account-Verknüpfung
+
+- [x] Die E-Mail-Verifizierung funktioniert bei der Registrierung (`emailVerified=true` in Datenbank und Auth0).
+- [x] Die Seite zur Account-Verknüpfung erscheint bei doppelten E-Mail-Adressen.
+- [x] Das Popup für die sekundäre Authentifizierung öffnet sich und wird erfolgreich abgeschlossen.
+- [x] Die Accounts werden in der Datenbank korrekt zusammengeführt (ein Datensatz mit beiden Identitäten).
+- [x] Accounts mit fehlgeschlagenem Verknüpfungsversuch werden nach 10 Minuten aus Auth0 gelöscht (sie werden nicht in die Datenbank geschrieben).
+- [x] Nachdem ein Google-Benutzer im Auth0-Dashboard gelöscht wurde, wird er nach 60 Minuten auch aus der Datenbank entfernt.
+- [x] Der `email_verified`-Claim erscheint nach der Verknüpfung in den Tokens.
+- [x] Benutzer können sich mit beiden verknüpften Zugangsdaten anmelden.
+
+### Anmeldung, Sitzung und CSRF
+
+- [x] Die Anmeldung wird über Auth0 weitergeleitet und der Callback mit PKCE abgeschlossen.
+- [x] `GET /api/v001/auth/me` liefert nach der Anmeldung die authentifizierte Identität.
+- [x] `GET /api/v001/users/me` liefert nach der Anmeldung das lokale Profil (E-Mail/Benutzername).
+- [x] Der Refresh-Ablauf rotiert Sitzung und Refresh-Token, ohne den Benutzer abzumelden.
+- [x] Der Logout löscht Sitzungs-Cookies und die Auth0-Sitzung.
+- [x] Anfragen ohne gültiges CSRF-Token werden bei schreibenden Endpunkten abgelehnt.
+- [x] Sensible Endpunkte (z. B. Profiländerungen) erfordern eine kürzlich erfolgte Authentifizierung und lehnen veraltete Sitzungen ab.
+- [x] In der Browserkonsole erscheinen keine CORS-Fehler.
+
+### Benutzerprofil und Löschung
+
+- [x] `POST /api/v001/users/me` erstellt nach der ersten Anmeldung den lokalen Profileintrag.
+- [x] `PATCH /api/v001/users/me` aktualisiert den Benutzernamen in der Datenbank und im Auth0-Userstore.
+- [x] Die Selbstlöschung (`DELETE /api/v001/users/me`) entfernt den lokalen Eintrag und ist idempotent, wenn er bereits fehlt.
+- [x] Die administrative Löschung eines anderen Benutzers (Eintrag `auth0|...`) entfernt den lokalen Eintrag und ist idempotent, wenn er bereits fehlt.
+- [ ] Aktualisierungen der Admin-Rolle übernehmen die Rollen für Auth0-Benutzer.
+- [ ] Ein administratives `PATCH` des Benutzernamens funktioniert.
+- [x] Das Löschen eines Benutzers mit `google-oauth2|...` im Auth0-Dashboard ruft `delete.js` **nicht** auf. Prüfe stattdessen, ob der lokale Eintrag durch den stündlichen Job `orphaned-social-user-cleanup` entfernt wird (oder starte lokal manuell `cleanUpOrphanedSocialUsers()`).
+- [ ] Die Pagination der Admin-Benutzerliste liefert eine stabile Sortierung und begrenzt ungültige Seiten- und Limit-Werte.
+
+### Benutzerdefinierte Auth0-Datenbankskripte
+
+- [x] `login.js` akzeptiert korrekte Zugangsdaten und weist ein falsches Passwort oder eine unbekannte E-Mail-Adresse zurück.
+- [x] `create.js` weist doppelte E-Mail- oder Google-Registrierungen mit den dokumentierten Validierungsfehlern zurück.
+- [ ] `verify.js` und `changePassword.js` erfüllen den dokumentierten Callback-Vertrag.
+- [x] `getUser.js` gibt für eine vorhandene E-Mail-Adresse ein Profil und ansonsten `callback(null)` zurück.
+
+### Sicherheit und Rate-Limits
+
+- [ ] Auth-Routen (`/api/v001/auth/*`) werden nach Erreichen des konfigurierten Grenzwerts begrenzt.
+- [ ] OTP- und Verifizierungs-E-Mails können nicht durch Bots übermäßig oft angefordert werden.
+- [ ] Sensible Änderungen an Benutzerdaten werden unabhängig von Auth-Routen begrenzt.
+- [ ] Die Rollensynchronisierung bleibt deaktiviert, sofern `AUTH0_ROLE_SYNC_ENABLED` nicht auf `true` gesetzt ist, und weist nur konfigurierte Rollen zu.
+- [ ] Sicherheitslogs (`logSecurityEvent`) enthalten niemals Tokens, Cookies oder Passwörter.
+
+### Qualitätsprüfungen
+
+- [x] Backend-Logs zeigen eine erfolgreiche Account-Zusammenführung.
+- [x] Alle Backend-Tests bestehen (`npm run test` im Verzeichnis `backend/`).
+- [x] ESLint läuft ohne Fehler.
+- [x] Die TypeScript-Typprüfung läuft ohne Fehler.
+- [x] Prettier meldet keine Formatierungsprobleme.
+
+## Dokumentation
+
+Weitere Informationen zu Einrichtung und Fehlerbehebung:
+
+- [Schnellstart: Account-Verknüpfung lokal testen](./quickstart_local_testing.mdx) – Schritt-für-Schritt-Anleitung
+- [Lokale Einrichtung der Account-Verknüpfung](./account-linking-local-setup.mdx) – Architektur und Fehlerbehebung
+
+## Geänderte Dateien
+
+1. **login/.env.local** – `VITE_LOGIN_URL` ergänzt und Kommentare aktualisiert
+2. **sanny/.env.local** – `VITE_LOGIN_URL` ergänzt und Kommentare aktualisiert
+3. **backend/.env** – `ACCOUNT_LINK_CONFIRMATION_URL` auf Localhost aktualisiert
+4. **login/src/pages/accountLinkingPage/AccountLinkingPage.tsx** – Funktion `getCallbackUrl()` hinzugefügt
+
+## Keine Breaking Changes
+
+Alle Änderungen sind abwärtskompatibel:
+
+- Bestehende Standardwerte der Umgebungsvariablen bleiben unverändert.
+- Das Verhalten in der Produktion ist nicht betroffen.
+- Alle 20 Backend-Tests bestehen weiterhin.
+- ESLint- und TypeScript-Prüfungen laufen erfolgreich.
+
+## Nächste Schritte
+
+1. **Tests**: Folge der [Schnellstart-Anleitung zum lokalen Testen der Account-Verknüpfung](./quickstart_local_testing.mdx).
+2. **Produktion**: Aktualisiere die Umgebungsdateien mit den Produktions-Domainnamen.
+3. **Deployment**: Konfiguriere vor dem Livegang die Auth0-Callback-URLs für die Produktion.

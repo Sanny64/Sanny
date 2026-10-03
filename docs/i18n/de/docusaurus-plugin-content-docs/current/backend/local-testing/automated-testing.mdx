@@ -1,0 +1,22 @@
+---
+title: Automatisierte Tests
+description: Die gemockten und Live-Playwright-End-to-End-Tests lokal ausführen.
+---
+
+## Playwright-Test-Suites
+
+Führe diese Befehle im Repository-Stammverzeichnis aus:
+
+| Befehl                         | Zweck                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `npm run test:e2e:mocked`      | Führt End-to-End-Tests mit gemockten externen Diensten aus.                   |
+| `npm run test:e2e:real`        | Führt die Live-Auth0-End-to-End-Tests in einem Headless-Browser aus.          |
+| `npm run test:e2e:real:headed` | Führt die Live-Auth0-End-to-End-Tests in einem sichtbaren Browserfenster aus. |
+
+Die Live-Suite verwendet dedizierte Testkonten. Stelle `TESTUSER_EMAIL`, `TESTUSER_PASSWORD`, `TESTGOOGLEUSER_EMAIL` und `TESTGOOGLEUSER_PASSWORD` über eine lokale Umgebungskonfiguration bereit. Committe niemals echte Zugangsdaten und verwende keine persönlichen Konten für automatisierte Tests.
+
+## Einschränkung bei der Google-Anmeldung
+
+Google kann Anmeldungen blockieren, wenn erkannt wird, dass ein Browser durch Software-Automatisierung gesteuert wird. Das kann auch bei sichtbarem Edge passieren: Das Fenster ist zwar sichtbar, aber Playwright steuert den Browser weiterhin. Google kann dann „Dieser Browser oder diese App ist möglicherweise nicht sicher“ anzeigen und den Live-Social-Login verhindern. Diese Einschränkung liegt beim Anbieter und weist für sich genommen nicht auf einen Fehler der Anwendung hin.
+
+Für regelmäßige automatisierte Prüfungen ist die gemockte Suite vorzuziehen. Prüfe den Live-Google-Ablauf bei Bedarf manuell in einem unterstützten Browser. Siehe Googles [Hinweise zur Anmeldung mit unterstützten Browsern](https://support.google.com/accounts/answer/7675428?hl=de) und Playwrights Empfehlung, [Drittanbieter-Abhängigkeiten nicht zu testen](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).

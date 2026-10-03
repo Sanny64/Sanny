@@ -80,9 +80,9 @@ export async function getSessionSubject(sessionId: string) {
 
 export async function initializeSessionStore() {
   if (redis) return;
-  const redisUrl = `rediss://:${requiredEnv("REDIS_PASSWORD")}@redis:6379`;
   const client = createClient({
-    url: redisUrl,
+    url: "rediss://redis:6379",
+    password: requiredEnv("REDIS_PASSWORD"),
     socket: {
       tls: true,
       ca: readFileSync("/app/redis-ca.crt"),

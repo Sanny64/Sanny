@@ -49,7 +49,7 @@ For quality checks:
 - npm run test
 - npm run type-check
 
-That will open http://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
+That will open https://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 
 ### Directory Structure
 

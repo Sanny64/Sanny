@@ -1,0 +1,22 @@
+---
+title: Automated Testing
+description: Run the mocked and live Playwright end-to-end suites locally.
+---
+
+## Playwright suites
+
+Run these commands from the repository root:
+
+| Command                        | Purpose                                                          |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `npm run test:e2e:mocked`      | Run the end-to-end tests that use mocked external services.      |
+| `npm run test:e2e:real`        | Run the live Auth0 end-to-end tests in a headless browser.       |
+| `npm run test:e2e:real:headed` | Run the live Auth0 end-to-end tests in a visible browser window. |
+
+The live suite uses dedicated test accounts. Provide `TESTUSER_EMAIL`, `TESTUSER_PASSWORD`, `TESTGOOGLEUSER_EMAIL`, and `TESTGOOGLEUSER_PASSWORD` through local environment configuration. Never commit real credentials or use personal accounts for automated tests.
+
+## Google sign-in limitation
+
+Google may block sign-in when it detects that a browser is controlled by software automation. This can happen in headed Edge too: the window is visible, but Playwright still controls the browser. Google may show “This browser or app may not be secure,” and the live social sign-in flow may not complete. This is a provider-side restriction and does not by itself indicate an application regression.
+
+For routine automated checks, prefer the mocked suite. Validate the live Google flow manually in a supported browser when needed. See Google's [supported-browser sign-in guidance](https://support.google.com/accounts/answer/7675428?hl=en) and Playwright's recommendation to [avoid testing third-party dependencies](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).

@@ -42,17 +42,17 @@ DATABASE_URL=mysql://<user>:<password>@<private-host>:3306/<database>
 REDIS_PASSWORD=replace-with-a-random-local-secret
 
 DEV_AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
-DEV_AUTH0_SUCCESS_REDIRECT=http://localhost:5173/
-DEV_AUTH0_LOGOUT_REDIRECT=http://localhost:5173/
-DEV_ACCOUNT_LINK_FRONTEND_URL=http://localhost:5174/confirm-linking
-DEV_CORS_ORIGINS=http://localhost:5173,http://localhost:5174
+DEV_AUTH0_SUCCESS_REDIRECT=https://localhost:5173/
+DEV_AUTH0_LOGOUT_REDIRECT=https://localhost:5173/
+DEV_ACCOUNT_LINK_FRONTEND_URL=https://localhost:5174/confirm-linking
+DEV_CORS_ORIGINS=https://localhost:5173,https://localhost:5174
 DEV_TRUST_PROXY=false
 AUTH0_ROLE_SYNC_ENABLED=false
 ```
 
 Die Beispiele `tenant.example.invalid` und `api.example.com` sind reserviert und müssen durch Werte einer isolierten Testumgebung ersetzt werden. Richte Auth0-Callbacks, Logout-URLs, Web Origins, Database Actions und Management-API-Berechtigungen gemäß [Auth0-Tenant-Vertrag](./auth0-tenant-contract.mdx) ein.
 
-Die lokalen Frontends verwenden `http://localhost:5173` und `http://localhost:5174`; die Backend-API läuft über `https://localhost:8443`. Starte das Backend aus dem Repository-Stammverzeichnis mit `npm run start:backend`. Die Frontends können jeweils mit `npm run dev` in ihren Verzeichnissen gestartet werden.
+Die lokalen Frontends verwenden `https://localhost:5173` und `https://localhost:5174`; die Backend-API läuft über `https://localhost:8443`. Starte das Backend aus dem Repository-Stammverzeichnis mit `npm run start:backend`. Die Frontends können jeweils mit `npm run dev` in ihren Verzeichnissen gestartet werden.
 
 ## Produktionskonfiguration
 

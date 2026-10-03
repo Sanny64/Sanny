@@ -1,0 +1,182 @@
+# Lokale Einrichtung der Account-Verknüpfung
+
+Diese Anleitung beschreibt, wie du den Ablauf zur Account-Verknüpfung lokal mit Localhost-URLs testest.
+
+## Architekturübersicht
+
+### Entwicklungsumgebung
+
+- **Login-Frontend**: https://localhost:5174 (Authentifizierungsoberfläche)
+- **Haupt-Frontend**: https://localhost:5173 (Anwendung)
+- **Backend**: https://localhost:8443 (API-Server)
+
+### Produktionsumgebung
+
+- **Login-Frontend**: https://login.example.com
+- **Haupt-Frontend**: https://app.example.com
+- **Backend**: https://api.example.com
+
+## Auth0-Konfiguration für lokale Tests
+
+### Schritt 1: Callback-URLs im Auth0-Dashboard registrieren
+
+Damit lokale Tests funktionieren, muss deine Auth0-Anwendung Localhost-Redirect-URLs akzeptieren:
+
+1. Öffne **Auth0 Dashboard** → **Applications** → deine Anwendung.
+2. Trage unter **Application URIs** Folgendes ein:
+   - **Allowed Callback URLs**:
+     ```
+     https://localhost:8443/api/v001/auth/callback,
+     https://localhost:5174/,
+     https://localhost:5173/
+     ```
+   - **Allowed Logout URLs**:
+     ```
+     https://localhost:5173/,
+     https://localhost:5174/
+     ```
+3. Ergänze unter **Cross-Origin Authentication (CORS)**:
+   - `https://localhost:5173` und `https://localhost:5174`
+
+### Schritt 2: Umgebungsvariablen prüfen
+
+#### Backend (`backend/.env`)
+
+Für die Entwicklung sind bereits Standardwerte vorhanden. Prüfe sie oder setze sie:
+
+```
+DEV_AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
+DEV_AUTH0_SUCCESS_REDIRECT=https://localhost:5173/
+DEV_AUTH0_LOGOUT_REDIRECT=https://localhost:5173/
+DEV_ACCOUNT_LINK_FRONTEND_URL=https://localhost:5174/confirm-linking
+DEV_CORS_ORIGINS=https://localhost:5173,https://localhost:5174
+```
+
+#### Login-Frontend (`login/.env.local`)
+
+Die Datei ist bereits für Localhost eingerichtet. Für lokale Tests:
+
+```
+VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
+VITE_AUTH0_CLIENT_ID=<your-client-id>
+VITE_AUTH0_AUDIENCE=https://api.example.com
+VITE_API_URL=https://localhost:8443
+```
+
+#### Haupt-Frontend (`sanny/.env.local`)
+
+Erstelle die Datei oder passe sie entsprechend an:
+
+```
+VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
+VITE_AUTH0_CLIENT_ID=<your-client-id>
+VITE_AUTH0_AUDIENCE=https://api.example.com
+VITE_API_URL=https://localhost:8443
+VITE_LOGIN_URL=https://localhost:5174
+```
+
+## Account-Verknüpfung lokal ausführen
+
+### Schritt 1: Alle Dienste starten
+
+```bash
+# Terminal 1: Backend (im Repository-Stammverzeichnis)
+npm run start:backend
+
+# Terminal 2: Login-Frontend
+cd login
+npm run dev
+
+# Terminal 3: Haupt-Frontend
+cd sanny
+npm run dev
+```
+
+### Schritt 2: Ablauf testen
+
+1. **Primären Account erstellen**:
+   - Öffne https://localhost:5174.
+   - Erstelle einen Account mit der E-Mail-Adresse `test+primary@example.com` und einem Passwort.
+   - Prüfe, ob die Registrierung erfolgreich ist und eine Weiterleitung erfolgt.
+
+2. **Account-Verknüpfung auslösen**:
+   - Öffne https://localhost:5174.
+   - Melde dich mit dem primären Account an und anschließend wieder ab.
+   - Klicke auf der Login-Seite auf **„Continue with Google“** (oder einen anderen OAuth-Anbieter) und verwende dieselbe E-Mail-Adresse.
+   - Die Bestätigungsseite für die Account-Verknüpfung sollte erscheinen.
+
+3. **Verknüpfung bestätigen**:
+   - Der Ablauf besteht aus zwei Schritten:
+     - Schritt 1: Accounts prüfen, die verknüpft werden.
+     - Schritt 2: Beim sekundären Anbieter erneut authentifizieren.
+   - Schließe die sekundäre Authentifizierung im Popup-Fenster ab.
+   - Die Accounts sollten verknüpft und du zurückgeleitet werden.
+
+4. **Ergebnis prüfen**:
+   - Prüfe in der Datenbank, ob die Accounts zusammengeführt wurden.
+   - Prüfe, ob der `email_verified`-Claim im Access-Token enthalten ist.
+   - Bestätige, dass du dich mit beiden Zugangsdaten anmelden kannst.
+
+## Fehlerbehebung
+
+### Fehler „Invalid redirect_uri“
+
+- Prüfe, ob die Localhost-Callback-URLs im Auth0-Dashboard registriert sind.
+- Prüfe, ob `VITE_API_URL` in den Frontend-`.env`-Dateien korrekt ist.
+- Prüfe, ob die Backend-Einstellung `AUTH0_CALLBACK_URL` mit der registrierten URL übereinstimmt.
+
+### Die Seite zur Account-Verknüpfung wird nicht angezeigt
+
+- Prüfe, ob die E-Mail-Adresse des sekundären Accounts mit der des primären Accounts übereinstimmt.
+- Prüfe, ob die Auth0-Post-Login-Action aktiviert ist und die Erkennungslogik korrekt konfiguriert wurde.
+- Prüfe, ob das Backend läuft und `/api/v001/auth/callback` erreichbar ist.
+
+### Der Claim `email_verified` fehlt
+
+- Stelle sicher, dass die Actions `linkAccount.js` und `roleClaims.js` in Auth0 bereitgestellt sind.
+- Prüfe, ob der Namespace des E-Mail-Verifizierungs-Claims mit der Auth0-Action und der API-Konfiguration übereinstimmt. Übernimm keine Produktions-Namespaces aus der Dokumentation.
+- Falls du Claims prüfen musst, verwende einen freigegebenen lokalen Decoder mit einem nicht produktiven Test-Token. Füge aktive Tokens niemals in einen Online-Decoder ein.
+
+### CORS-Fehler
+
+- Prüfe, ob `CORS_ORIGINS` in der Backend-Konfiguration beide Localhost-Frontends enthält.
+- Prüfe, ob das Backend vor den Frontends gestartet wurde.
+- Stelle sicher, dass der Ursprung in der Browserkonsole mit der konfigurierten CORS-Origin übereinstimmt.
+
+## Wechsel zur Produktion
+
+Wenn du bereit für die Bereitstellung bist:
+
+1. **Auth0-Konfiguration aktualisieren**:
+   - Ersetze die Localhost-URLs durch Produktions-Domains.
+   - Setze **Allowed Callback URLs** auf:
+     ```
+     https://api.example.com/api/v001/auth/callback,
+     https://login.example.com/,
+     https://app.example.com/
+     ```
+   - Passe CORS für die Produktions-Domains an.
+
+2. **Umgebungsvariablen aktualisieren**:
+   - Backend: Setze HTTPS-Werte für `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT` und `PROD_AUTH0_LOGOUT_REDIRECT`.
+   - Login-Frontend: Aktualisiere `VITE_AUTH0_DOMAIN`, falls du einen Produktions-Tenant verwendest.
+   - Haupt-Frontend: Setze `VITE_LOGIN_URL` auf den HTTPS-Ursprung des bereitgestellten Login-Frontends.
+
+3. **Datenbank bereitstellen**:
+   - Prüfe vor dem Deployment das Prisma-Schema und das freigegebene Migrationsverfahren der Datenbank.
+   - Stelle sicher, dass die Custom-Database-Connection-Skripte im vorgesehenen Auth0-Tenant aktiv sind.
+
+## Wichtige Test-URLs
+
+| Komponente     | Dev-URL                                       | Produktions-URL                                |
+| -------------- | --------------------------------------------- | ---------------------------------------------- |
+| Login          | https://localhost:5174                         | https://login.example.com                      |
+| Hauptanwendung | https://localhost:5173                         | https://app.example.com                        |
+| Backend        | https://localhost:8443                        | https://api.example.com                        |
+| Auth0-Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |
+
+## Referenzdokumentation
+
+- [Auth0 Account Linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking)
+- [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
+- [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)

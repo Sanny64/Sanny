@@ -1,0 +1,200 @@
+# Schnellstart: Account-Verknüpfung lokal testen
+
+Diese Anleitung führt dich Schritt für Schritt durch das Testen der Account-Verknüpfung auf deinem lokalen Rechner.
+
+## Voraussetzungen
+
+1. **Backend**: Node.js 18+ mit npm
+2. **Datenbanken**: Redis unter `localhost:6379` und MySQL unter `localhost:3306`
+3. **Auth0-Konfiguration**: Ein isolierter Entwicklungs-Tenant und eine Anwendung, konfiguriert gemäß dem Auth0-Tenant-Vertrag in der Backend-Dokumentation.
+
+## 1. Auth0-Anwendung konfigurieren
+
+Registriere vor dem Start der lokalen Dienste die Callback-URLs in Auth0:
+
+### Im Auth0-Dashboard
+
+1. Öffne **Applications** und wähle die Entwicklungsanwendung für deine Testumgebung aus.
+2. Öffne den Tab **Settings**.
+3. Scrolle zum Abschnitt **Application URIs**.
+4. Ergänze unter **Allowed Callback URLs**:
+   ```
+   https://localhost:8443/api/v001/auth/callback,
+   https://localhost:5174/,
+   https://localhost:5173/
+   ```
+5. Ergänze unter **Allowed Logout URLs**:
+   ```
+   https://localhost:5173/,
+   https://localhost:5174/
+   ```
+6. Ergänze unter **Cross-Origin Authentication (CORS)**:
+   - `https://localhost:5173`
+   - `https://localhost:5174`
+7. **Speichere die Änderungen.**
+
+## 2. Dienste starten
+
+Öffne drei Terminalfenster und führe die folgenden Befehle aus:
+
+### Terminal 1: Backend-API (Port 3000)
+
+```bash
+# Im Repository-Stammverzeichnis ausführen
+npm run start:backend
+```
+
+Erwartete Ausgabe: Der Server startet unter `https://localhost:8443`.
+
+### Terminal 2: Login-Frontend (Port 5174)
+
+```bash
+cd login
+npm install  # falls erforderlich
+npm run dev
+```
+
+Erwartete Ausgabe: Die App ist unter `https://localhost:5174` verfügbar.
+
+### Terminal 3: Haupt-Frontend (Port 5173)
+
+```bash
+cd sanny
+npm install  # falls erforderlich
+npm run dev
+```
+
+Erwartete Ausgabe: Die App ist unter `https://localhost:5173` verfügbar.
+
+## 3. Ablauf der Account-Verknüpfung testen
+
+### Schritt 1: Primären Account erstellen (E-Mail und Passwort)
+
+1. Öffne https://localhost:5174 in deinem Browser.
+2. Registriere dich mit:
+   - E-Mail-Adresse: `test+primary@example.com`
+   - Passwort: Verwende ein einmaliges Testpasswort aus deinem Passwort-Manager.
+   - Benutzername: `test_primary`
+3. Du solltest angemeldet und weitergeleitet werden.
+
+### Schritt 2: Account-Verknüpfung auslösen
+
+1. Klicke auf **Logout**, um den primären Account abzumelden.
+2. Suche auf der Login-Seite nach **„Continue with Google“** oder einem anderen OAuth-Anbieter.
+3. Melde dich bei diesem Anbieter mit derselben E-Mail-Adresse (`test+primary@example.com`) an.
+4. Auth0 erkennt die doppelte E-Mail-Adresse und leitet zur Seite für die Account-Verknüpfung weiter.
+
+### Schritt 3: Account-Verknüpfung bestätigen
+
+Die Seite `AccountLinkingPage` unter `https://localhost:5174/` sollte Folgendes anzeigen:
+
+- Details des primären Accounts
+- Details des sekundären Accounts
+- Eine Schaltfläche **„Confirm Linking“**
+
+1. Klicke auf **„Confirm Linking“**.
+2. Ein Popup fordert dich auf, dich beim sekundären Anbieter (Google) zu authentifizieren.
+3. Schließe die Authentifizierung ab.
+4. Nach erfolgreicher Authentifizierung wird das Popup geschlossen.
+5. Die Accounts werden zusammengeführt und du wirst zur Haupt-App weitergeleitet.
+
+### Schritt 4: Erfolgreiche Verknüpfung prüfen
+
+1. Du solltest nun in der Haupt-App angemeldet sein (https://localhost:5173).
+2. Prüfe das Ergebnis der Account-Verknüpfung über die normale Profilansicht der Anwendung und die isolierte Testdatenbank.
+3. Verwende zum Prüfen von Claims bei Bedarf einen freigegebenen lokalen Decoder mit einem nicht produktiven Test-Token. Füge aktive Access-, ID- oder Refresh-Tokens, Cookies oder Autorisierungscodes niemals in Online-Tools, Browserkonsolen, Tickets oder Chats ein.
+
+## 4. Datenbank prüfen
+
+Verwende einen freigegebenen, schreibgeschützten Datenbank-Client und wähle nur nicht geheime Felder aus:
+
+```sql
+-- In einer isolierten Testdatenbank; die Spalte password nicht abfragen.
+SELECT id, email, auth0Sub, emailVerified FROM User WHERE email = 'test+primary@example.com';
+-- Nach erfolgreicher Verknüpfung sollte ein lokaler Datensatz vorhanden sein.
+```
+
+## Fehlerbehebung
+
+### Fehler „Invalid redirect_uri“
+
+- **Ursache**: Die Callback-URL ist nicht im Auth0-Dashboard registriert.
+- **Lösung**: Prüfe erneut **Auth0 Application Settings** → **Allowed Callback URLs**.
+- **Prüfung**: `https://localhost:8443/api/v001/auth/callback` ist eingetragen.
+
+### Die Seite zur Account-Verknüpfung wird nicht angezeigt
+
+- **Ursache**: Die E-Mail-Adresse des sekundären Accounts stimmt nicht mit der des primären Accounts überein.
+- **Lösung**: Stelle sicher, dass beide Accounts exakt dieselbe E-Mail-Adresse verwenden.
+- **Debugging**: Prüfe die Backend-Logs auf Meldungen zu abweichenden E-Mail-Adressen.
+
+### Popup-Fenster wird blockiert
+
+- **Ursache**: Der Browser blockiert Popups.
+- **Lösung**: Erlaube Popups für `localhost:5174` in den Browsereinstellungen.
+- **Prüfung**: Suche in der Adressleiste nach einem Hinweis auf ein blockiertes Popup.
+
+### „CORS Error“ in der Konsole
+
+- **Ursache**: Der Ursprung fehlt in `DEV_CORS_ORIGINS` in `backend/.env`.
+- **Lösung**: Prüfe, ob `DEV_CORS_ORIGINS` sowohl `https://localhost:5174` als auch `https://localhost:5173` enthält.
+- **Hinweis**: Nach Änderungen an `.env` muss das Backend neu gestartet werden.
+
+### „Redis Connection Error“
+
+- **Ursache**: Der Redis-Container des Backends ist nicht verfügbar oder seine TLS-/Passwortkonfiguration stimmt nicht überein.
+- **Lösung**: Starte den Docker-Compose-Stack des Backends und prüfe die bereinigten Container-Statusmeldungen und Logs. Verwende kein nicht konfiguriertes öffentliches Redis-Image als Ersatz.
+
+### Datenbankverbindungsfehler
+
+- **Ursache**: MySQL läuft nicht oder die Zugangsdaten sind falsch.
+- **Lösung**: Prüfe, ob MySQL läuft und `DATABASE_URL` in `backend/.env` korrekt ist.
+- **Prüfung**: Aktiviere bei Bedarf `DATABASE_URL` für die Entwicklungsumgebung in `backend/.env`.
+
+## Übersicht der Umgebungsdateien
+
+### Backend (`backend/.env`)
+
+```
+DEV_ACCOUNT_LINK_FRONTEND_URL="https://localhost:5174/confirm-linking"  # Login-Oberfläche
+DEV_AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"  # Backend-Callback
+DEV_AUTH0_SUCCESS_REDIRECT="https://localhost:5173/"  # Haupt-App nach der Anmeldung
+DEV_CORS_ORIGINS="https://localhost:5173,https://localhost:5174"  # CORS-Allowlist
+```
+
+### Login-App (`login/.env.local`)
+
+```
+VITE_API_URL="https://localhost:8443"  # Backend
+VITE_LOGIN_URL="https://localhost:5174"  # Login-App
+```
+
+### Haupt-App (`sanny/.env.local`)
+
+```
+VITE_API_URL="https://localhost:8443"  # Backend
+VITE_LOGIN_URL="https://localhost:5174"  # Login-App
+```
+
+## Nächste Schritte nach den lokalen Tests
+
+1. **Alle Abläufe prüfen**:
+   - [ ] E-Mail-Verifizierung bei der Registrierung funktioniert.
+   - [ ] Die Account-Verknüpfung erscheint bei doppelten E-Mail-Adressen.
+   - [ ] Das Popup für die sekundäre Authentifizierung funktioniert.
+   - [ ] Die Datenbankeinträge werden korrekt zusammengeführt.
+   - [ ] Der `email_verified`-Claim ist in den Tokens enthalten.
+
+2. **Auf die Produktion vorbereiten**:
+   - [ ] Auth0-Callback-URLs auf Produktions-Domains aktualisieren.
+   - [ ] Umgebungsvariablen für die Produktion aktualisieren.
+   - [ ] Testsuite ausführen: `npm run test` im Verzeichnis `backend`.
+
+3. **Betrieb und Support**:
+   - [ ] Fehlerprotokollierung einrichten, um Sonderfälle zu erkennen.
+   - [ ] Auth0-Post-Login-Actions auf Fehler überwachen.
+   - [ ] Probleme aus den lokalen Tests dokumentieren.
+
+## Support
+
+Weitere Informationen zur Account-Linking-Architektur und Auth0-Konfiguration findest du unter [Lokale Einrichtung der Account-Verknüpfung](./account-linking-local-setup.mdx).

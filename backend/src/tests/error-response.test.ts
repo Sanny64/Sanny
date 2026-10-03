@@ -26,7 +26,7 @@ test("error redirects target the configured frontend error page", () => {
     "https://sanny64.de/error?status=429",
   );
   assert.equal(
-    getErrorPageRedirectUrl("http://localhost:5173/", 200),
-    "http://localhost:5173/error?status=500",
+    getErrorPageRedirectUrl("https://localhost:5173/", 200),
+    "https://localhost:5173/error?status=500",
   );
 });
