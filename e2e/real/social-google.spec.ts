@@ -158,10 +158,67 @@ test("creates or loads a password user through live Auth0 @real", async ({
 
   await expectAuthenticatedUser(context, apiUrl, email!);
 
-  const csrfCookie = (await context.cookies(apiUrl)).find(
+  const cookies = await context.cookies(apiUrl);
+  const sessionCookie = cookies.find(
+    (cookie) => cookie.name === "__Host-sanny_session",
+  );
+  const csrfCookie = cookies.find(
     (cookie) => cookie.name === "__Host-sanny_csrf",
   );
+  expect(sessionCookie?.value).toBeTruthy();
+  expect(sessionCookie).toMatchObject({
+    secure: true,
+    httpOnly: true,
+    sameSite: "None",
+    path: "/",
+    domain: new URL(apiUrl).hostname,
+  });
   expect(csrfCookie?.value).toBeTruthy();
+  expect(csrfCookie).toMatchObject({
+    secure: true,
+    httpOnly: false,
+    sameSite: "None",
+    path: "/",
+    domain: new URL(apiUrl).hostname,
+  });
+
+  const profileResponse = await context.request.get(
+    `${apiUrl}/api/v001/users/me`,
+  );
+  expect(profileResponse.status()).toBe(200);
+  const profile = (await profileResponse.json()) as { username: string };
+  const csrfRejectedBody = {
+    error: "Forbidden",
+    message: "Invalid CSRF token",
+  };
+  const trustedOrigin = new URL(appUrl).origin;
+  const profileMutation = await context.request.patch(
+    `${apiUrl}/api/v001/users/me`,
+    {
+      headers: { accept: "application/json", origin: trustedOrigin },
+      data: { username: profile.username },
+    },
+  );
+  expect(profileMutation.status()).toBe(403);
+  expect(await profileMutation.json()).toEqual(csrfRejectedBody);
+
+  const adminMutation = await context.request.patch(
+    `${apiUrl}/api/v001/users/2147483647/roles`,
+    {
+      headers: { accept: "application/json", origin: trustedOrigin },
+      data: { roles: ["user"] },
+    },
+  );
+  expect(adminMutation.status()).toBe(403);
+  expect(await adminMutation.json()).toEqual(csrfRejectedBody);
+
+  const profileAfterRejection = await context.request.get(
+    `${apiUrl}/api/v001/users/me`,
+  );
+  expect(profileAfterRejection.status()).toBe(200);
+  expect(
+    ((await profileAfterRejection.json()) as { username: string }).username,
+  ).toBe(profile.username);
 
   const csrfDenied = await context.request.post(
     `${apiUrl}/api/v001/auth/logout`,

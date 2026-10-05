@@ -20,6 +20,24 @@ Führe die Befehle im Repository-Stammverzeichnis aus. Installiere die drei Play
 
 Die gemockte UI-Suite prüft anonyme und authentifizierte Sitzungsaktionen (einschließlich CSRF beim Abmelden), Self-Service- und Admin-Rolleninteraktionen, Account-Verknüpfung, WCAG-2.2-AA-Regeln mit axe, Tastaturbedienung, horizontalen mobilen Überlauf und einen Chromium-Screenshot-Baseline. Gemockte Anfragen prüfen nur Frontend-Verhalten und API-Verträge; verwende Backend-Tests oder den lokalen Docker-Stack, wenn das echte Backend-Verhalten relevant ist.
 
+## Findings zur Testabdeckung
+
+Der vollständige `npm test`-Gate war am 2026-10-03 erfolgreich:
+
+- Formatierung, Backend-Typprüfung und Backend-Tests bestanden (146 Backend-Tests bestanden, 1 übersprungen); die echte Redis-Integration bestand alle 6 Tests.
+- Frontend-Lint und Builds für Login, Sanny, Shared Packages und Docs bestanden. Die Login- und Sanny-Builds meldeten Chunkgrößen-Warnungen für Bundles über 500 kB.
+- Die gemockten Playwright-E2E-Tests bestanden 100 Tests; 2 Screenshot-Fälle außerhalb von Chromium wurden erwartungsgemäß übersprungen. Der Live-Auth0-Passwort-Flow bestand; der Google-Automatisierungstest wurde übersprungen.
+
+### Aktuelle Abdeckungsgrenzen
+
+- Die Browser-E2E-Tests konzentrieren sich derzeit auf Authentifizierungs-/Sitzungsaktionen, Settings/Admin, Account-Linking-Proof-/Resume-Flows und ausgewählte Accessibility-Prüfungen. Die meisten Frontend-API-Antworten sind gemockt; der Live-Auth0-Browsertest umfasst den Passwortnutzer-Pfad und Logout, nicht den vollständigen Account-Lebenszyklus.
+- Home, Portfolio, Projekte-Übersicht, Blog, Games und Party-Übersicht zeigen derzeit nur übersetzten Text. Route-Smoke-Tests sollten das aktuelle Rendering und die Navigation prüfen, nicht noch nicht implementiertes Verhalten. Projekt-Detail- und Party-Unterseiten müssen vor verhaltensspezifischen Erwartungen einzeln geprüft werden.
+- Automatisierte axe-Prüfungen decken Account-Link-Bestätigung, Settings und den abgewiesenen Admin-Zustand ab. Tastaturprüfungen konzentrieren sich auf die Account-Link-Bestätigung; die visuelle Baseline ist ein mobiler Settings-Screenshot in Chromium.
+- Backend-Tests enthalten gezielte Security-Prüfungen. Ein erfolgreicher Lauf ist jedoch weder eine umfassende Sicherheitsbewertung noch ein Penetrationstest.
+- Google-Anmeldung und Google-abhängige Account-Verknüpfung müssen manuell in einem unterstützten Browser geprüft werden; automatisierter Google-Login darf kein Gate sein.
+
+Umsetzbare Testaufgaben stehen separat in `backend/TODO.md` unter **Remaining test coverage**. Historische Deployment- und Infrastrukturprüfungen gehören in [Monitoring and Verification](../monitoring.mdx), nicht in die Aufgabenliste.
+
 Visuelle Baselines liegen bei den E2E-Tests. Nach einer beabsichtigten UI-Änderung kannst du den Chromium-Screenshot mit `npx playwright test e2e/mock/accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots` aktualisieren und den Bildvergleich prüfen.
 
 Live-Auth0-Prüfungen:

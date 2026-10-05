@@ -20,6 +20,24 @@ Run commands from the repository root. Install the three Playwright browser targ
 
 The mocked UI suite checks anonymous/authenticated session controls (including logout CSRF), self-service and admin role interactions, account linking, WCAG 2.2 AA rules with axe, keyboard operation, mobile horizontal overflow, and a Chromium screenshot baseline. Mocked requests verify frontend behavior and API contracts only; use backend tests or the local Docker stack when real backend behavior matters.
 
+## Coverage findings
+
+The complete `npm test` gate passed on 2026-10-03:
+
+- Formatting, backend type-check and tests passed (146 backend tests passed, 1 skipped); the real-Redis integration passed all 6 tests.
+- Frontend lint and builds passed for login, Sanny, shared packages, and docs. Login and Sanny builds emitted a chunk-size warning for bundles over 500 kB.
+- Mocked Playwright E2E passed 100 tests; 2 non-Chromium screenshot cases were skipped by design. The live password-user Auth0 flow passed; the Google automation test was skipped.
+
+### Current coverage boundaries
+
+- Browser E2E currently concentrates on authentication/session controls, settings/admin interactions, account-linking proof/resume flows, and selected accessibility checks. Most frontend API responses are mocked; the live Auth0 browser check exercises the password-user path and logout, not the full account lifecycle.
+- The Home, Portfolio, Projects overview, Blog, Games, and Party overview currently render translated text only. Route-smoke tests should assert current rendering and navigation, not behavior that is not implemented. Project detail and party subroutes need separate inspection before adding behavior-specific expectations.
+- Automated axe checks cover account-link confirmation, settings, and denied admin state. Keyboard coverage is focused on account-link confirmation; the visual baseline is a mobile Settings screenshot in Chromium.
+- Backend tests provide targeted security checks, but passing them is not a comprehensive security assessment or penetration test.
+- Google sign-in and Google-dependent account linking require manual verification in a supported browser; do not make automated Google login a gate.
+
+Actionable test work is tracked separately in `backend/TODO.md` under **Remaining test coverage**. Historical deployment and infrastructure verification records belong in [Monitoring and Verification](../monitoring.mdx), not in the task list.
+
 Visual baselines are stored with the E2E tests. To review and update the Chromium screenshot after an intentional UI change, run `npx playwright test e2e/mock/accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots` and inspect the resulting image diff.
 
 Live Auth0 checks:

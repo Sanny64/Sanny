@@ -36,7 +36,7 @@ export default function ErrorPage({
   return (
     <main className="error-page">
       <h1>{t.shared.errors.title}</h1>
-      <Section className="error-section" variant="primary">
+      <Section className="error-section" variant="secondary">
         <h2>{error.title}</h2>
         <p>{message}</p>
         <Link to="/">{t.shared.errors.returnHome}</Link>

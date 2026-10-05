@@ -1,4 +1,4 @@
-import { expect, test, type Route } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 
 const sannyUrl = "https://127.0.0.1:5176";
 
@@ -12,6 +12,18 @@ async function respondJson(route: Route, body: unknown, status = 200) {
 
 async function respondEmpty(route: Route) {
   await route.fulfill({ status: 204 });
+}
+
+async function expectAlert(page: Page, message: string) {
+  await expect(
+    page.getByRole("alert").filter({ hasText: message }).first(),
+  ).toBeVisible();
+}
+
+async function expectStatus(page: Page, message: string) {
+  await expect(
+    page.getByRole("status").filter({ hasText: message }).first(),
+  ).toBeVisible();
 }
 
 test("updates, resets, and deletes a mocked own account", async ({ page }) => {
@@ -112,6 +124,124 @@ test("creates a local account when none exists", async ({ page }) => {
 
   await expect.poll(() => createBody).toEqual({});
   await expect(page.getByLabel("Username")).toHaveValue("New Account");
+});
+
+test("cancels account deletion without sending a delete request", async ({
+  page,
+}) => {
+  let deleteRequests = 0;
+
+  await page.route("**/api/v001/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === "/api/v001/auth/me") {
+      await respondJson(route, {
+        email: "account@example.com",
+        name: "Account Test",
+        roles: ["user"],
+        permissions: ["delete:me"],
+      });
+    } else if (path === "/api/v001/users/me" && request.method() === "GET") {
+      await respondJson(route, {
+        id: 7,
+        email: "account@example.com",
+        username: "Account Test",
+      });
+    } else if (path === "/api/v001/users/me" && request.method() === "DELETE") {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on("dialog", (dialog) => dialog.dismiss());
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByLabel("Username")).toHaveValue("Account Test");
+
+  await page.getByRole("button", { name: "Delete my account" }).click();
+
+  expect(deleteRequests).toBe(0);
+  await expect(page.getByLabel("Username")).toHaveValue("Account Test");
+});
+
+test("shows API failures for create, update, password reset, and delete", async ({
+  page,
+}) => {
+  const failures = {
+    create: "Could not create account",
+    update: "Could not update account",
+    reset: "Could not send password reset",
+    delete: "Could not delete account",
+  };
+  let accountExists = false;
+  const requests: string[] = [];
+
+  await page.route("**/api/v001/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === "/api/v001/auth/me") {
+      await respondJson(route, {
+        email: "account@example.com",
+        name: "Account Test",
+        roles: ["user"],
+        permissions: ["update:me", "delete:me"],
+      });
+    } else if (path === "/api/v001/users/me" && request.method() === "GET") {
+      if (!accountExists) {
+        await respondJson(route, { message: "User not found" }, 404);
+      } else {
+        await respondJson(route, {
+          id: 7,
+          email: "account@example.com",
+          username: "Account Test",
+        });
+      }
+    } else if (path === "/api/v001/users/me" && request.method() === "POST") {
+      requests.push("create");
+      await respondJson(route, { message: failures.create }, 500);
+    } else if (path === "/api/v001/users/me" && request.method() === "PATCH") {
+      requests.push("update");
+      await respondJson(route, { message: failures.update }, 500);
+    } else if (path === "/api/v001/users/me/password-reset") {
+      requests.push("reset");
+      await respondJson(route, { message: failures.reset }, 500);
+    } else if (path === "/api/v001/users/me" && request.method() === "DELETE") {
+      requests.push("delete");
+      await respondJson(route, { message: failures.delete }, 500);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.goto(`${sannyUrl}/settings`);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expectAlert(page, failures.create);
+  await expect(
+    page.getByRole("button", { name: "Create account" }),
+  ).toBeVisible();
+  expect(requests).toContain("create");
+
+  accountExists = true;
+  await page.getByRole("button", { name: "Test account endpoints" }).click();
+  await expect(page.getByLabel("Username")).toHaveValue("Account Test");
+
+  await page.getByLabel("Username").fill("Updated Test Account");
+  await page.getByRole("button", { name: "Save username" }).click();
+  await expectAlert(page, failures.update);
+  expect(requests).toContain("update");
+
+  await page.getByRole("button", { name: "Password reset" }).click();
+  await expectAlert(page, failures.reset);
+  expect(requests).toContain("reset");
+
+  await page.getByRole("button", { name: "Delete my account" }).click();
+  await expectAlert(page, failures.delete);
+  expect(requests).toContain("delete");
+  await expect(page.getByLabel("Username")).toHaveValue("Updated Test Account");
 });
 
 test("loads an admin user, updates roles, resets, and deletes that mocked user", async ({
@@ -364,4 +494,223 @@ test("starts MFA reauthentication when deleting an account requires it", async (
 
   expect(authUrl.searchParams.get("mfa")).toBe("true");
   expect(authUrl.searchParams.get("returnTo")).toBe("/settings");
+});
+
+const resumeScenarios = [
+  {
+    name: "MFA account deletion",
+    factor: "mfa",
+    authParameter: "mfa",
+    actionMethod: "DELETE",
+    actionPath: "/api/v001/users/me",
+    initialError: {
+      message: "MFA authentication required",
+      resumeToken: "m".repeat(32),
+    },
+    triggerButton: "Delete my account",
+    successMessage: "Account deleted",
+  },
+  {
+    name: "email OTP password reset",
+    factor: "email",
+    authParameter: "emailMfa",
+    actionMethod: "POST",
+    actionPath: "/api/v001/users/me/password-reset",
+    initialError: {
+      message: "Email OTP authentication required",
+      emailOtpRequired: true,
+      resumeToken: "e".repeat(32),
+    },
+    triggerButton: "Password reset",
+    successMessage: "Password reset email requested",
+  },
+] as const;
+
+for (const scenario of resumeScenarios) {
+  test(`resumes and replays ${scenario.name}`, async ({ page }) => {
+    let authUrl: URL | undefined;
+    let resumeActionBody: unknown;
+    let actionRequests = 0;
+
+    await page.route("**/api/v001/**", async (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+
+      if (path === "/api/v001/auth/me") {
+        await respondJson(route, {
+          email: "account@example.com",
+          name: "Account Test",
+          roles: ["user"],
+          permissions: ["update:me", "delete:me"],
+        });
+      } else if (path === "/api/v001/users/me" && request.method() === "GET") {
+        await respondJson(route, {
+          id: 7,
+          email: "account@example.com",
+          username: "Account Test",
+        });
+      } else if (path === "/api/v001/auth") {
+        authUrl = new URL(request.url());
+        await route.fulfill({
+          status: 302,
+          headers: { location: `${sannyUrl}/settings` },
+        });
+      } else if (path === "/api/v001/auth/resume-action") {
+        resumeActionBody = request.postDataJSON();
+        await respondJson(route, {
+          method: scenario.actionMethod,
+          path: scenario.actionPath,
+          body: null,
+        });
+      } else if (
+        path === scenario.actionPath &&
+        request.method() === scenario.actionMethod
+      ) {
+        actionRequests += 1;
+        if (actionRequests === 1) {
+          await respondJson(route, scenario.initialError, 401);
+        } else {
+          await respondEmpty(route);
+        }
+      } else {
+        await respondJson(
+          route,
+          { message: `Unexpected request: ${path}` },
+          500,
+        );
+      }
+    });
+
+    page.on("dialog", (dialog) => dialog.accept());
+    await page.goto(`${sannyUrl}/settings`);
+    await page.getByRole("button", { name: scenario.triggerButton }).click();
+
+    await expect
+      .poll(() => authUrl?.searchParams.get(scenario.authParameter))
+      .toBe("true");
+    expect(authUrl?.searchParams.get("returnTo")).toBe("/settings");
+    await expect
+      .poll(() => resumeActionBody)
+      .toEqual({
+        resumeToken: scenario.initialError.resumeToken,
+        factor: scenario.factor,
+      });
+    await expect.poll(() => actionRequests).toBe(2);
+    await expectStatus(page, scenario.successMessage);
+    await expect
+      .poll(() =>
+        page.evaluate(() => sessionStorage.getItem("sanny:pending-action")),
+      )
+      .toBeNull();
+  });
+}
+
+test("discards invalid pending-action credentials without replay", async ({
+  page,
+}) => {
+  let resumeRequests = 0;
+  let deleteRequests = 0;
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      "sanny:pending-action",
+      JSON.stringify({ resumeToken: "i".repeat(32), factor: "invalid" }),
+    );
+  });
+  await page.route("**/api/v001/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === "/api/v001/auth/me") {
+      await respondJson(route, {
+        email: "account@example.com",
+        name: "Account Test",
+        roles: ["user"],
+        permissions: ["delete:me"],
+      });
+    } else if (path === "/api/v001/users/me" && request.method() === "GET") {
+      await respondJson(route, {
+        id: 7,
+        email: "account@example.com",
+        username: "Account Test",
+      });
+    } else if (path === "/api/v001/auth/resume-action") {
+      resumeRequests += 1;
+      await respondJson(route, { message: "Unexpected resume request" }, 500);
+    } else if (path === "/api/v001/users/me" && request.method() === "DELETE") {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByLabel("Username")).toHaveValue("Account Test");
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem("sanny:pending-action")),
+    )
+    .toBeNull();
+
+  expect(resumeRequests).toBe(0);
+  expect(deleteRequests).toBe(0);
+});
+
+test("does not replay an action after the pending resume token expires", async ({
+  page,
+}) => {
+  let resumeRequests = 0;
+  let deleteRequests = 0;
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      "sanny:pending-action",
+      JSON.stringify({ resumeToken: "x".repeat(32), factor: "mfa" }),
+    );
+  });
+  await page.route("**/api/v001/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === "/api/v001/auth/me") {
+      await respondJson(route, {
+        email: "account@example.com",
+        name: "Account Test",
+        roles: ["user"],
+        permissions: ["delete:me"],
+      });
+    } else if (path === "/api/v001/users/me" && request.method() === "GET") {
+      await respondJson(route, {
+        id: 7,
+        email: "account@example.com",
+        username: "Account Test",
+      });
+    } else if (path === "/api/v001/auth/resume-action") {
+      resumeRequests += 1;
+      await respondJson(
+        route,
+        { message: "The pending action expired or is no longer available." },
+        410,
+      );
+    } else if (path === "/api/v001/users/me" && request.method() === "DELETE") {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expectAlert(
+    page,
+    "The pending action expired or is no longer available.",
+  );
+  await expect(page.getByLabel("Username")).toHaveValue("Account Test");
+
+  expect(resumeRequests).toBe(1);
+  expect(deleteRequests).toBe(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem("sanny:pending-action")),
+    )
+    .toBeNull();
 });

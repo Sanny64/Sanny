@@ -1,6 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-function accountLinkUrl(expiresAt: number, reverse = false): string {
+function accountLinkUrl(
+  expiresAt: number,
+  reverse = false,
+  proofState = "test-proof-state",
+): string {
   const primaryUserId = reverse
     ? "auth0|password-user"
     : "google-oauth2|google-user";
@@ -12,7 +16,7 @@ function accountLinkUrl(expiresAt: number, reverse = false): string {
     secondaryUserId,
     proofUserId: secondaryUserId,
     continuationState: "test-continuation-state",
-    proofState: "test-proof-state",
+    proofState,
     expiresAt: String(expiresAt),
   });
   return `/confirm-linking?${params.toString()}`;
@@ -49,6 +53,28 @@ test("rejects account-link requests with missing parameters", async ({
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Return to Login" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Authenticate & Continue" }),
+  ).toHaveCount(0);
+});
+
+test("rejects account-link requests with a mismatched proof user", async ({
+  page,
+}) => {
+  const params = new URLSearchParams({
+    primaryUserId: "google-oauth2|google-user",
+    secondaryUserId: "auth0|password-user",
+    proofUserId: "auth0|unrelated-user",
+    continuationState: "test-continuation-state",
+    proofState: "test-proof-state",
+    expiresAt: String(Date.now() + 60_000),
+  });
+  await page.goto(`/confirm-linking?${params.toString()}`);
+
+  await expect(page.getByRole("heading", { name: "Error" })).toBeVisible();
+  await expect(
+    page.getByText("Invalid request: missing account-linking parameters"),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Authenticate & Continue" }),
@@ -102,6 +128,40 @@ test("recovers when secondary authentication reports an error", async ({
   await expect(
     page.getByRole("button", { name: "Authenticate & Continue" }),
   ).toBeEnabled();
+});
+
+test("recovers from a backend proof-start error and allows retry", async ({
+  page,
+  context,
+}) => {
+  const backendError =
+    "Account ownership verification could not be completed. Please try again.";
+  await page.goto(accountLinkUrl(Date.now() + 60_000, false, "f".repeat(43)));
+  const completionUrl = new URL("/account-link-proof-complete", page.url());
+  completionUrl.hash = new URLSearchParams({
+    error: backendError,
+  }).toString();
+  await context.route("**/api/v001/auth/account-link-proof/start**", (route) =>
+    route.fulfill({
+      status: 302,
+      headers: { location: completionUrl.toString() },
+    }),
+  );
+
+  const popupPromise = page.waitForEvent("popup");
+  await page.getByRole("button", { name: "Authenticate & Continue" }).click();
+  const popup = await popupPromise;
+
+  await expect(
+    page.getByRole("alert").filter({ hasText: backendError }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Completing Authentication" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Authenticate & Continue" }),
+  ).toBeEnabled();
+  expect(popup.isClosed()).toBe(true);
 });
 
 test("submits successful ownership proofs in both provider directions", async ({
