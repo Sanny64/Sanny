@@ -1,0 +1,93 @@
+---
+title: Account-Verknüpfung
+description: Den Live-Account-Verknüpfungsablauf von Auth0 manuell mit isolierten Testidentitäten prüfen.
+sidebar_position: 4
+---
+
+# Lokale Entwicklungsumgebung für Account-Verknüpfungen
+
+Diese Anleitung beschreibt, wie du den Account-Verknüpfungsablauf lokal mit Localhost-URLs testest.
+
+## Voraussetzungen
+
+- Verwende einen isolierten Auth0-Entwicklungs-Tenant, eine Entwicklungsdatenbank und eigens dafür eingerichtete Testidentitäten. Verwende keine persönlichen Konten.
+- Beide Identitäten müssen dieselbe verifizierte E-Mail-Adresse haben und für die Anwendung aktiviert sein.
+- Prüfe die aktuelle Login-Action und Backend-Konfiguration anhand des [Auth0-Tenant-Vertrags](../auth0-tenant-contract). Die im Repository gespeicherten Auth0-Action-Dateien werden nicht automatisch zusammen mit dem Backend deployed.
+- Gib Access-, ID- und Refresh-Tokens, Cookies sowie Autorisierungscodes nicht in Browserkonsolen, Online-Tools, Tickets oder Chats weiter.
+
+## Beide Richtungen prüfen
+
+Führe den Ablauf zuerst mit der zuerst erstellten Passwortidentität aus und verwende Google, um die zweite Anmeldung zu starten. Wiederhole ihn anschließend mit zuerst erstellter Google-Identität und der Passwortidentität zum Start der zweiten Anmeldung. Verwende für beide Identitäten dieselbe verifizierte E-Mail-Adresse.
+
+Führe für jede Richtung folgende Schritte aus:
+
+1. Starte die Anmeldung in der Anwendung und wähle den jeweils anderen Anbieter. Prüfe, ob Auth0 zu `https://localhost:5174/confirm-linking` weiterleitet und die Seite beide Konten anzeigt.
+2. Prüfe, ob Google als kanonische primäre Identität angezeigt wird. Das Popup **Authenticate & Continue** muss die andere Identität authentifizieren, die für den Eigentumsnachweis angegeben wurde; gehe nicht davon aus, dass dies Google ist.
+3. Schließe den Eigentumsnachweis ab und bestätige die Verknüpfung. Prüfe, ob sich das Popup schließt, die Anwendung in einen angemeldeten Zustand zurückkehrt und die Anmeldung nicht erneut zur Verknüpfungsaufforderung führt.
+4. Prüfe in der Auth0-Benutzerverwaltung, ob ein einzelner Benutzerdatensatz mit beiden verknüpften Identitäten und Google als kanonischer `user_id` verbleibt.
+5. Prüfe mit einem freigegebenen, schreibgeschützten Datenbank-Client, ob eine lokale Benutzerzeile mit dem kanonischen Auth0-Subject verbleibt. Wähle nur nicht geheime Felder aus und frage niemals die Passwortspalte ab oder zeige sie an.
+
+```sql
+SELECT id, email, auth0Sub, emailVerified
+FROM User
+WHERE email = 'dedicated-test-address@example.test';
+```
+
+Starte für den Abbruch den Ablauf erneut, wähle **Return to login** und prüfe, dass die Identitäten nicht verknüpft wurden und keine angemeldete Sitzung entstanden ist. Prüfe die Bereinigung temporärer Benutzer anhand der konfigurierten Ablauf- und Bereinigungslogik; gehe nicht von einer festen Verzögerung von 60 Minuten aus. Halte Umgebung, Browser, Richtung, Ergebnis und Bereinigung fest, ohne personenbezogene Daten oder Secrets zu dokumentieren.
+
+## 3. Datenbank prüfen
+
+Verwende zur Prüfung des Datenbank-Merges einen freigegebenen, schreibgeschützten Datenbank-Client und wähle nur nicht geheime Felder aus:
+
+```sql
+-- In der konfigurierten Testdatenbank; frage die Passwortspalte nicht ab.
+SELECT id, email, auth0Sub, emailVerified FROM User WHERE email = 'your email address';
+-- Nach einer erfolgreichen Verknüpfung sollte ein lokaler Datensatz verbleiben.
+```
+
+Öffne außerdem in deinem Auth0-Tenant den Bereich `Users`. Dort sollte nur eine Zeile verbleiben: dein Google-Benutzer. Der Passwort-Benutzer wurde überschrieben und seine Daten in die Metadaten des Google-Benutzers übernommen.
+Öffne deinen Benutzer und suche in den `App Metadata` nach `account_linking_completed`.
+
+Wenn all das zutrifft, war die Verknüpfung erfolgreich.
+
+## 5. Prüfung in beide Richtungen
+
+Wiederhole den gesamten Ablauf mit zuerst erstelltem Google-Benutzer statt zuerst erstelltem Passwort-Benutzer. Das Ergebnis sollte gleich sein.
+
+## Übergang zur Produktion
+
+Wenn du für ein Produktionsdeployment bereit bist:
+
+1. **Auth0-Konfiguration aktualisieren**:
+   - Ersetze Localhost-URLs durch Produktionsdomains.
+   - Setze die Allowed Callback URLs auf:
+     ```
+     https://api.example.com/api/v001/auth/callback,
+     https://login.example.com/,
+     https://app.example.com/
+     ```
+   - Aktualisiere CORS für die Produktionsdomains.
+
+2. **Umgebungsvariablen aktualisieren**:
+   - Backend: Setze HTTPS-Werte für `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT` und `PROD_AUTH0_LOGOUT_REDIRECT`.
+   - Login-Frontend: Aktualisiere `VITE_AUTH0_DOMAIN`, falls ein Produktions-Tenant verwendet wird.
+   - Haupt-Frontend: Aktualisiere `VITE_LOGIN_URL` auf den HTTPS-Ursprung des deployten Login-Frontends.
+
+3. **Datenbankdeployment**:
+   - Prüfe vor dem Deployment Prisma-Schemaänderungen und das freigegebene Migrationsverfahren.
+   - Verifiziere, dass die Custom-Database-Connection-Skripte im vorgesehenen Auth0-Tenant aktiv sind.
+
+## Wichtige Test-URLs
+
+| Komponente     | Entwicklungs-URL                              | Produktions-URL                                |
+| -------------- | --------------------------------------------- | ---------------------------------------------- |
+| Login          | https://localhost:5174                        | https://login.example.com                      |
+| Haupt-App      | https://localhost:5173                        | https://app.example.com                        |
+| Backend        | https://localhost:8443                        | https://api.example.com                        |
+| Auth0-Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |
+
+## Referenzdokumentation
+
+- [Auth0 Account Linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking)
+- [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
+- [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)

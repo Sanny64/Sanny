@@ -7,7 +7,7 @@
     "login",
     "sanny",
     "shared/packages/*",
-    "docs"
+    "documenation"
   ],
   "dependencies": {
     "@sanny/i18n": "*",

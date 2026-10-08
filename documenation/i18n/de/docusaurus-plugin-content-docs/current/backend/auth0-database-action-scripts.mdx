@@ -1,0 +1,250 @@
+---
+title: Auth0-Datenbank-Aktionsskripte
+description: Funktionsweise und Aufrufvertrag der Auth0-Custom-Database-Skripte.
+sidebar_position: 5
+---
+
+# Auth0-Datenbank-Aktionsskripte
+
+Diese Skripte werden von der Laufzeit der Auth0-Custom-Database-Verbindung verwendet.
+Sie werden nicht direkt von der Fastify-API aufgerufen.
+
+Quellverzeichnis:
+
+- `backend/auth0/database-action/`
+
+## Wo sie aufgerufen werden
+
+Im Auth0-Dashboard:
+
+1. Öffne **Authentication -> Database**.
+2. Öffne deine Custom-Database-Verbindung.
+3. Aktiviere **Custom Database**.
+4. Konfiguriere jedes Skript unter der passenden Aktion:
+   - Login
+   - Get User
+   - Create
+   - Verify
+   - Change Password
+   - Delete
+
+Auth0 führt diese Funktionen mit bestimmten Argumenten aus und erwartet den unten
+dokumentierten Callback-Vertrag.
+
+Die Skripte verbinden sich direkt mit MariaDB/MySQL. Die Konfigurationswerte werden
+in der Skriptkonfiguration der Custom-Database-Verbindung in Auth0 hinterlegt.
+Sie sind von `backend/.env` getrennt; Auth0 kann nicht auf die lokale
+Umgebungsdatei des Backends zugreifen. Verwende ein dediziertes Datenbankkonto mit
+nur den nötigen Berechtigungen für die Tabelle `User` und verlange eine
+TLS-Zertifikatsprüfung.
+
+## Löschumfang und Benutzer von Social Connections
+
+`delete.js` wird nur für Benutzer dieser Custom-Database-Verbindung aufgerufen.
+Wenn im Auth0-Dashboard ein Benutzer vom Typ `google-oauth2|...` gelöscht wird,
+wird das Skript nicht aufgerufen; die zugehörigen lokalen Zeilen werden auf diesem
+Weg also nicht bereinigt. `backend/src/utils/orphaned-social-user-cleanup.ts`
+läuft stündlich, vergleicht lokale Zeilen von Social Connections mit der Auth0
+Management API und löscht Zeilen, deren Auth0-Identität nicht mehr existiert.
+
+## Zusammenfassung des Skriptvertrags
+
+| Datei               | Exportierte Funktion                           | Zweck                                                                | Erfolgs-Callback                                                                                      | Verhalten bei nicht gefundenem Datensatz                                                                            |
+| ------------------- | ---------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `login.js`          | `login(email, password, callback)`             | E-Mail- und Passwortdaten prüfen                                     | `callback(null, { id, email, username, name, email_verified })`                                       | `ValidationError("user_not_found", ...)` oder `WrongUsernameOrPasswordError`                                        |
+| `create.js`         | `create(user, callback)`                       | Passwort- oder Google-Benutzer erstellen                             | Passwortregistrierung liefert `callback(null, { id })`; Google-Registrierung liefert `callback(null)` | `ValidationError` bei ungültiger Eingabe oder Kontenkonflikten                                                      |
+| `verify.js`         | `verify(email, callback)`                      | E-Mail eines nicht verifizierten Benutzers als verifiziert markieren | `callback(null, true)`                                                                                | `ValidationError("verification_failed", ...)`, wenn keine Zeile aktualisiert wurde                                  |
+| `changePassword.js` | `changePassword(email, newPassword, callback)` | Passwort-Hash eines Benutzers ändern                                 | `callback(null, true)`                                                                                | `ValidationError` bei ungültiger Eingabe, fehlendem Benutzer, Wiederverwendung oder fehlgeschlagener Aktualisierung |
+| `delete.js`         | `remove(id, callback)`                         | Lokale Zeile anhand einer numerischen Datenbank-ID löschen           | `callback(null)`                                                                                      | `Error("Invalid id")` bei einer nicht positiven oder nicht numerischen ID                                           |
+| `getUser.js`        | `getByEmail(email, callback)`                  | Benutzerprofil anhand der E-Mail-Adresse suchen                      | `callback(null, { id, email, email_verified, username, name })`                                       | `callback(null)`, wenn kein Benutzer existiert                                                                      |
+
+## Erforderliche Umgebungsvariablen
+
+| Konfigurationsschlüssel | Wert                                                                                         |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `DB_HOST`               | Datenbank-Hostname, der von Auth0s Custom-Database-Laufzeit erreichbar ist                   |
+| `DB_PORT`               | Datenbank-Port, normalerweise `3306`                                                         |
+| `DB_USER`               | Dediziertes Datenbankkonto mit nur den erforderlichen Berechtigungen für die Benutzertabelle |
+| `DB_PASSWORD`           | Passwort für dieses Datenbankkonto                                                           |
+| `DB_NAME`               | Datenbank mit der Prisma-Tabelle `User`                                                      |
+| `DB_SSL_CA`             | Vertrauenswürdiges CA-Zertifikat für die TLS-Verbindung zur Datenbank                        |
+
+`DB_SSL_CA` sollte das PEM-CA-Zertifikat des Datenbankhosts enthalten.
+
+Für Hetzner Managed MariaDB/MySQL siehe die
+[Hetzner-Zertifikatsdokumentation](https://docs.hetzner.com/managed/databases/mariadb-mysql/#encrypted-access).
+Die Skripte normalisieren maskierte Zeilenumbrüche im konfigurierten Zertifikat
+und verwenden `rejectUnauthorized: true`; deaktiviere die Zertifikatsprüfung nicht.
+
+Die Skripte `create.js` und `changePassword.js` akzeptieren außerdem optionale
+Konfigurationswerte für Richtlinien. Die Standardwerte stehen unten:
+
+| Konfigurationsschlüssel    | Standardwert | Bedeutung                                                                                             |
+| -------------------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| `EMAIL_MAX_LENGTH`         | `254`        | Maximale Länge der normalisierten E-Mail-Adresse.                                                     |
+| `USERNAME_MIN_LENGTH`      | `3`          | Mindestlänge des Benutzernamens (nur `create.js`).                                                    |
+| `USERNAME_MAX_LENGTH`      | `30`         | Maximale Länge des Benutzernamens (nur `create.js`).                                                  |
+| `PASSWORD_MIN_LENGTH`      | `15`         | Minimale Länge des getrimmten Passworts.                                                              |
+| `PASSWORD_MAX_BYTES`       | `72`         | Maximale Anzahl an Passwort-Bytes gemäß bcrypt-Eingabelimit.                                          |
+| `PASSWORD_MIN_CLASS_COUNT` | `3`          | Mindestanzahl der verwendeten Klassen aus Großbuchstaben, Kleinbuchstaben, Ziffern und Sonderzeichen. |
+
+Beide Skripte weisen Passwörter zurück, die drei wiederholte oder aufeinanderfolgende
+Zeichen enthalten. Stimme die Passwort-Richtlinie der Auth0-Verbindung auf diese
+Prüfungen in den Skripten ab.
+
+## Details zu den einzelnen Skripten
+
+### Login.js
+
+- SSL-Zertifikat normalisieren.
+- `emailInput` trimmen und in Kleinbuchstaben umwandeln.
+- `passwordInput` trimmen.
+- Eine Transaktion starten.
+- Das Benutzerobjekt abrufen.
+- Prüfen, ob der Benutzer existiert.
+- `passwordInput` mit dem aktuellen Hash vergleichen.
+
+Erwarteter Erfolgs-Callback (das Skript gibt `id`, nicht `user_id`, zurück):
+
+```js
+callback(null, {
+  id: rows[0].id,
+  email: rows[0].email,
+  username: rows[0].username,
+  name: rows[0].username,
+  email_verified: rows[0].emailVerified,
+});
+```
+
+Erwarteter Callback, wenn der Benutzer nicht gefunden wurde:
+
+```js
+callback(
+  new ValidationError("user_not_found", `No user found for email: "${email}"`),
+);
+```
+
+Erwarteter Callback bei falschem Passwort oder ungültigem Benutzer:
+
+```js
+callback(
+  new WrongUsernameOrPasswordError(
+    "invalid_password",
+    `Invalid password for ${email}`,
+  ),
+);
+```
+
+### Create.js
+
+- SSL-Zertifikat normalisieren.
+- `emailInput` trimmen und in Kleinbuchstaben umwandeln.
+- Eine Transaktion starten.
+- Vorhandene Benutzer anhand der E-Mail-Adresse suchen (`SELECT ... FOR UPDATE`), um die Zeile zu sperren.
+- `user.password` (oder unabhängig vom Ergebnis einen zufälligen Ersatzwert) mit bcrypt hashen, um Timing-Side-Channel-Angriffe zu vermeiden.
+- Normalisierte E-Mail-Adresse und Benutzernamen validieren; ein übermitteltes Passwort ebenfalls validieren. Eine Google-Registrierung wird anhand eines `auth0Sub` vom Typ `google-oauth2|...` erkannt.
+- Das übermittelte Passwort oder bei einer Google-Registrierung einen zufälligen Ersatzwert hashen, bevor der Kontenfall bestimmt wird. Nur bei einer Passwortregistrierung wird dieser Hash gespeichert.
+- Bei Konfliktfällen (1–5) zurückrollen und einen `ValidationError` zurückgeben; bei neuen Benutzern (6–7) eine Zeile mit `emailVerified = true` einfügen und committen.
+- Die Verbindung immer schließen, bevor der Callback aufgerufen wird.
+
+Die Erfolgs-Callbacks unterscheiden sich nach Registrierungsart. Bei einer
+E-Mail-/Passwortregistrierung (Fall 6) wird `auth0Sub` auf `auth0|<database-id>`
+gesetzt und Folgendes zurückgegeben:
+
+```js
+callback(null, { id: String(insertResult.insertId) });
+```
+
+Bei einer Google-Registrierung (Fall 7) wird der übermittelte Google-`auth0Sub`
+gespeichert und kein Profilobjekt zurückgegeben:
+
+```js
+callback(null);
+```
+
+Die aktuellen Konfliktfälle sind:
+
+| Fehlercode           | Situation                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `email_user_exists`  | Passwortregistrierung für eine E-Mail-Adresse, für die bereits ein Passwortkonto existiert. |
+| `google_user_exists` | Google-Registrierung für eine E-Mail-Adresse, für die bereits ein Google-Konto existiert.   |
+| `user_exists`        | Die vorhandene Zeile enthält bereits sowohl ein Passwort als auch einen Google-Subject.     |
+| `use_email_login`    | Google-Registrierung für ein vorhandenes Passwortkonto.                                     |
+| `use_google_login`   | Passwortregistrierung für ein vorhandenes Google-Konto.                                     |
+| `unexpected_case`    | Die Anfrage entspricht keinem unterstützten Passwort- oder Google-Registrierungsfall.       |
+
+Ungültige E-Mail-, Benutzername- oder Passworteingaben liefern einen
+`ValidationError` mit dem Code `invalid_input`. Die E-Mail-Adresse wird getrimmt
+und in Kleinbuchstaben umgewandelt; der Benutzername wird getrimmt. Die
+Passwortprüfung weist außerdem drei wiederholte oder aufeinanderfolgende Zeichen
+zurück.
+
+### Verify.js
+
+- SSL-Zertifikat normalisieren.
+- E-Mail-Eingabe trimmen und in Kleinbuchstaben umwandeln.
+- Eine Transaktion starten.
+- Für die angegebene E-Mail-Adresse `UPDATE User SET emailVerified = true WHERE emailVerified = false AND email = ? LIMIT 1` ausführen.
+- Die Transaktion committen und nur dann `true` zurückgeben, wenn eine Zeile geändert wurde (`result.affectedRows`).
+- Die Verbindung immer schließen, bevor der Callback aufgerufen wird.
+
+Erwarteter Erfolgs-Callback (ein nicht verifizierter Benutzer wurde aktualisiert):
+
+```js
+callback(null, true);
+```
+
+Ist die E-Mail-Adresse unbekannt oder bereits verifiziert, rollt das Skript die
+Transaktion zurück und gibt `ValidationError("verification_failed", ...)` zurück;
+es liefert nicht `false`.
+
+### ChangePassword.js
+
+- E-Mail-Adresse trimmen und in Kleinbuchstaben umwandeln; das neue Passwort trimmen und anhand der obigen Passwortrichtlinie validieren.
+- Die passende Zeile mit `SELECT ... FOR UPDATE` sperren; wenn keine Zeile existiert, `ValidationError("user_not_found", ...)` zurückgeben.
+- Ein Passwort zurückweisen, das mit dem aktuellen Hash übereinstimmt, und `ValidationError("password_reuse", ...)` zurückgeben.
+- Akzeptierte Passwörter mit bcrypt-Kostenfaktor 12 hashen und die Zeile in einer Transaktion aktualisieren. Eine erfolgreiche Aktualisierung liefert `callback(null, true)`.
+- Validierungsfehler verwenden `invalid_input`; eine fehlgeschlagene Aktualisierung verwendet `invalid_request`. Datenbank- und bcrypt-Fehler werden an den Callback weitergegeben.
+
+### Delete.js
+
+- Eine positive ganzzahlige Datenbank-ID (Zahl oder numerischer String) akzeptieren; andernfalls vor dem Verbindungsaufbau `Error("Invalid id: ...")` zurückgeben.
+- In einer Transaktion anhand von `User.id` löschen und nach dem Commit `callback(null)` zurückgeben.
+- Eine gültige ID, zu der keine Zeile passt, gilt trotzdem als erfolgreiche Löschung.
+- Dies gilt nur für Benutzer der Custom-Database-Verbindung. Das Löschen eines Google-Benutzers in Auth0 ruft dieses Skript nicht auf; veraltete lokale Social-User-Datensätze werden separat durch den geplanten Backend-Cleanup bereinigt.
+
+### GetUser.js
+
+- E-Mail-Eingabe trimmen und in Kleinbuchstaben umwandeln, anschließend das Profil innerhalb einer Transaktion lesen.
+- Wenn keine Zeile passt, `callback(null)` zurückgeben.
+- Bei Erfolg String-ID, E-Mail-Adresse, boolesches `email_verified`, Benutzernamen und Namen (gleich dem Benutzernamen) zurückgeben. Der Passwort-Hash wird nie abgefragt.
+
+### Gemeinsame Fehlerbehandlung
+
+Fehler bei Abfragen, Verbindungen, Transaktionen und Hashing werden als Fehler an
+den Callback weitergegeben. Transaktionale Vorgänge werden bei Fehlern
+zurückgerollt; die Verbindung wird vor dem Aufruf des Callbacks geschlossen.
+
+## Skripte in Auth0 testen
+
+Verwende für jedes Skript die integrierte Schaltfläche **Try** im Editor der
+Auth0-Custom-Database-Verbindung und gib die passenden Eingaben an.
+
+Beispiele für Eingaben je Aktion:
+
+- Login: `email` (`emailInput`), `password` (`passwordInput`)
+- Create: `user`-Objekt mit mindestens `email` und `password` oder `oauth2-sub`
+- Verify: `email`
+- Get User: `email`
+- Change Password: `email`, `newPassword`
+- Delete: `id` (numerischer String oder Zahl)
+
+Das Skript muss immer über den bereitgestellten `callback` beendet werden:
+
+- Erfolg: `callback(null, ...)`
+- Fehler: `callback(error)`
+
+## Hinweise zur lokalen Entwicklung
+
+- Die Skripte benötigen Auth0-Laufzeit-Globals wie `configuration`, `ValidationError` und `WrongUsernameOrPasswordError`.
+- Committe keine Secrets oder `.env`-Werte in Dokumentation oder Quellcode.

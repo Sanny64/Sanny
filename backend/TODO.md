@@ -1,6 +1,6 @@
 # Staging Readiness Verification
 
-Backend test commands and coverage boundaries are in [Automated Testing](../docs/docs/backend/local-testing/automated-testing.mdx). Frontend component, lint, build, and browser-test coverage is in [Frontend Local Testing](../docs/docs/frontend/local-testing/automated-testing.mdx). Manual checks are in [Manual Testing](../docs/docs/backend/local-testing/manual-testing.mdx). Record hosted evidence in the restricted deployment record and link only sanitized outcomes here. Never include secrets or personal data.
+Backend test commands and coverage boundaries are in [Automated Testing](../documenation/docs/backend/local-testing/automated-testing.mdx). Frontend component, lint, build, and browser-test coverage is in [Frontend Local Testing](../documenation/docs/frontend/local-testing/automated-testing.mdx). Manual checks are in [Manual Testing](../documenation/docs/backend/local-testing/manual-testing.mdx). Record hosted evidence in the restricted deployment record and link only sanitized outcomes here. Never include secrets or personal data.
 
 There is no hosted staging environment yet. Local unit, mocked-browser, and development-stack results are not staging sign-off.
 
@@ -19,7 +19,7 @@ There is no hosted staging environment yet. Local unit, mocked-browser, and deve
 
 ## Hosted Staging and Monitoring
 
-- [ ] Provision isolated staging and complete every check in [Deployment and Recovery](../docs/docs/backend/deployment.mdx): correct environment/tenant/data targets, HTTPS and headers, proxy trust/direct access, CSRF, rate limits, auth lifecycle, role authorization, pagination, deletion, error contracts, backup/restore, rollback, and log/metric redaction.
+- [ ] Provision isolated staging and complete every check in [Deployment and Recovery](../documenation/docs/backend/deployment.mdx): correct environment/tenant/data targets, HTTPS and headers, proxy trust/direct access, CSRF, rate limits, auth lifecycle, role authorization, pagination, deletion, error contracts, backup/restore, rollback, and log/metric redaction.
 - [ ] Verify Grafana's real Discord/email contact-point delivery in the development stack; the isolated test sink does not prove external delivery. The earlier local Grafana API attempt returned HTTP 401.
 - [ ] Verify Grafana email contact-point delivery; it has not been run. The direct Discord webhook returned HTTP 204, but Grafana alert routing/delivery is still unverified.
 - [ ] Run the real NGINX 429 Playwright scenario and record the alert and notification result; it has not been run.

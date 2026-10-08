@@ -1,0 +1,89 @@
+---
+title: Schnellstart
+description: Lokale Sanny-Dienste starten und die passende Testanleitung auswählen.
+sidebar_position: 1
+---
+
+# Schnellstart: Account-Verknüpfungen lokal testen
+
+Diese Anleitung beschreibt Schritt für Schritt, wie du den Account-Verknüpfungsablauf auf deinem lokalen Rechner testest.
+Einige Tests müssen manuell ausgeführt werden, da Google bestimmte automatisierte Anfragen blockiert.
+
+## Voraussetzungen
+
+1. Node.js 24 und npm; installiere die Workspace-Abhängigkeiten einmalig mit `npm ci` im Repository-Stammverzeichnis.
+2. Docker Desktop für den lokalen Backend-Stack.
+3. Eine dedizierte Auth0-Entwicklungsanwendung und ausschließlich für Tests verwendete Identitäten. Verwende keine persönlichen Konten.
+
+## 1. Auth0-Anwendung konfigurieren
+
+Richte Auth0 wie unter [Auth0-Tenant einrichten](../auth0-tenant-setup) beschrieben ein.
+
+## 2. Dienste starten
+
+Öffne im Repository-Stammverzeichnis drei Terminals und führe die folgenden Befehle aus:
+
+### Terminal 1: Backend-Stack
+
+```bash
+npm run start:backend
+```
+
+Die lokale HTTPS-API ist über den Proxy unter `https://localhost:8443` erreichbar.
+
+### Terminal 2: Login-App
+
+```bash
+npm run dev:login
+```
+
+Die Login-App ist unter `https://localhost:5174` erreichbar.
+
+### Terminal 3: Sanny-App
+
+```bash
+npm run dev:sanny
+```
+
+Die Haupt-App ist unter `https://localhost:5173` erreichbar.
+
+## Fehlerbehebung
+
+### Fehler „Invalid redirect_uri“
+
+- **Ursache**: Die Callback-URL ist nicht im Auth0-Dashboard registriert.
+- **Lösung**: Prüfe erneut unter Auth0 Application Settings die Allowed Callback URLs.
+- **Prüfung**: `https://localhost:8443/api/v001/auth/callback` ist aufgeführt.
+
+### Die Account-Verknüpfungsseite wird nicht angezeigt
+
+- **Ursache**: Die E-Mail-Adresse des sekundären Kontos stimmt nicht mit der des primären Kontos überein.
+- **Lösung**: Stelle sicher, dass beide Konten exakt dieselbe E-Mail-Adresse verwenden.
+- **Debugging**: Prüfe die Backend-Logs auf Meldungen zu abweichenden E-Mail-Adressen.
+
+### Popup-Fenster wird blockiert
+
+- **Ursache**: Der Browser blockiert Popups.
+- **Lösung**: Erlaube Popups für `localhost:5174` in den Browsereinstellungen.
+- **Prüfung**: Suche in der Adressleiste nach einer Meldung zu blockierten Popups.
+
+### „CORS Error“ in der Konsole
+
+- **Ursache**: Der Request-Ursprung ist nicht in `DEV_CORS_ORIGINS` in `backend/.env` enthalten.
+- **Lösung**: Prüfe, ob `DEV_CORS_ORIGINS` sowohl `https://localhost:5174` als auch `https://localhost:5173` enthält.
+- **Hinweis**: Nach Änderungen an `.env` muss das Backend neu gestartet werden.
+
+### „Redis Connection Error“
+
+- **Ursache**: Der Redis-Container des Backends ist nicht verfügbar oder seine TLS-/Passwortkonfiguration stimmt nicht überein.
+- **Lösung**: Starte den Docker-Compose-Stack des Backends und prüfe die bereinigten Container-Statusmeldungen und Logs. Verwende kein nicht konfiguriertes öffentliches Redis-Image als Ersatz.
+
+### Datenbankverbindungsfehler
+
+- **Ursache**: MySQL läuft nicht oder die Zugangsdaten in `backend/.env` sind falsch.
+- **Lösung**: Prüfe, ob MySQL läuft und `DATABASE_URL` in `backend/.env` korrekt ist.
+- **Prüfung**: Aktiviere bei Bedarf `DATABASE_URL` für die Entwicklungsumgebung in `backend/.env`.
+
+## Weiter
+
+Führe die [automatisierte Testsuite](./automated-testing) aus.

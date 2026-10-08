@@ -1,0 +1,77 @@
+---
+title: Backend-Setup
+description: Das Sanny-Backend lokal vorbereiten und ausführen.
+sidebar_position: 2
+---
+
+# Backend einrichten
+
+Das Backend läuft als Docker-Compose-Stack und stellt die Fastify-API hinter NGINX bereit.
+
+Verwende dedizierte Entwicklungsdienste und Testidentitäten. Verbinde eine lokale Instanz nicht mit Produktionsressourcen.
+
+## Voraussetzungen
+
+- Node.js 24 und npm
+- Docker Desktop mit Docker Compose
+- Eine Entwicklungs-MariaDB-Datenbank, die für das Backend erreichbar und in `backend/.env` über `DATABASE_URL` konfiguriert ist
+- Ein Entwicklungs-Auth0-Tenant, eingerichtet wie unter [Auth0-Tenant einrichten](./auth0-tenant-setup) beschrieben
+
+Installiere die Workspace-Abhängigkeiten im Repository-Stammverzeichnis:
+
+```sh
+npm ci
+```
+
+## Umgebung konfigurieren
+
+Erstelle `backend/.env` aus der Vorlage ohne Zugangsdaten. Überschreibe keine
+vorhandene `.env`-Datei; sie kann lokale Zugangsdaten oder Einstellungen enthalten.
+
+```powershell
+Copy-Item backend/.env.template backend/.env
+```
+
+Verwende unter macOS oder Linux `cp -n backend/.env.template backend/.env`, damit
+keine vorhandene Datei überschrieben wird. Bearbeite `backend/.env` und ersetze
+jeden verwendeten Beispielwert durch Einstellungen deiner Entwicklungsumgebung.
+Setze insbesondere `NODE_ENV="development"`, eine Entwicklungs-`DATABASE_URL`,
+ein Redis-Passwort sowie die Auth0-Anwendung und die umgebungsspezifischen URLs.
+Die vollständige Variablenreferenz findest du unter
+[Umgebungskonfiguration](./environment-configuration); die Auth0-seitige
+Konfiguration ist unter [Auth0-Tenant einrichten](./auth0-tenant-setup) beschrieben.
+
+Der Compose-Stack erwartet außerdem die NGINX-TLS-Dateien und das Redis-CA-Zertifikat
+an den eingebundenen Pfaden `backend/nginx/certs/` und `backend/redis/certs/`.
+Halte Zertifikate und private Schlüssel aus der Versionsverwaltung heraus.
+
+## Backend starten
+
+### Erster Start
+
+1. Öffne Docker Desktop.
+2. Führe im Repository-Stammverzeichnis `npm run build:backend` aus.
+
+### Täglicher Start
+
+Starte den Entwicklungs-Stack im Repository-Stammverzeichnis:
+
+```sh
+npm run start:backend
+```
+
+Die API ist über den lokalen HTTPS-Proxy unter `https://localhost:8443` erreichbar.
+
+Starte die Frontend-Anwendungen bei Bedarf separat mit `npm run dev:sanny` und
+`npm run dev:login` im Repository-Stammverzeichnis.
+
+### Backend stoppen
+
+Stoppe den Stack mit `npm run stop:backend` im Repository-Stammverzeichnis.
+
+**Wichtig:** Führe diesen Befehl immer aus, wenn du deine Arbeit am Projekt beendet hast, damit die Container nicht weiterlaufen.
+
+## Weitere Informationen
+
+Die Grenzen des Produktionsdeployments und die Release-Prüfungen sind unter
+[Deployment und Wiederherstellung](./deployment) beschrieben.
