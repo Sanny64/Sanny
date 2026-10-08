@@ -1,0 +1,89 @@
+---
+title: Quickstart
+description: Start the local Sanny services and choose the right testing guide.
+sidebar_position: 1
+---
+
+# Quick Start: Testing Account Linking Locally
+
+This guide provides step-by-step instructions to test the account linking flow on your local machine.
+Some tests require manual execution as Google blocks certain automated requests.
+
+## Prerequisites
+
+1. Node.js 24 and npm; install workspace dependencies once with `npm ci` from the repository root.
+2. Docker Desktop for the local backend stack.
+3. A dedicated development Auth0 application and test-only identities. Do not use personal accounts.
+
+## 1. Configure Auth0 Application
+
+Complete Auth0 configuration as described in [Auth0 Tenant Setup](../auth0-tenant-setup).
+
+## 2. Start Services
+
+From the repository root, open three terminals and run:
+
+### Terminal 1: Backend stack
+
+```bash
+npm run start:backend
+```
+
+The local HTTPS API is available through the proxy at `https://localhost:8443`.
+
+### Terminal 2: Login app
+
+```bash
+npm run dev:login
+```
+
+The login app is available at `https://localhost:5174`.
+
+### Terminal 3: Sanny app
+
+```bash
+npm run dev:sanny
+```
+
+The main app is available at `https://localhost:5173`.
+
+## Troubleshooting
+
+### "Invalid redirect_uri" Error
+
+- **Cause**: Callback URL not registered in Auth0 dashboard
+- **Fix**: Re-check Auth0 Application Settings → Allowed Callback URLs
+- **Verify**: `https://localhost:8443/api/v001/auth/callback` is listed
+
+### Account Linking Page Not Appearing
+
+- **Cause**: Secondary account email doesn't match primary account
+- **Fix**: Ensure both accounts use the exact same email address
+- **Debug**: Check backend logs for email mismatch messages
+
+### Popup Window Blocked
+
+- **Cause**: Browser blocking popups
+- **Fix**: Allow popups for `localhost:5174` in browser settings
+- **Check**: Look for popup notification in address bar
+
+### "CORS Error" in Console
+
+- **Cause**: Request origin not in `DEV_CORS_ORIGINS` in backend/.env
+- **Fix**: Verify `DEV_CORS_ORIGINS` includes `https://localhost:5174` and `https://localhost:5173`.
+- **Note**: Requires backend restart after .env changes
+
+### "Redis Connection Error"
+
+- **Cause**: Backend Redis container is unavailable or its TLS/password configuration does not match.
+- **Fix**: Start the backend Docker Compose stack and inspect sanitized container health/logs. Do not substitute an unconfigured public Redis image.
+
+### Database Connection Errors
+
+- **Cause**: MySQL not running or credentials wrong in backend/.env
+- **Fix**: Verify MySQL is running and `DATABASE_URL` in backend/.env is correct
+- **Check**: Uncomment development DATABASE_URL in backend/.env if needed
+
+## Continue
+
+Run the [automated test suite](./automated-testing)

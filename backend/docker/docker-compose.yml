@@ -10,9 +10,6 @@ services:
       - ../nginx/certs:/etc/nginx/certs:ro
       - ../nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - nginx-logs:/var/log/nginx
-    command: >
-      sh -c "rm -f /var/log/nginx/access.log /var/log/nginx/error.log &&
-      exec nginx -g 'daemon off;'"
     depends_on:
       - app
     networks:
@@ -27,8 +24,10 @@ services:
       - ../.env
     environment:
       REDIS_URL: rediss://:${REDIS_PASSWORD}@redis:6379
+      APP_LOG_FILE: /app/logs/app.log
     volumes:
       - ../redis/certs/ca.crt:/app/redis-ca.crt:ro
+      - application-logs:/app/logs
     depends_on:
       - redis
     networks:
@@ -49,6 +48,21 @@ services:
       - app-network
     restart: unless-stopped
 
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.93.0
+    environment:
+      REDIS_ADDR: rediss://redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_EXPORTER_TLS_CA_CERT_FILE: /etc/redis/certs/ca.crt
+      REDIS_EXPORTER_REDACT_CONFIG_METRICS: "true"
+    volumes:
+      - ../redis/certs/ca.crt:/etc/redis/certs/ca.crt:ro
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.3
     command:
@@ -64,8 +78,6 @@ services:
     restart: unless-stopped
     networks:
       - app-network
-    ports:
-      - "9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -104,6 +116,8 @@ services:
     volumes:
       - ../monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
       - nginx-logs:/var/log/nginx:ro
+      - application-logs:/var/log/app:ro
+      - promtail-data:/tmp
     command: -config.file=/etc/promtail/config.yml
     depends_on:
       - loki
@@ -116,6 +130,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - "DISCORD_WEBHOOK=${DISCORD_WEBHOOK:?Set DISCORD_WEBHOOK via --env-file backend/.env}"
       - GF_SERVER_ROOT_URL=${GRAFANA_DEV_ROOT_URL}
       - GF_SERVER_SERVE_FROM_SUB_PATH=false
       - GF_USERS_ALLOW_SIGN_UP=false
@@ -130,8 +145,12 @@ services:
       - ../monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ../monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
       - ../monitoring/dashboards:/var/lib/grafana/dashboards:ro
-      - ../monitoring/alerting:/etc/grafana/provisioning/alerting:ro
-      - ../monitoring/alerting:/etc/grafana/provisioning/alerting/rules:ro
+      - ../monitoring/alerting/contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
+      - ../monitoring/alerting/policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
+      - ../monitoring/alerting/rules/429-spikes.yml:/etc/grafana/provisioning/alerting/429-spikes.yml:ro
+      - ../monitoring/alerting/rules/auth-abuse.yml:/etc/grafana/provisioning/alerting/auth-abuse.yml:ro
+      - ../monitoring/alerting/rules/backend-operational.yml:/etc/grafana/provisioning/alerting/backend-operational.yml:ro
+      - ../monitoring/alerting/rules/callback-flood.yml:/etc/grafana/provisioning/alerting/callback-flood.yml:ro
     depends_on:
       - prometheus
       - loki
@@ -149,6 +168,8 @@ networks:
 volumes:
   redis-data:
   nginx-logs:
+  application-logs:
+  promtail-data:
   prometheus-data:
   loki-data:
   grafana-data:

@@ -1,0 +1,93 @@
+---
+title: Account Linking
+description: Manually verify the live Auth0 account-linking flow with isolated test identities.
+sidebar_position: 4
+---
+
+# Account Linking Local Development Setup
+
+This guide explains how to test the account linking flow locally with localhost URLs.
+
+## Prerequisites
+
+- Use an isolated development Auth0 tenant, database, and dedicated test identities. Do not use personal accounts.
+- Both identities must have the same verified email address and be enabled for the application.
+- Verify the current Login Action and backend configuration using [Auth0 Tenant Contract](../auth0-tenant-contract). Repository copies of Auth0 Actions are not deployed automatically with the backend.
+- Keep access tokens, ID tokens, refresh tokens, cookies, and authorization codes out of browser consoles, online tools, tickets, and chat.
+
+## Verify Both Directions
+
+Run the flow once with the password identity created first and Google used to start the second login, then repeat with Google created first and the password identity used to start the second login. Use the same verified email for both identities.
+
+For each direction:
+
+1. Start login from the application and choose the other provider. Confirm Auth0 routes to `https://localhost:5174/confirm-linking` and the page identifies both accounts.
+2. Confirm Google is shown as the canonical primary identity. The **Authenticate & Continue** popup must authenticate the other identity specified for ownership proof; do not assume it is Google.
+3. Complete the proof login and confirm the link. Verify the popup closes, the application returns to an authenticated state, and login does not loop back to the linking prompt.
+4. In Auth0 User Management, verify one user record remains with both identities linked and Google as the canonical `user_id`.
+5. With an approved read-only database client, select only non-secret fields and verify one local user row remains with the canonical Auth0 subject. Never query or display the password column.
+
+```sql
+SELECT id, email, auth0Sub, emailVerified
+FROM User
+WHERE email = 'dedicated-test-address@example.test';
+```
+
+For cancellation, restart the flow, choose **Return to login**, and verify that the identities were not linked and no authenticated session was established. Verify any temporary-user cleanup against the configured expiry/cleanup behavior; do not assume a fixed 60-minute delay. Record the environment, browser, direction, result, and cleanup without recording personal data or secrets.
+
+## 3. Database Verification
+
+To verify the database merge, use an approved read-only database client and select only non-secret fields:
+
+```sql
+-- In your configured test database; do not select the password column.
+SELECT id, email, auth0Sub, emailVerified FROM User WHERE email = 'your email address';
+-- Expect one local record after a successful link.
+```
+
+Also in your auth0 tenant head to `Users`. You should only see one row: your google user. The password user has been overwritten and inserted into the meta-data of the google user.
+Open your user and look for "account_linking_completed" in "App Metadata".
+
+If all that is the case the linking was successful.
+
+## 5. Dual-sided Verification
+
+Redo the entire flow with Google user first instead of password user first. The result should be the same.
+
+## Transitioning to Production
+
+When ready to deploy to production:
+
+1. **Update Auth0 Configuration**:
+   - Replace localhost URLs with production domains
+   - Set Allowed Callback URLs to:
+     ```
+     https://api.example.com/api/v001/auth/callback,
+     https://login.example.com/,
+     https://app.example.com/
+     ```
+   - Update CORS to use production domains
+
+2. **Update Environment Variables**:
+   - Backend: Set HTTPS values for `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT`, and `PROD_AUTH0_LOGOUT_REDIRECT`.
+   - Login Frontend: Update `VITE_AUTH0_DOMAIN` if using a production tenant
+   - Main Frontend: Update `VITE_LOGIN_URL` to the deployed login frontend HTTPS origin.
+
+3. **Database Deployment**:
+   - Review the Prisma schema changes and the deployment's approved database migration procedure before deploying.
+   - Verify custom database connection scripts are active in the intended Auth0 tenant.
+
+## Key URLs for Testing
+
+| Component      | Dev URL                                       | Prod URL                                       |
+| -------------- | --------------------------------------------- | ---------------------------------------------- |
+| Login          | https://localhost:5174                        | https://login.example.com                      |
+| Main App       | https://localhost:5173                        | https://app.example.com                        |
+| Backend        | https://localhost:8443                        | https://api.example.com                        |
+| Auth0 Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |
+
+## Reference Documentation
+
+- [Auth0 Account Linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking)
+- [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
+- [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)

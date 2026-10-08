@@ -2,6 +2,8 @@ FROM node:24-alpine AS builder
 
 WORKDIR /app
 
+RUN mkdir -p /app/logs
+
 COPY package*.json ./
 RUN npm install
 

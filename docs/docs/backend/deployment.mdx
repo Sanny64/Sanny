@@ -1,7 +1,7 @@
 ---
 title: Deployment and Recovery
 description: Deployment boundaries, staging verification, rollback, and data recovery.
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # Deployment and recovery
@@ -19,26 +19,6 @@ Keep Auth0, database, and Redis resources separate between environments. Load cr
 - Redis is private to the compose network and uses TLS with password authentication. Compose constructs the backend Redis URL from `REDIS_PASSWORD`.
 - MariaDB is configured by `DATABASE_URL` and is not a service in the checked-in backend compose stack. Its provisioning, network policy, backups, and recovery need an independent owner.
 - Development npm scripts are not a production release mechanism.
-
-## Local operations
-
-Run from `backend/`:
-
-```bash
-npm run start
-npm run stop
-npm run restart
-npm run test
-npm run type-check
-```
-
-`npm run build` rebuilds and starts the development compose stack. For a production compose preflight, run from `backend/docker/`:
-
-```bash
-docker compose --env-file ../.env -f docker-compose.prod.yml config --quiet
-```
-
-Use `config --quiet` only. Plain `docker compose config` prints interpolated configuration and can expose secrets in terminal history, recordings, or CI logs. The production compose file is a starting point, not proof that a hosted environment has been secured.
 
 ## Staging release gate
 

@@ -1,0 +1,326 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Backend Operational Rules
+    folder: Backend
+    interval: 1m
+    rules:
+      - uid: backend-target-down
+        title: "Backend Metrics Target Down"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'up{job="backend"} == 0'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 2m
+        noDataState: Alerting
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "Fastify metrics target is unavailable"
+          description: "Prometheus cannot scrape the backend metrics endpoint. Check the app container and internal network."
+
+      - uid: backend-restarted
+        title: "Backend Restart Detected"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: "changes(sanny_process_start_time_seconds[10m]) > 0"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "A backend process restart was observed"
+          description: "The backend process start time changed within ten minutes. Check container restart history and recent deployments."
+
+      - uid: backend-dependency-down
+        title: "Backend Dependency Probe Failed"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: "sanny_dependency_up == 0"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "A backend dependency probe is failing"
+          description: "The database or Redis probe has failed repeatedly. Check the dependency label and service health."
+
+      - uid: database-probe-slow
+        title: "Database Probe Latency High"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'sanny_dependency_probe_duration_seconds{dependency="database"} > 1'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database probe latency is above one second"
+          description: "The backend database health query has remained slow. Review database availability and load."
+
+      - uid: prisma-query-slow
+        title: "Prisma Query Latency High"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: "histogram_quantile(0.95, sum by (le) (rate(sanny_database_query_duration_seconds_bucket[5m]))) > 1"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 5m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "95th percentile Prisma query latency is above one second"
+          description: "Review database load and recent backend changes. The metric has no query or user labels."
+
+      - uid: redis-fallback-used
+        title: "Redis Rate Limit Fallback Used"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: "sum(increase(sanny_redis_fallbacks_total[5m])) > 0"
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "The local rate-limit fallback was used"
+          description: "Redis-backed rate limiting fell back to local memory. Shared enforcement may be degraded."
+
+      - uid: refresh-token-failure
+        title: "Refresh Token Flow Failure"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'sum(increase(sanny_refresh_token_events_total{outcome="failed"}[5m])) > 0'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "Refresh-token processing failed"
+          description: "At least one refresh-token operation failed in the last five minutes. No token values are recorded."
+
+      - uid: refresh-token-replay
+        title: "Refresh Token Replay Detected"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'sum(increase(sanny_refresh_token_events_total{outcome="replay_detected"}[5m])) > 0'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: "Refresh-token replay was detected"
+          description: "A refresh-token replay event was detected. The metric contains no session or token identifier."
+
+      - uid: auth0-management-failure
+        title: "Auth0 Management API Failure"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'sum(increase(sanny_auth0_management_requests_total{result="failure"}[5m])) > 0'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "Auth0 Management API requests failed"
+          description: "At least one Management API request failed in the last five minutes. Check Auth0 service health and configured permissions."
+
+      - uid: monitoring-target-down
+        title: "Monitoring Exporter Target Down"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'up{job=~"nginx|node|redis|prometheus"} == 0 or absent(up{job="nginx"}) or absent(up{job="node"}) or absent(up{job="redis"}) or absent(up{job="prometheus"})'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "A monitoring exporter target is unavailable"
+          description: "Prometheus cannot scrape an expected exporter or itself. Check the job label and target health."
+
+      - uid: monitoring-storage-low
+        title: "Monitoring Host Storage Low"
+        condition: A
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'min(node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"}) < 0.1'
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+        for: 10m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host filesystem has less than ten percent free space"
+          description: "Monitoring uses persistent Docker volumes. Check host filesystem capacity, retention, and backup policy."

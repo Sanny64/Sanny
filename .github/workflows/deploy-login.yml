@@ -32,10 +32,7 @@ jobs:
         run: cp ./favicon.ico ./login/public/
 
       - name: Lint the projects
-        run: npm run lint:login ; npm run lint:shared
-
-      - name: Build shared packages
-        run: npm run build:shared
+        run: npm run lint:login && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
 
       - name: Build the project
         run: npm run build:login

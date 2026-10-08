@@ -1,0 +1,50 @@
+---
+title: Automated Frontend Testing
+description: Run the shared UI component, frontend lint/build, and browser test suites.
+---
+
+## Commands
+
+Run commands from the repository root.
+
+| Command                                | Purpose                                                            |
+| -------------------------------------- | ------------------------------------------------------------------ |
+| `npm run test -w login`                | Run login lint through the workspace test script.                  |
+| `npm run test -w sanny`                | Run Sanny lint through the workspace test script.                  |
+| `npm run test:frontend`                | Lint/build both apps, lint shared packages, and run UI components. |
+| `npm run lint:login`                   | Lint the login frontend.                                           |
+| `npm run lint:sanny`                   | Lint the public frontend.                                          |
+| `npm run lint -w @sanny/i18n`          | Lint the shared localization package.                              |
+| `npm run lint -w @sanny/styles`        | Lint the shared styles package.                                    |
+| `npm run lint -w @sanny/ui`            | Lint the shared UI package.                                        |
+| `npm run build:login`                  | Build shared workspaces in dependency order, then build login.     |
+| `npm run build:sanny`                  | Build shared workspaces in dependency order, then build Sanny.     |
+| `npm run test:e2e:mocked`              | Run mocked UI E2E tests in Chromium, Firefox, and Edge.            |
+| `npm run test:components`              | Run the shared UI Vitest component suite.                          |
+| `npm run test:e2e:accessibility:login` | Run Login accessibility E2E in all browser projects.               |
+| `npm run test:e2e:accessibility:sanny` | Run Sanny accessibility E2E in all browser projects.               |
+
+Each app's workspace `test` script runs that app's lint. `npm run test:frontend` runs both workspace tests, builds both apps through their dependency-order wrappers, lints all shared packages, and runs the shared UI component suite. The root `npm run test` includes this frontend gate and the full mocked/live browser suites; docs build remains separate.
+
+## Component Coverage
+
+`shared/packages/ui/src/tests/ui-components.test.tsx` verifies shared button keyboard operation and disabled state, checkbox labeling and feedback, toast alert/status announcements and actions, language/theme persistence, and not-found content. These focused tests do not cover every prop or state combination.
+
+## Browser Coverage
+
+Mocked Playwright tests live in `e2e/mock/`. Accessibility ownership is split between `login-accessibility.spec.ts` and `sanny-accessibility.spec.ts` and can be run with the app-specific commands above. Other specs cover route rendering/localization, login/logout controls, settings/admin UI flows, and account linking. Routed public content pages currently render translated placeholders without interactive controls; standalone Guess-the-Number and Blockrunner games are out of scope for this project's interaction tests. Mocked API responses verify frontend behavior and request/response contracts only; they do not prove backend persistence or live Auth0 behavior.
+
+The axe tests use WCAG 2.2 AA tags across all registered Sanny public routes and the tested settings/admin states, plus Login helper routes. App-owned accessibility specs cover English/German preference and light/dark theme combinations in Chromium, Firefox, and Edge. The shared `accessibility.spec.ts` also checks language/theme initialization in both apps and system color-scheme changes with a persisted override on Sanny Settings. These automated checks do not substitute for screen-reader testing or 200% zoom checks.
+
+## Remaining Verification
+
+- [x] Add behavior-specific tests for in-scope interactive public features. Routed Sanny content pages are explicitly tested as content-only placeholders; sign-in/session, settings/admin, and account-linking interactions have dedicated specs. Standalone games are out of scope.
+- [x] Test system light/dark initialization and changes, persisted user override precedence, and axe results on Settings in Chromium.
+- [x] Extend axe coverage to supported routes/states and light/dark themes. All registered Sanny public routes and tested settings/admin states, plus Login helper routes, run in English/German preference combinations across Chromium, Firefox, and Edge.
+- [ ] Complete keyboard-only workflows across login, settings, admin, and account linking in both languages.
+- [ ] Manually test with a screen reader and at 200% zoom; verify reduced-motion behavior. Decide whether forced-colors/high-contrast mode is supported and verify it if in scope.
+- [ ] Review Chromium desktop/mobile visual baselines after intentional visual changes; these do not establish Firefox/Edge visual parity.
+- [x] Frontend lint/build, shared component, Login/Sanny accessibility checks passed locally on 2026-10-09.
+- [ ] Verify the same frontend checks in CI on the exact revision intended for deployment and record any unresolved findings.
+
+Use [Manual Testing](../../backend/local-testing/manual-testing.mdx) for the complete accessibility, provider, and staging verification checklist.

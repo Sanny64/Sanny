@@ -1,0 +1,72 @@
+---
+title: Monitoring Integration Testing
+description: Safely verify Grafana contact points, alert rules, and the NGINX rate-limit alert.
+sidebar_position: 5
+---
+
+# Monitoring Integration Testing
+
+These tests target the local development Compose stack. They can send real email/Discord notifications and insert synthetic Loki entries. Never run them against production or include secrets from `backend/.env` in evidence.
+
+## Prerequisites
+
+- Start the development stack from the repository root with `npm run start:backend`.
+- In Grafana, verify alert rules are loaded under **Alerting > Alert rules**.
+- Before triggering a rule, wait for existing 429/auth-volume/callback-flood alerts to resolve.
+
+The Grafana image is a minimal runtime image without npm. Container tests run Node with `--import=tsx`.
+
+## Email Contact Point
+
+1. Open Grafana through the authenticated `/grafana/` path.
+2. Open **Alerting > Notification configuration > Contact points**.
+3. Edit `email-alerts`, choose **Test**, and send the built-in test notification.
+4. Confirm receipt in the configured mailbox.
+
+Delivery and Grafana notification history are the evidence; configuration alone does not prove delivery.
+
+## Direct Discord Webhook
+
+Run the opt-in webhook test from the repository root:
+
+```powershell
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true app node --import=tsx --test monitoring/tests/discord-integration.test.ts
+```
+
+The test sends a synthetic message through the app container's configured webhook and expects HTTP `204`. It checks the webhook itself, not Grafana alert routing. Run it only when a visible test message in that Discord destination is acceptable.
+
+## Trigger Grafana Rules
+
+This integration sends bounded synthetic Loki entries above the three log-rule thresholds and asks Grafana whether `429 Rate Limit Spike`, `Auth Endpoint Abuse`, and `Auth Callback Flood` fired:
+
+```powershell
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true app node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
+```
+
+This may send Discord warnings and a critical email. Run only when those side effects are intended. Grafana API access needs `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` matching the stored Grafana account. Changing Compose values does not change an existing Grafana password. Correct authentication before retrying.
+
+Synthetic Loki entries use `source="integration-test"` and remain until the configured seven-day retention expires.
+
+## Real NGINX 429 Scenario
+
+The separate Playwright scenario sends 40 requests through local NGINX to `/api/v001/auth`, expects more than 20 HTTP `429` responses, and waits for the rule's evaluation/hold period. It may trigger `429 Rate Limit Spike`, but does not verify Grafana rule state or notification delivery.
+
+In PowerShell at the repository root:
+
+```powershell
+$env:RUN_429_SPIKE_E2E = "true"
+npm run test:e2e:429-spike
+```
+
+This opt-in Chromium test uses `playwright.monitoring.config.ts` and is excluded from regular E2E and full test runs. Run it only when the alert side effect is intended.
+
+## Recorded Local Results
+
+| Date       | Scenario                          | Result                                                                                                                                                    |
+| ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-08 | Direct Discord webhook            | Passed; Discord accepted the synthetic message with HTTP `204`. Grafana routing was not tested.                                                           |
+| 2026-10-08 | Development-stack Grafana API     | Not verified; Loki accepted synthetic entries, but the development Grafana API returned HTTP `401`. No Discord alert was received; email was not checked. |
+| 2026-10-08 | Isolated Grafana/Loki integration | Passed; all three log-based rules fired and delivered to the local notification test sink. External Discord/email delivery was not tested.                |
+| 2026-10-08 | Rule provisioning                 | Nested rule-file mounts were corrected; Grafana then reported 14 loaded rules and active evaluation.                                                      |
+| 2026-10-08 | Grafana email contact-point test  | Not run.                                                                                                                                                  |
+| 2026-10-08 | Real 429 Playwright test          | Added as an opt-in scenario; not run.                                                                                                                     |

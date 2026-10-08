@@ -1,323 +1,137 @@
-# Environment Configuration Guide
+---
+title: Environment Configuration
+description: Backend environment variables and environment separation.
+sidebar_position: 4
+---
 
-This guide explains how to properly configure the application for different environments (development vs. production) using Auth0.
+# Environment configuration
 
-## Overview
+The backend reads its local configuration from `backend/.env`. Start with
+`backend/.env.agent`, then replace example values with credentials and resource
+identifiers for your own environment. Never commit `backend/.env`, real
+credentials, tenant identifiers, or private keys. Production secrets belong in
+the deployment environment's secret store, not in this file or in Compose
+overrides committed to the repository.
 
-The application requires common Auth0/database settings plus environment-specific URLs. `NODE_ENV` must be exactly `development` or `production`; URL and proxy settings use the matching `DEV_` or `PROD_` prefix. Examples below are placeholders using reserved domains, not working credentials or deployment values.
+## Environment selection
 
-- **NODE_ENV**: Controls production mode (`production` or `development`)
-- **AUTH0_DOMAIN**: Your Auth0 tenant domain
-- **AUTH0_CLIENT_ID**: Auth0 application client ID
-- **AUTH0_CLIENT_SECRET**: Auth0 application client secret
-- **AUTH0_AUDIENCE**: Auth0 API audience identifier
-- **DEV\_/PROD_AUTH0_CALLBACK_URL**: OAuth callback URL (must be registered in Auth0)
-- **DEV\_/PROD_AUTH0_SUCCESS_REDIRECT** and **DEV\_/PROD_AUTH0_LOGOUT_REDIRECT**: approved frontend destinations
-- **DEV\_/PROD_ACCOUNT_LINK_FRONTEND_URL**: login frontend account-linking page
-- **DEV\_/PROD_CORS_ORIGINS**: comma-separated exact origins
-- **DEV\_/PROD_TRUST_PROXY**: `false`, `true`, or trusted proxy IP/CIDR; numeric hop counts are unsupported
+`NODE_ENV` must be exactly `development` or `production`. The backend uses it to
+select the matching `DEV_` or `PROD_` values below. Set up distinct Auth0,
+database, and Redis resources for each environment; do not point development at
+production data. The production Compose configuration sets `NODE_ENV` to
+`production`.
 
-## Development Environment Setup
+## Auth0
 
-### Environment Variables
+See [Setup the Auth0 Tenant](./auth0-tenant-setup#12-deploy-the-actions) for explicit environment configuration instructions in auth0
 
-For local Docker development, put required values in the backend environment file. Do not copy this example literally; generate local secrets and use isolated development services.
+## Backend
 
-```bash
-# Common backend settings
-NODE_ENV=development
-AUTH0_DOMAIN=tenant.example.invalid
-AUTH0_CLIENT_ID=replace-with-development-client-id
-AUTH0_CLIENT_SECRET=replace-with-development-client-secret
-AUTH0_AUDIENCE=https://api.example.com
-DATABASE_URL=mysql://<user>:<password>@<private-host>:3306/<database>
-REDIS_PASSWORD=replace-with-a-random-local-secret
+```.env
+# Sanny backend environment template
 
-# Development-specific URL and proxy settings
-DEV_AUTH0_CALLBACK_URL=https://localhost:8443/api/v001/auth/callback
-DEV_AUTH0_SUCCESS_REDIRECT=https://localhost:5173/
-DEV_AUTH0_LOGOUT_REDIRECT=https://localhost:5173/
-DEV_ACCOUNT_LINK_FRONTEND_URL=https://localhost:5174/confirm-linking
-DEV_CORS_ORIGINS=https://localhost:5173,https://localhost:5174
-DEV_TRUST_PROXY=false
+# Environment selection
+NODE_ENV="development" # Changing this value requires also changing it
+                       # for all auth0 applications, actions and database connections.
+                       # Must be exactly `development` or `production`.
 
-# Optional privileged feature; keep disabled unless intentionally tested
-AUTH0_ROLE_SYNC_ENABLED=false
+# Database and session store
+DATABASE_URL="mysql://username:password@server/database"
+REDIS_PASSWORD="some random string without special characters"
+
+# Grafana
+GRAFANA_ADMIN_USER="your grafana admin username"
+GRAFANA_ADMIN_PASSWORD="your grafana admin password"
+GRAFANA_DEV_ROOT_URL="https://localhost:8443/grafana/"
+GRAFANA_PROD_ROOT_URL="https://monitoring.example.de/grafana/"
+
+# Docker registry
+DOCKERHUB_USERNAME="your dockerhub username"
+DOCKERHUB_PAT="dckr_pat_your-personal-access-token"
+
+# Hetzner SMTP
+SMTP_HOST="your-mail-server:587"                 # Port 587 requires STARTTLS
+                                                 # Port 465 uses implicit TLS. Certificates are verified.
+SMTP_USER="your smtp user"                       # e.g. webmaster@domain.de
+SMTP_PASSWORD="your smtp password"
+SMTP_FROM_ADDRESS="your webmaster email address" # e.g. webmaster@domain.de
+
+# Auth0 application
+AUTH0_DOMAIN="example.location.auth0.com" # custom domain e.g. auth.example.com
+                                          # as configured in auth0; do not use http or https prefix here
+AUTH0_AUDIENCE="https://api.example.de"
+AUTH0_CLIENT_ID="your auth0 client id"
+AUTH0_CLIENT_SECRET="your auth0 client secret"
+AUTH0_M2M_CLIENT_ID="your auth0 m2m client id"
+AUTH0_M2M_CLIENT_SECRET="your auth0 m2m client secret"
+AUTH0_MGMT_AUDIENCE="https://tenant.location.auth0.com/api/v2/"
+
+# OAuth redirects and browser origins
+DEV_AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"
+PROD_AUTH0_CALLBACK_URL="https://api.example.de/api/v001/auth/callback"
+DEV_AUTH0_SUCCESS_REDIRECT="https://localhost:5173/"
+PROD_AUTH0_SUCCESS_REDIRECT="https://example.de/"
+DEV_AUTH0_LOGOUT_REDIRECT="https://localhost:5173/"
+PROD_AUTH0_LOGOUT_REDIRECT="https://example.de/"
+DEV_CORS_ORIGINS="https://localhost:5173,https://localhost:5174"
+PROD_CORS_ORIGINS="https://www.example.de,https://auth.example.de,https://example.de"
+
+# Auth0 token claims and verification
+AUTH0_EMAIL_CLAIM="https://example.de/email"
+AUTH0_NAME_CLAIM="https://example.de/name"
+AUTH0_ROLES_CLAIM="https://example.de/roles"
+AUTH0_CLAIM_NAMESPACE="https://example.de"
+AUTH0_EMAIL_VERIFIED_CLAIM="https://example.de/email_verified"
+
+# Backend security and operations
+DEV_TRUST_PROXY="false"
+PROD_TRUST_PROXY="172.28.0.2"
+AUTH0_ROLE_SYNC_ENABLED="true"
+
+# Account linking
+DEV_ACCOUNT_LINK_FRONTEND_URL="https://localhost:5174/confirm-linking"
+PROD_ACCOUNT_LINK_FRONTEND_URL="https://auth.example.de/confirm-linking"
+ACCOUNT_LINK_PROOF_SECRET="some random string without special characters"
+AUTH0_DATABASE_CONNECTION="your auth0 database connection"
+AUTH0_DATABASE_CONNECTION_ID="con_your-auth0-database-connection-id"
+
+# Playwright test configuration
+## testUser:
+TESTUSER_EMAIL="testuser@example.com"
+TESTUSER_PASSWORD="your account password for the app"
+TESTGOOGLEUSER_EMAIL="testuser@gmail.com"
+TESTGOOGLEUSER_PASSWORD="your google account password for the app"
+
+# Rate limiting
+AUTH0_GLOBAL_BUDGET_PER_MIN=200
+
+# Webhooks
+DISCORD_WEBHOOK="your discord webhook url"
 ```
 
-### Auth0 Development Tenant Setup
+## Login Frontend (`login/.env.local`)
 
-1. **Create a new Auth0 application** for your development tenant:
-   - Application type: `Regular Web Application`
+The file is already configured for localhost. For local testing:
 
-- Name: `Example Development Application`
-
-2. **Configure OAuth settings**:
-   - Allowed Callback URLs:
-     - `https://localhost:8443/api/v001/auth/callback`
-   - Allowed Logout URLs:
-     - `https://localhost:5173/`
-   - Allowed Web Origins (CORS):
-     - `https://localhost:8443`
-     - `https://localhost:5173`
-     - `https://localhost:5174`
-
-3. **Configure Database Connections**:
-   - Enable "Username-Password-Authentication"
-   - Create a custom database connection with the provided scripts:
-     - `create.js` - User creation and signup
-     - `login.js` - User login
-     - `getUser.js` - Fetch user by ID
-     - `delete.js` - User deletion with linked account cleanup
-     - `verify.js` - Email verification (optional)
-
-4. **Create Post-Login Action**:
-   - Name: `linkAccount` or `Post-Login Actions`
-   - Trigger: `Post-Login`
-   - Includes linking logic and email verification claim stamping
-
-5. **Create another Post-Login Action**:
-   - Name: `roleClaims`
-   - Trigger: `Post-Login`
-   - Stamps custom claims (roles, email_verified) on access tokens
-
-6. **Create an MFA step-up Action**:
-   - Name: `mfaStepUp`
-   - Trigger: `Post-Login`
-   - Deploy `backend/auth0/post-login/mfaStepUp.js`
-   - Set the Action secrets `MFA_ACR` to
-     `http://schemas.openid.net/pape/policies/2007/06/multi-factor` and
-     `EMAIL_MFA_ACR` to `https://example.invalid/acr/email-otp` for this documentation example; configure the actual namespace in the Auth0 tenant.
-   - Enable the factors used for admin step-up and the Email factor in
-     **Security > Multi-factor Auth**. Self-service password resets request
-     the Email factor only; users must have a verified, enrolled email factor.
-   - Bind this Action before enabling admin reauthentication or self-service
-     password reset. It handles the standard MFA request with any enrolled
-     factor and the email ACR with an email OTP challenge only.
-
-7. **Create a Post User Registration Action**:
-   - Name: `assignDefaultUserRole`
-   - Trigger: `Post User Registration`
-   - Deploy `backend/auth0/post-user-registration/assignDefaultUserRole.js`
-   - Add Action secrets: `AUTH0_DOMAIN`, `AUTH0_M2M_CLIENT_ID`,
-     `AUTH0_M2M_CLIENT_SECRET`, `AUTH0_MGMT_AUDIENCE`, and
-     `AUTH0_DEFAULT_ROLE_ID` (the Auth0 `user` role ID)
-
-8. **Management API Configuration**:
-   - Grant read/write permissions for roles and users
-   - Scopes needed:
-     - `read:users`
-     - `update:users`
-     - `read:roles`
-     - `update:user_app_metadata`
-     - `create:user_identities`
-     - `delete:users`
-   - The M2M application used by `assignDefaultUserRole` only needs
-     `update:users`.
-
-### Frontend Service URLs (Development)
-
-- **Main application**: `https://localhost:5173`
-- **Login/Auth application**: `https://localhost:5174`
-- **Backend API**: `https://localhost:8443`
-
-Start services with:
-
-```bash
-# Terminal 1 - Backend (from repository root)
-npm run start:backend
-
-# Terminal 2 - Main frontend
-cd sanny
-npm run dev
-
-# Terminal 3 - Login frontend
-cd login
-npm run dev
+```
+VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
+VITE_AUTH0_CLIENT_ID=<your-client-id>
+VITE_AUTH0_AUDIENCE=https://api.example.com
+VITE_DEV_API_URL=https://localhost:8443
 ```
 
-## Production Environment Setup
+All values must match backend./env
 
-### Environment Variables
+## Main Frontend (`sanny/.env.local`)
 
-For production deployment, use these settings in your production `.env`:
+Create or update to match:
 
-```bash
-# Compose sets NODE_ENV=production for the production service.
-# Common settings (load from the production secret store)
-AUTH0_DOMAIN=tenant.example.invalid
-AUTH0_CLIENT_ID=replace-with-production-client-id
-AUTH0_CLIENT_SECRET=replace-with-production-client-secret
-AUTH0_AUDIENCE=https://api.example.com
-DATABASE_URL=mysql://<user>:<password>@<private-host>:3306/<database>
-REDIS_PASSWORD=replace-with-a-production-secret
-
-# Production URL and proxy settings (replace reserved example origins)
-PROD_AUTH0_CALLBACK_URL=https://api.example.com/api/v001/auth/callback
-PROD_AUTH0_SUCCESS_REDIRECT=https://app.example.com/
-PROD_AUTH0_LOGOUT_REDIRECT=https://app.example.com/
-PROD_ACCOUNT_LINK_FRONTEND_URL=https://login.example.com/confirm-linking
-PROD_CORS_ORIGINS=https://app.example.com,https://login.example.com
-PROD_TRUST_PROXY=192.0.2.10
-ENABLE_SWAGGER=false
-AUTH0_ROLE_SYNC_ENABLED=false
+```
+VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
+VITE_AUTH0_CLIENT_ID=<your-client-id>
+VITE_AUTH0_AUDIENCE=https://api.example.com
+VITE_DEV_API_URL=https://localhost:8443
+VITE_LOGIN_URL=https://localhost:5174
 ```
 
-### Auth0 Production Tenant Setup
-
-1. **Create a production Auth0 application**:
-   - Application type: `Regular Web Application`
-
-- Name: `Example Production Application`
-
-2. **Configure OAuth settings**:
-   - Allowed Callback URLs:
-   - `https://api.example.com/api/v001/auth/callback`
-   - Allowed Logout URLs:
-   - `https://app.example.com/`
-   - Allowed Web Origins (CORS):
-   - `https://app.example.com`
-   - `https://login.example.com`
-
-3. **Configure Database Connections**:
-   - Same scripts as development, but ensure they use production database credentials
-   - **NEVER share dev/prod database credentials**
-
-4. **Post-Login Actions**:
-   - Deploy the same actions as development
-   - Ensure claims use production domains:
-   - Use the same custom-claim namespace in the tenant and token consumers; the actual namespace is deployment configuration and is intentionally not included here.
-
-5. **Management API Configuration**:
-   - Same scopes as development (see above)
-
-### Production Domain Setup
-
-- **Main application**: `https://app.example.com`
-- **Auth/Login application**: `https://login.example.com`
-- **Backend API**: `https://api.example.com`
-
-### Deployment with NGINX
-
-The backend runs behind an NGINX reverse proxy:
-
-```nginx
-upstream backend {
-    server localhost:3000;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name api.example.com;
-
-    ssl_certificate /path/to/deployment-certificate.crt;
-    ssl_certificate_key /path/to/deployment-private-key.key;
-
-    # Set trust proxy for forwarded headers
-   proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Host $host;
-
-    location / {
-        proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-```
-
-## Environment Variable Priority
-
-The application follows this priority when loading URLs:
-
-### Development (NODE_ENV != "production")
-
-1. Read the environment-specific value (for example, `DEV_AUTH0_CALLBACK_URL`).
-2. Required callback, redirect, account-link frontend, and CORS values do not have application defaults.
-
-### Production (NODE_ENV == "production")
-
-1. Env variable must be set and be a valid HTTPS URL
-2. No defaults allowed - validation will fail if variables are missing or invalid
-
-## Account Linking URL Configuration
-
-Account linking uses `DEV_ACCOUNT_LINK_FRONTEND_URL` or `PROD_ACCOUNT_LINK_FRONTEND_URL`, selected using `NODE_ENV`:
-
-- **Development example**: `https://localhost:5174/confirm-linking`
-- **Production example**: `https://login.example.com/confirm-linking` (must use the deployed HTTPS origin)
-
-The backend automatically constructs the full URL with query parameters.
-
-## Validation
-
-The application validates all production configuration on startup. If required variables are missing or invalid, the server will fail to start with a clear error message.
-
-To verify your configuration before starting:
-
-```bash
-cd backend
-npm run type-check  # Verify TypeScript types
-npm test            # Run automated tests
-```
-
-## Troubleshooting
-
-### "AUTH0_DOMAIN must be a hostname" error
-
-- Ensure `AUTH0_DOMAIN` is just the domain (e.g., `your-tenant.auth0.com`), not a full URL
-
-### "must use HTTPS in production" error
-
-- In production, all Auth0 URLs must start with `https://`
-- This check only applies when `NODE_ENV=production`
-
-### CORS errors in development
-
-- Verify your frontend URL is in `CORS_ORIGINS`
-- Common issue: `http://127.0.0.1` vs `https://localhost` mismatch
-
-### Account linking redirects to wrong URL
-
-- Verify the `DEV_` or `PROD_ACCOUNT_LINK_FRONTEND_URL` value selected by `NODE_ENV`.
-- Production values must use HTTPS and match the registered Auth0 redirect origins.
-
-### Role sync returning 503
-
-- Check `AUTH0_ROLE_SYNC_ENABLED=true` in production `.env`
-- Check Auth0 Management API credentials
-
-When role sync is enabled, the backend accepts any role name that exists in Auth0; there is no assignable-role allowlist. The endpoint is restricted to admins with `write:users` permission and recent MFA. Enable this mode only if that policy is intended.
-
-## Security Considerations
-
-1. **Never commit `.env` to version control**
-2. **Use strong secrets** for Auth0 client credentials, Redis, database access, and any enabled Auth0 Management API integration.
-3. **Rotate credentials regularly**, especially if exposed
-4. **Use separate Auth0 tenants** for development and production
-5. **Restrict CORS origins** to only necessary domains
-6. **Enable HTTPS in production** - the app enforces this
-7. **Use environment-specific database URLs** to prevent accidents
-8. **Audit Auth0 connections** regularly for unauthorized changes
-
-## Deployment Checklist
-
-- [ ] Separate Auth0 tenants for dev and prod
-- [ ] All production env variables set and validated
-- [ ] Database credentials rotated
-- [ ] Auth0 callback URLs match deployment domains
-- [ ] CORS origins restricted to production domains only
-- [ ] NGINX proxy configured with TRUST_PROXY setting
-- [ ] SSL/TLS certificates installed
-- [ ] Database backups configured
-- [ ] Monitoring and alerting set up
-- [ ] Post-login actions tested in production tenant
-- [ ] Role synchronization tested with production data
-- [ ] Account linking flow tested end-to-end
-
-## Related Documentation
-
-- [Quickstart: Testing Account Linking Locally](./local-testing/quickstart_local_testing.mdx) - Testing account linking locally
-- [Account Linking Local Setup](./local-testing/account-linking-local-setup.mdx) - Account linking architecture
-- [Localhost Testing Configuration](./local-testing/localhost-testing.mdx) - Technical reference
+All values must match backend./env

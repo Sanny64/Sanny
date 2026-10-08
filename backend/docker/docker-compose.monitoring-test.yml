@@ -1,0 +1,51 @@
+services:
+  loki:
+    image: grafana/loki:2.9.8
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ../monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+
+  notification-sink:
+    image: node:24-alpine
+    command: ["node", "/app/notification-sink.mjs"]
+    volumes:
+      - ../monitoring/tests/notification-sink.mjs:/app/notification-sink.mjs:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_USER: monitoring-test
+      GF_SECURITY_ADMIN_PASSWORD: monitoring-test-only
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SMTP_ENABLED: "false"
+      GF_LOG_LEVEL: warn
+    volumes:
+      - ../monitoring/tests/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../monitoring/tests/grafana-contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
+      - ../monitoring/tests/grafana-policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
+      - ../monitoring/alerting/rules/429-spikes.yml:/etc/grafana/provisioning/alerting/429-spikes.yml:ro
+      - ../monitoring/alerting/rules/auth-abuse.yml:/etc/grafana/provisioning/alerting/auth-abuse.yml:ro
+      - ../monitoring/alerting/rules/callback-flood.yml:/etc/grafana/provisioning/alerting/callback-flood.yml:ro
+    depends_on:
+      - loki
+      - notification-sink
+
+  monitoring-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command:
+      - node
+      - --import=tsx
+      - --test
+      - monitoring/tests/grafana-rules.integration.test.ts
+    environment:
+      GRAFANA_ADMIN_USER: monitoring-test
+      GRAFANA_ADMIN_PASSWORD: monitoring-test-only
+      GRAFANA_URL: http://grafana:3000
+      LOKI_URL: http://loki:3100
+      NOTIFICATION_SINK_URL: http://notification-sink:9000
+    depends_on:
+      - grafana
+      - loki
+      - notification-sink

@@ -1,56 +1,88 @@
 ---
 title: Automated Testing
 description: Run the mocked and live Playwright end-to-end suites locally.
+sidebar_position: 2
 ---
 
 ## Test commands
 
-Run commands from the repository root. Install the three Playwright browser targets once with `npx playwright install chromium firefox msedge`. The full `npm run test` gate also needs a reachable development API/Auth0 tenant and dedicated `TESTUSER_EMAIL`/`TESTUSER_PASSWORD` credentials.
+Run commands from the repository root. Install the Playwright browsers once with `npx playwright install chromium firefox msedge`.
 
-| Command                            | Purpose                                                              |
-| ---------------------------------- | -------------------------------------------------------------------- |
-| `npm run test:backend`             | Type-check and run backend unit tests.                               |
-| `npm run test:backend:redis`       | Run the real-Redis session integration test; requires Docker.        |
-| `npm run test:e2e:mocked`          | Run mocked UI E2E tests in Chromium, Firefox, and branded Edge.      |
-| `npm run test:e2e`                 | Run mocked E2E plus live password-user Auth0 E2E in headed Chromium. |
-| `npm run test:e2e:mocked:chromium` | Run the mocked UI suite in Chromium only.                            |
-| `npm run test:e2e:mocked:firefox`  | Run the mocked UI suite in Firefox only.                             |
-| `npm run test:e2e:mocked:edge`     | Run the mocked UI suite in branded Edge only.                        |
-| `npm run test`                     | Run all checks, including live password-user Auth0 E2E.              |
+| Command                            | Purpose                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| `npm run test:backend`             | Type-check the backend, then run backend unit and monitoring tests.                         |
+| `npm run test:backend:redis`       | Build/run the backend container for the real-Redis session integration; Docker is required. |
+| `npm run test:e2e:mocked`          | Run mocked browser tests in Chromium, Firefox, and Edge.                                    |
+| `npm run test:e2e:mocked:chromium` | Run the mocked browser tests in Chromium only.                                              |
+| `npm run test:e2e:mocked:firefox`  | Run the mocked browser tests in Firefox only.                                               |
+| `npm run test:e2e:mocked:edge`     | Run the mocked browser tests in Edge only.                                                  |
+| `npm run test:e2e`                 | Run mocked and live Auth0 E2E suites in Chromium, Firefox, and Edge.                        |
+| `npm run test:e2e:real`            | Run live Auth0 tests in headed Chromium, Firefox, and Edge.                                 |
+| `npm run test:e2e:real:chromium`   | Run live Auth0 tests in headed Chromium only.                                               |
+| `npm run test:e2e:real:firefox`    | Run live Auth0 tests in headed Firefox only.                                                |
+| `npm run test:e2e:real:edge`       | Run live Auth0 tests in headed Edge only.                                                   |
+| `npm run test`                     | Run the root regression gate across formatting, backend, Redis, and browser test suites.    |
 
-The mocked UI suite checks anonymous/authenticated session controls (including logout CSRF), self-service and admin role interactions, account linking, WCAG 2.2 AA rules with axe, keyboard operation, mobile horizontal overflow, and a Chromium screenshot baseline. Mocked requests verify frontend behavior and API contracts only; use backend tests or the local Docker stack when real backend behavior matters.
+The full gate needs Docker (and the built images required for this backend project), installed Playwright browsers, a reachable development API/Auth0 tenant, and dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials. The root script runs the live E2E suite in headed Chromium, Firefox, and Edge.
 
-## Coverage findings
+`npm run test` includes frontend app lint/build through `npm run test:frontend`, but docs build remains separate. Frontend component tests and per-app accessibility suites are documented in [Frontend Local Testing](../../frontend/local-testing/automated-testing.mdx).
 
-The complete `npm test` gate passed on 2026-10-03:
+## What the Gate Verifies
 
-- Formatting, backend type-check and tests passed (146 backend tests passed, 1 skipped); the real-Redis integration passed all 6 tests.
-- Frontend lint and builds passed for login, Sanny, shared packages, and docs. Login and Sanny builds emitted a chunk-size warning for bundles over 500 kB.
-- Mocked Playwright E2E passed 100 tests; 2 non-Chromium screenshot cases were skipped by design. The live password-user Auth0 flow passed; the Google automation test was skipped.
+| Area                         | Automated evidence                                                                                                                                                  | Boundary                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend                      | Type checks, unit tests, session/CSRF tests, and the real-Redis session integration.                                                                                | Not a penetration test or hosted-environment assessment.                                                                                           |
+| Public and authenticated UI  | Mocked Playwright covers current public routes, account linking, session controls, settings, and admin allowed/denied states.                                       | Most API responses are mocked; this verifies UI behavior and contracts, not backend persistence.                                                   |
+| Live authentication/security | Dedicated password-user Auth0 login; session-cookie attributes; CSRF rejection on profile, admin-role, and logout mutations; successful logout with the CSRF token. | Does not verify the full live account lifecycle or successful profile/admin mutations.                                                             |
+| Accessibility                | Axe WCAG 2.2 AA checks on public, auxiliary, login-helper, settings, and admin states in English and German; keyboard/focus checks; narrow/wide overflow checks.    | Axe is not run across every theme/browser-preference combination. Screen-reader use, 200% zoom, and reduced-motion behavior require manual checks. |
+| Visual regression            | Chromium desktop/mobile screenshots for public home, login helper, account settings, and populated admin; plus a mobile settings baseline.                          | Screenshot baselines do not establish cross-browser visual parity.                                                                                 |
 
-### Current coverage boundaries
+## Feature-to-Test Traceability
 
-- Browser E2E currently concentrates on authentication/session controls, settings/admin interactions, account-linking proof/resume flows, and selected accessibility checks. Most frontend API responses are mocked; the live Auth0 browser check exercises the password-user path and logout, not the full account lifecycle.
-- The Home, Portfolio, Projects overview, Blog, Games, and Party overview currently render translated text only. Route-smoke tests should assert current rendering and navigation, not behavior that is not implemented. Project detail and party subroutes need separate inspection before adding behavior-specific expectations.
-- Automated axe checks cover account-link confirmation, settings, and denied admin state. Keyboard coverage is focused on account-link confirmation; the visual baseline is a mobile Settings screenshot in Chromium.
-- Backend tests provide targeted security checks, but passing them is not a comprehensive security assessment or penetration test.
-- Google sign-in and Google-dependent account linking require manual verification in a supported browser; do not make automated Google login a gate.
+This matrix maps the main product and security areas to current automated evidence and calls out where manual or hosted verification is still needed. Automated browser tests that mock API responses verify frontend behavior and contracts, not the corresponding live integration.
 
-Actionable test work is tracked separately in `backend/TODO.md` under **Remaining test coverage**. Historical deployment and infrastructure verification records belong in [Monitoring and Verification](../monitoring.mdx), not in the task list.
+| Feature area                                          | Automated test evidence                                                                                                                                                                                                                                         | Remaining verification                                                                                                                             |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public routes and localization                        | `e2e/mock/sanny-routes.spec.ts`; `e2e/mock/sanny-accessibility.spec.ts`                                                                                                                                                                                         | Route tests assert translated page content and redirects, not each shipped interaction in games, party, blog, project, and other public pages.     |
+| Login, sessions, and CSRF                             | `e2e/mock/auth-session.spec.ts`; `e2e/real/login-logout.spec.ts`; `backend/src/tests/auth-route-inject.test.ts`, `csrf-guard-inject.test.ts`, `session-rotation.test.ts`, and `token-lifecycle.test.ts`                                                         | Live coverage is password-user login/logout and CSRF rejection; provider diversity, refresh/reuse behavior, and expiry need staging evidence.      |
+| Account linking                                       | `e2e/mock/account-linking.spec.ts`; `backend/src/tests/auth0-account-linking.test.ts`, `account-link-proof.test.ts`, `account-link-resume.test.ts`, `account-link-callback.test.ts`, and `user-route-guards.test.ts`                                            | Google automation is skipped. Verify Google sign-in, both directions, ownership reauthentication, confirm/cancel, expiry cleanup, and final state. |
+| Profile, account settings, and deletion               | `e2e/mock/sanny-settings.spec.ts`; `backend/src/tests/user-route-guards.test.ts`, `auth0-username-update.test.ts`, `auth0-user-deletion.test.ts`, and `user-deletion-idempotent.test.ts`                                                                        | UI requests are mocked; verify successful mutations, persistence, MFA/email step-up, and account deletion with dedicated staging identities.       |
+| Admin users and roles                                 | `e2e/mock/sanny-settings.spec.ts`; `backend/src/tests/user-route-guards.test.ts`, `user-list-pagination.test.ts`, `auth0-role-sync.test.ts`, and `role-sync-policy.test.ts`                                                                                     | Verify allowed/denied operations, role synchronization, pagination, and destructive actions in the configured staging tenant.                      |
+| MFA and sensitive-action reauthentication             | `e2e/mock/sanny-settings.spec.ts`; `backend/src/tests/auth0-mfa-step-up.test.ts` and `mfa-reauth.test.ts`                                                                                                                                                       | Mocked challenge/resume coverage does not verify live Auth0 MFA or email-OTP challenge, recovery, and replay behavior.                             |
+| Accessibility, responsive behavior, and visual states | `e2e/mock/sanny-accessibility.spec.ts`; `e2e/mock/login-accessibility.spec.ts`                                                                                                                                                                                  | Axe checks English/German states; screen readers, 200% zoom, reduced motion, and all route/theme combinations remain.                              |
+| Backend security controls and monitoring              | `backend/src/tests/cookie-hardening.test.ts`, `rate-limit-enforcement.test.ts`, `security-headers.test.ts`, and `security-audit.test.ts`; isolated `backend/monitoring/tests/grafana-rules.integration.test.ts` and optional `e2e/monitoring/429-spike.spec.ts` | Isolated rule firing and test-sink delivery pass. Real Discord/email contact delivery and the real NGINX 429 alert remain unverified.              |
 
-Visual baselines are stored with the E2E tests. To review and update the Chromium screenshot after an intentional UI change, run `npx playwright test e2e/mock/accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots` and inspect the resulting image diff.
+Treat a listed test as evidence only for the behavior it exercises; coverage outside that scope remains unknown. Update this matrix when features, security controls, or their tests change.
 
-Live Auth0 checks:
+## Limits and Completion
 
-| Command                        | Purpose                                        |
-| ------------------------------ | ---------------------------------------------- |
-| `npm run test:e2e:real`        | Run live Auth0 checks in headed Chromium.      |
-| `npm run test:e2e:real:headed` | Run live Auth0 checks in branded Edge, headed. |
+`npm run test` is a regression gate for the cases above, not proof that every feature, role, provider, preference, or security control has been verified. Treat combinations not explicitly covered by the matrix and tests as unknown rather than implicitly covered.
 
-The live suite uses dedicated test accounts. Provide `TESTUSER_EMAIL`, `TESTUSER_PASSWORD`, `TESTGOOGLEUSER_EMAIL`, and `TESTGOOGLEUSER_PASSWORD` through local environment configuration. Never commit real credentials or use personal accounts for automated tests.
+The following items are still open. Use [Manual Testing](./manual-testing.mdx) and [Deployment and Recovery](../deployment.mdx) for the actionable checklists. A hosted staging environment is not currently provisioned, so hosted verification and staging sign-off cannot yet be complete.
 
-## Google sign-in limitation
+- **Automation and build gate:** add behavior-specific tests for shipped public interactions beyond route rendering; run the full test, lint, and build gates.
+- **Accessibility:** test initial and changing system light/dark preferences, persisted overrides, axe states in both themes, keyboard operation of every workflow, screen-reader behavior, 200% zoom, and reduced motion. Decide and document whether forced-colors/high-contrast support is in scope.
+- **Live identity flows:** verify Google sign-in and both account-link directions, ownership reauthentication, confirm/cancel/expiry cleanup, and resulting Auth0/local state. Exercise live MFA/email-OTP and successful profile/admin mutations with dedicated identities.
+- **Hosted security and operations:** complete the staging release gate in [Deployment and Recovery](../deployment.mdx), including network/proxy boundaries, cookies/CSRF, PKCE replay, refresh/reuse, rate limits, error contracts, data lifecycle, backups/restore, and log redaction.
+- **Monitoring:** fix Grafana integration authentication and verify rule evaluation plus delivery to Discord and email; run the real NGINX 429 scenario and record its alert result.
+- **Traceability:** map every shipped feature, supported role/provider, accessibility preference, and security control to a test or dated manual evidence; explicitly identify unsupported behavior.
 
-Google may block sign-in when it detects that a browser is controlled by software automation. This can happen in headed Edge too: the window is visible, but Playwright still controls the browser. Google may show “This browser or app may not be secure,” and the live social sign-in flow may not complete. This is a provider-side restriction and does not by itself indicate an application regression.
+The open manual and deployment work is tracked in the repository's `backend/TODO.md`. Record hosted verification evidence in [Monitoring and Verification](../monitoring.mdx); local testing and CI results do not count as staging sign-off.
 
-The full `npm run test` command contacts Auth0 for the dedicated password-user flow; the Google automation test is explicitly skipped. Validate Google sign-in and account linking manually in a supported browser. See Google's [supported-browser sign-in guidance](https://support.google.com/accounts/answer/7675428?hl=en) and Playwright's recommendation to [avoid testing third-party dependencies](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).
+## Screenshot Baselines
+
+Baselines are Chromium-only and live beside the E2E spec. After an intentional visual change, run:
+
+```sh
+npx playwright test e2e/mock/sanny-accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots
+```
+
+Review the changed images before accepting updated baselines.
+
+## Continue
+
+Do the [Manual Testing](./manual-testing.mdx)
+
+## Note
+
+Google may block automation even in a visible headed browser. This is a provider limitation, not by itself an application regression. See Google's [supported-browser sign-in guidance](https://support.google.com/accounts/answer/7675428?hl=en) and Playwright's recommendation to [avoid testing third-party dependencies](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).

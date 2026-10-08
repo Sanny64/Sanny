@@ -19,6 +19,8 @@ import {
   shouldRotateSession,
 } from "./session-rotation.js";
 import { readFileSync } from "node:fs";
+import { recordRefreshTokenEvent } from "./metrics.js";
+import { appLogger } from "./logger.js";
 
 export const SESSION_COOKIE = "__Host-sanny_session";
 export const STATE_COOKIE = "__Host-sanny_auth_state";
@@ -89,7 +91,7 @@ export async function initializeSessionStore() {
     },
   });
   client.on("error", (error: Error) =>
-    console.error("Redis session store error", error),
+    appLogger.error({ errorType: error.name }, "Redis session store error"),
   );
   await client.connect();
   redis = client;
@@ -320,14 +322,22 @@ export async function refreshSessionIdentity(
   sessionId: string,
   refreshToken: string,
 ) {
+  recordRefreshTokenEvent("attempted");
   const domain = requiredEnv("AUTH0_DOMAIN");
   const lockToken = randomUUID();
   const lockKey = `${sessionKey(sessionId)}:refresh-lock`;
-  const lockAcquired = await getRedis().set(lockKey, lockToken, {
-    NX: true,
-    PX: refreshLockTtlMs,
-  });
+  let lockAcquired: string | null;
+  try {
+    lockAcquired = await getRedis().set(lockKey, lockToken, {
+      NX: true,
+      PX: refreshLockTtlMs,
+    });
+  } catch (error) {
+    recordRefreshTokenEvent("failed");
+    throw error;
+  }
   if (!lockAcquired) {
+    recordRefreshTokenEvent("failed");
     throw new Error("Session refresh is already in progress");
   }
 
@@ -354,6 +364,7 @@ export async function refreshSessionIdentity(
         reason: "refresh-token-replay",
         refreshTokenPresent: Boolean(refreshToken),
       });
+      recordRefreshTokenEvent("replay_detected");
       throw new Error("Refresh token replay detected");
     }
 
@@ -408,6 +419,7 @@ export async function refreshSessionIdentity(
           reason: rotationDecision.reason,
           refreshTokenPresent: true,
         });
+        recordRefreshTokenEvent("replay_detected");
         throw new Error("Refresh token replay detected");
       }
       nextPreviousRefreshTokens = rotationDecision.previousRefreshTokens;
@@ -427,7 +439,11 @@ export async function refreshSessionIdentity(
     await getRedis().set(sessionKey(sessionId), JSON.stringify(nextSession), {
       PX: SESSION_TTL_MS,
     });
+    recordRefreshTokenEvent("succeeded");
     return { identity, session: nextSession };
+  } catch (error) {
+    recordRefreshTokenEvent("failed");
+    throw error;
   } finally {
     const releaseScript =
       "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";

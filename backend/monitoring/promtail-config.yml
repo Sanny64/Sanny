@@ -15,3 +15,10 @@ scrape_configs:
         labels:
           job: nginx
           __path__: /var/log/nginx/*.log
+  - job_name: backend
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: backend
+          __path__: /var/log/app/*.log

@@ -7,7 +7,7 @@ contactPoints:
       - uid: discord1
         type: discord
         settings:
-          url: "https://discord.com/api/webhooks/1546231751846924409/bhXnsO0-NeS4w7M964VzkgHBKwSr0Kqx026vEEKFTUtoN_T9djbImiaMF0lrm-XLwaZL"
+          url: "$DISCORD_WEBHOOK"
 
   - orgId: 1
     name: email-alerts

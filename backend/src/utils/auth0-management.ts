@@ -2,6 +2,7 @@ import {
   getPasswordResetMailConfig,
   sendPasswordResetMail,
 } from "./password-reset-mail.js";
+import { recordAuth0ManagementRequest } from "./metrics.js";
 
 type Auth0TokenResponse = {
   access_token: string;
@@ -133,12 +134,12 @@ async function auth0ManagementRequest(
   path: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const { domain } = getManagementConfig();
-  const accessToken = await getManagementAccessToken(init.signal ?? undefined);
-
-  let response: Response;
   try {
-    response = await fetch(`https://${domain}/api/v2${path}`, {
+    const { domain } = getManagementConfig();
+    const accessToken = await getManagementAccessToken(
+      init.signal ?? undefined,
+    );
+    const response = await fetch(`https://${domain}/api/v2${path}`, {
       ...init,
       headers: {
         authorization: `Bearer ${accessToken}`,
@@ -146,14 +147,16 @@ async function auth0ManagementRequest(
         ...(init.headers ?? {}),
       },
     });
-  } catch {
+    recordAuth0ManagementRequest(response.ok);
+    return response;
+  } catch (error) {
+    recordAuth0ManagementRequest(false);
+    if (error instanceof Auth0ManagementError) throw error;
     throw new Auth0ManagementError(
       "Auth0 Management API request could not be completed",
       502,
     );
   }
-
-  return response;
 }
 
 function encodeAuth0Sub(auth0Sub: string): string {

@@ -604,7 +604,7 @@ test("rotation keeps the same identity and CSRF token while issuing a new sessio
         emailVerified: true,
         name: "User",
         roles: ["user"],
-        permissions: ["read:me"],
+        permissions: [],
         audiences: ["https://api.example.com"],
       },
       csrfToken: "csrf-token",
@@ -744,6 +744,8 @@ test("Fastify requireSession replaces the rotated cookie and preserves session c
     },
     "./refresh-token.js": { buildRefreshTokenRequest: () => ({}) },
     "../utils/security-audit.js": { logSecurityEvent: () => undefined },
+    "./metrics.js": { recordRefreshTokenEvent: () => undefined },
+    "./logger.js": { appLogger: { error: () => undefined } },
     "./session-rotation.js": sessionRotation,
     "node:fs": { readFileSync: () => Buffer.from("test-ca") },
   };
@@ -1124,6 +1126,8 @@ test("requireSession deletes malformed and absolutely expired Redis records", as
     "./access-token.js": { verifyAccessTokenIdentity: async () => null },
     "./refresh-token.js": { buildRefreshTokenRequest: () => ({}) },
     "../utils/security-audit.js": { logSecurityEvent: () => undefined },
+    "./metrics.js": { recordRefreshTokenEvent: () => undefined },
+    "./logger.js": { appLogger: { error: () => undefined } },
     "./session-rotation.js": sessionRotation,
     "node:fs": { readFileSync: () => Buffer.from("test-ca") },
   };

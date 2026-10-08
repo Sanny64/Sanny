@@ -1,3 +1,5 @@
+import { appLogger } from "./logger.js";
+
 const SENSITIVE_KEYWORDS = [
   "authorization",
   "cookie",
@@ -8,6 +10,10 @@ const SENSITIVE_KEYWORDS = [
   "state",
   "token",
   "code",
+  "user",
+  "email",
+  "sub",
+  "ip",
 ];
 
 function isSensitiveKey(key: string): boolean {
@@ -15,9 +21,27 @@ function isSensitiveKey(key: string): boolean {
   return SENSITIVE_KEYWORDS.some((keyword) => normalized.includes(keyword));
 }
 
-function sanitizeValue(value: unknown): unknown {
+function normalizeAuditPath(path: string): string {
+  if (path === "/healthcheck" || path === "/metrics") return path;
+  if (path === "/api/v001/auth/callback") return "/api/v001/auth/callback";
+  if (path.startsWith("/api/v001/auth")) return "/api/v001/auth";
+  if (path.startsWith("/api/v001/users/me")) return "/api/v001/users/me";
+  if (path.startsWith("/api/v001/users/")) return "/api/v001/users/:id";
+  if (path.startsWith("/api/v001/")) return "/api/v001/other";
+  return path;
+}
+
+function sanitizeValue(value: unknown, key?: string): unknown {
+  if ((key === "path" || key === "url") && typeof value === "string") {
+    try {
+      return normalizeAuditPath(new URL(value, "http://localhost").pathname);
+    } catch {
+      return "/";
+    }
+  }
+
   if (Array.isArray(value)) {
-    return value.map((entry) => sanitizeValue(entry));
+    return value.map((entry) => sanitizeValue(entry, key));
   }
 
   if (value && typeof value === "object") {
@@ -27,7 +51,7 @@ function sanitizeValue(value: unknown): unknown {
           return [];
         }
 
-        return [[key, sanitizeValue(entry)]];
+        return [[key, sanitizeValue(entry, key)]];
       }),
     );
   }
@@ -45,6 +69,6 @@ export function logSecurityEvent<T extends Record<string, unknown>>(
     occurredAt: new Date().toISOString(),
     ...sanitized,
   };
-  console.warn(JSON.stringify(payload));
+  appLogger.warn(payload);
   return payload;
 }

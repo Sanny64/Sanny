@@ -13,7 +13,6 @@ test("reads the required API access-token claims", () => {
         aud: "https://api.sanny64.de",
         sub: "auth0|user-123",
         "https://sanny64.app/roles": ["user"],
-        permissions: ["read:me"],
         "https://sanny64.app/email": "user@example.com",
         "https://sanny64.app/name": "Test User",
       },
@@ -24,7 +23,7 @@ test("reads the required API access-token claims", () => {
       email: "user@example.com",
       emailVerified: false,
       name: "Test User",
-      permissions: ["read:me"],
+      permissions: [],
       roles: ["user"],
       sub: "auth0|user-123",
     });

@@ -97,4 +97,29 @@ for (const route of routes) {
 
     expect(pageErrors).toEqual([]);
   });
+
+  if ("content" in route) {
+    for (const language of ["en", "de"] as const) {
+      test(`${language} ${route.path} remains a content-only placeholder`, async ({
+        page,
+      }) => {
+        await setLanguage(page, language);
+        await page.goto(`${sannyUrl}${route.path}`);
+
+        if ("redirectTo" in route) {
+          await expect(page).toHaveURL(`${sannyUrl}${route.redirectTo}`);
+        }
+
+        const contentSurface = route.path.startsWith("/party")
+          ? page.locator(".auxiliary-layout")
+          : page.locator("main .content");
+        await expect(contentSurface).toContainText(route.content[language]);
+        await expect(contentSurface.getByRole("link")).toHaveCount(0);
+        await expect(contentSurface.getByRole("button")).toHaveCount(0);
+        await expect(
+          contentSurface.locator("input, select, textarea"),
+        ).toHaveCount(0);
+      });
+    }
+  }
 }

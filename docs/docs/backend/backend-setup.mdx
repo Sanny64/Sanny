@@ -1,0 +1,79 @@
+---
+title: Backend Setup
+description: Prepare and run the Sanny backend locally.
+sidebar_position: 2
+---
+
+# Set up the backend
+
+The backend runs as a Docker Compose stack and provides the Fastify API behind NGINX.
+
+Use dedicated development services and test identities; do not connect a local instance to production resources.
+
+## Prerequisites
+
+- Node.js 24 and npm
+- Docker Desktop with Docker Compose
+- A development MariaDB database reachable by the backend (must be configured in `backend/.env` via `DATABASE_URL`)
+- A development Auth0 tenant setup as described in [Auth0 Tenant Setup](./auth0-tenant-setup)
+
+Install workspace dependencies from the repository root:
+
+```sh
+npm ci
+```
+
+## Configure the environment
+
+Create `backend/.env` from the credential-free template. Do not overwrite an
+existing `.env`; it may contain local credentials or settings.
+
+```powershell
+Copy-Item backend/.env.template backend/.env
+```
+
+On macOS or Linux, use `cp -n backend/.env.template backend/.env` to avoid
+overwriting an existing file. Edit `backend/.env` and replace every example
+value you use with settings for your development environment. In particular,
+set `NODE_ENV="development"`, a development `DATABASE_URL`, a Redis password,
+and the Auth0 application and environment-specific URLs. See
+[Environment configuration](./environment-configuration) for the complete
+variable reference and [Auth0 tenant setup](./auth0-tenant-setup) for
+Auth0-side configuration.
+
+The Compose stack also expects the NGINX TLS files and Redis CA certificate at
+the paths mounted from `backend/nginx/certs/` and `backend/redis/certs/`. Keep
+certificates and private keys out of source control.
+
+## Start the backend
+
+### Initial start
+
+1. Open Docker desktop.
+
+2. Run `npm run build:backend` from root
+
+### Every day start
+
+From the repository root, start the development stack:
+
+```sh
+npm run start:backend
+```
+
+The API is available through the local HTTPS proxy at
+`https://localhost:8443`.
+
+Start the frontend applications separately with
+`npm run dev:sanny` and `npm run dev:login` from root when needed.
+
+### Stop the backend
+
+To stop the stack, run `npm run stop:backend` from the repository root.
+
+**Important:** Once you finished working on the project always use this command to not leave the containers online.
+
+## More info
+
+For production deployment boundaries and release checks,
+see [Deployment and recovery](./deployment).

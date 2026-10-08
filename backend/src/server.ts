@@ -1,5 +1,5 @@
 import "dotenv/config";
-import Fastify from "fastify";
+import Fastify, { type FastifyRequest } from "fastify";
 import userRoutes from "./routes/user.route.js";
 import prisma from "./utils/prisma.js";
 import fastifyAuth0Api from "@auth0/auth0-fastify-api";
@@ -15,6 +15,7 @@ import cookie from "@fastify/cookie";
 import helmet from "@fastify/helmet";
 import {
   closeSessionStore,
+  getSessionStoreClient,
   initializeSessionStore,
   requireCsrf,
 } from "./utils/session.js";
@@ -37,6 +38,12 @@ import { startPendingAccountLinkCleanup } from "./utils/account-link-cleanup.js"
 import { startOrphanedSocialUserCleanup } from "./utils/orphaned-social-user-cleanup.js";
 import { createSafeErrorResponse } from "./utils/safe-error.js";
 import { getHtmlErrorRedirectUrl } from "./utils/error-response.js";
+import {
+  metricsRegistry,
+  recordHttpResponse,
+  updateDependencyMetrics,
+} from "./utils/metrics.js";
+import { appLogger } from "./utils/logger.js";
 
 const version = packageJson.version;
 
@@ -58,9 +65,11 @@ const corsOrigins = getCorsOrigins();
 
 // server
 export const server = Fastify({
-  logger: true,
+  loggerInstance: appLogger,
+  requestIdHeader: false,
   trustProxy: getTrustProxy(),
 });
+const requestStartTimes = new WeakMap<FastifyRequest, number>();
 
 server.setErrorHandler((error, request, reply) => {
   const rawStatus =
@@ -90,6 +99,20 @@ server.setNotFoundHandler((request, reply) => {
     .send({ error: safe.error, message: safe.message });
 });
 
+server.addHook("onRequest", async (request) => {
+  requestStartTimes.set(request, performance.now());
+});
+
+server.addHook("onResponse", async (request, reply) => {
+  const startedAt = requestStartTimes.get(request) ?? performance.now();
+  recordHttpResponse(
+    request.routeOptions.url,
+    request.method,
+    reply.statusCode,
+    (performance.now() - startedAt) / 1000,
+  );
+});
+
 // create a type provider for Zod
 server.setValidatorCompiler(validatorCompiler);
 server.setSerializerCompiler(serializerCompiler);
@@ -97,6 +120,15 @@ server.setSerializerCompiler(serializerCompiler);
 // healthcheck
 server.get("/healthcheck", async function () {
   return { status: "OK" };
+});
+
+server.get("/metrics", async (_request, reply) => {
+  await updateDependencyMetrics({
+    database: () => prisma.$queryRawUnsafe("SELECT 1"),
+    redis: () => getSessionStoreClient().ping(),
+  });
+  reply.type(metricsRegistry.contentType);
+  return metricsRegistry.metrics();
 });
 
 async function main() {
@@ -219,7 +251,10 @@ async function main() {
     await prisma.$queryRawUnsafe("SELECT 1");
     await server.listen({ port: 3000, host: "0.0.0.0" });
   } catch (err) {
-    console.error(err);
+    server.log.error(
+      { errorType: err instanceof Error ? err.name : "unknown" },
+      "Backend startup failed",
+    );
     process.exit(1);
   }
 }

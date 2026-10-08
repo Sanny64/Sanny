@@ -41,15 +41,15 @@ In the project directory, run one of the workspace scripts:
 - npm run dev:login
 - npm run dev:docs
 
-For quality checks:
+For quality checks, use scripts defined by the root `package.json`:
 
-- npm run format:check
-- npm run lint
-- npm run build
-- npm run test
-- npm run lint:backend
+- `npm run format:check`
+- `npm run test`
+- `npm run lint:backend`, `npm run lint:login`, `npm run lint:sanny`, and `npm run lint:docs`
+- Shared-package lint: `npm run lint -w @sanny/i18n`, `npm run lint -w @sanny/styles`, and `npm run lint -w @sanny/ui`
+- `npm run build:login`, `npm run build:sanny`, and `npm run build:docs`
 
-`npm run test` runs formatting, backend unit/type and Redis integration tests, frontend lint/build, mocked UI end-to-end tests in Chromium, Firefox, and branded Edge, and a live password-user Auth0 flow in headed Chromium. Install the browsers with `npx playwright install chromium firefox msedge` and provide dedicated `TESTUSER_EMAIL`/`TESTUSER_PASSWORD` credentials for the live flow. The mocked suite covers role-gated workflows, WCAG 2.2 AA axe scans, keyboard/mobile checks, and a Chromium screenshot baseline. The Google automation case is intentionally skipped because Google may block controlled browsers; verify Google sign-in and account linking manually. See the [automated testing guide](docs/docs/backend/local-testing/automated-testing.mdx).
+`npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](docs/docs/backend/local-testing/automated-testing.mdx), [frontend automated testing guide](docs/docs/frontend/local-testing/automated-testing.mdx), and [staging readiness checklist](backend/TODO.md).
 
 That will open https://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
 
@@ -66,7 +66,7 @@ Sanny/ (Root Workspace)
 │   │    └── post-user-registration/ # Scripts that run after user registration
 │   │
 │   ├── docker/                      # Docker compose and Dockerfile
-│   ├── monitoring/                  # Grafana, Loki, Prometheus Setup
+│   ├── monitoring/                  # Prometheus, exporters, Grafana, Loki, and Promtail
 │   ├── nginx/                       # Reverse proxy, rate limiting safety net, 429-error handling
 │   ├── prisma/                      # Prisma Schema
 │   ├── redis/                       # Memory-NoSQL database

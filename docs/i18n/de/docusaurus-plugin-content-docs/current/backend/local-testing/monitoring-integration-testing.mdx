@@ -1,0 +1,74 @@
+---
+title: Monitoring-Integrationstests
+description: Grafana-Kontaktpunkte und Monitoring-Regeln lokal sicher prüfen.
+sidebar_position: 5
+---
+
+# Monitoring-Integrationstests
+
+Diese Tests richten sich an den lokalen Entwicklungs-Compose-Stack. Sie können echte E-Mail- und Discord-Benachrichtigungen versenden und fügen bei Regeltests synthetische Einträge in Loki ein. Nicht gegen Produktion ausführen. Inhalte aus `backend/.env` niemals anzeigen oder committen.
+
+## Voraussetzungen
+
+- Entwicklungs-Stack im Repository-Stammverzeichnis mit `npm run start:backend` starten.
+- Prüfen, ob Grafanas Alarmregeln geladen sind. In Grafana **Alerting → Alert rules** öffnen; Alarmregeln sind nicht unter **Dashboards → Browse** aufgeführt.
+- Vor einem Trigger-Test warten, bis vorhandene `429`-, Auth-Volumen- oder Callback-Flood-Alarme beendet sind.
+
+Das Grafana-Image ist ein minimales Laufzeit-Image ohne npm. Container-Tests werden direkt mit Node und `--import=tsx` ausgeführt.
+
+## E-Mail-Kontaktpunkt testen
+
+Grafanas integrierten Kontaktpunkttest verwenden:
+
+1. Grafana über den authentifizierten Pfad `/grafana/` öffnen.
+2. **Alerting → Notification configuration → Contact points** aufrufen.
+3. Den Kontaktpunkt `email-alerts` bearbeiten und **Test** auswählen.
+4. Die vordefinierte Testbenachrichtigung senden und den Eingang im konfigurierten Postfach bestätigen.
+
+Dabei wird eine echte E-Mail versendet. Zustellung und Benachrichtigungshistorie in Grafana sind der Nachweis; eine SMTP-Konfiguration allein beweist keine erfolgreiche Zustellung.
+
+## Direkter Discord-Webhook
+
+Den explizit aktivierten Webhooktest im Repository-Stammverzeichnis ausführen:
+
+```powershell
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true app node --import=tsx --test monitoring/tests/discord-integration.test.ts
+```
+
+Der Test versendet eine synthetische Nachricht über `DISCORD_WEBHOOK` des App-Containers und erwartet HTTP `204`. Er prüft den Webhook selbst, nicht Grafanas Alarmweiterleitung. Nur ausführen, wenn eine sichtbare Testnachricht im konfigurierten Discord-Ziel in Ordnung ist.
+
+## Grafana-Regeln auslösen
+
+Dieser Integrationstest sendet begrenzte synthetische Loki-Einträge über die Schwellenwerte der drei Logregeln und fragt anschließend Grafana ab, ob `429 Rate Limit Spike`, `Auth Endpoint Abuse` und `Auth Callback Flood` ausgelöst wurden:
+
+```powershell
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true app node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
+```
+
+Dabei können Discord-Warnungen und eine kritische E-Mail versendet werden. Nur ausführen, wenn diese Nebenwirkungen beabsichtigt sind. Grafanas API-Abfrage benötigt `GRAFANA_ADMIN_USER` und `GRAFANA_ADMIN_PASSWORD`, passend zum gespeicherten Grafana-Konto. Eine Änderung der Compose-Umgebungswerte ändert kein bestehendes Grafana-Passwort; wiederholte fehlgeschlagene Basic-Authentifizierungen können das Konto vorübergehend sperren. Vor einem erneuten Versuch zuerst die Authentifizierung korrigieren.
+
+Die synthetischen Loki-Einträge verwenden `source="integration-test"` und bleiben bis zum Ablauf der konfigurierten Aufbewahrung von sieben Tagen erhalten. Beim früheren Versuch im Entwicklungs-Stack akzeptierte Loki die Einträge, aber die Grafana-Abfrage des Alarmstatus lieferte HTTP `401`; es wurde kein Discord-Alarm empfangen und E-Mail nicht geprüft. Der isolierte Integrationstest bestand am 2026-10-08: alle drei Logregeln lösten aus und wurden an den lokalen Benachrichtigungs-Test-Sink zugestellt. Das belegt weder echte Discord-/E-Mail-Kontaktzustellung noch den NGINX-429-Playwright-Test. Grafana lud anfangs aufgrund eines verschachtelten Compose-Mounts keine Regeln; nach der Korrektur meldete Grafana 14 geladene Regeln und aktive Auswertung.
+
+## Echten NGINX-429-Anstieg testen
+
+Dieses separate Playwright-Szenario sendet 40 Requests über den lokalen NGINX-Proxy an `/api/v001/auth`, erwartet mehr als 20 HTTP-`429`-Antworten und wartet die Auswertungs- und Haltezeit der Alarmregel ab. Es kann den Discord-Alarm `429 Rate Limit Spike` auslösen, prüft aber weder Grafanas Status noch die Zustellung der Benachrichtigung.
+
+In PowerShell im Repository-Stammverzeichnis:
+
+```powershell
+$env:RUN_429_SPIKE_E2E = "true"
+npm run test:e2e:429-spike
+```
+
+Der Test verwendet `playwright.monitoring.config.ts` und nur Chromium. Er ist von normalen E2E- und vollständigen Testläufen ausgeschlossen. Nur starten, wenn die Alarmbenachrichtigung beabsichtigt ist.
+
+## Lokale Testergebnisse
+
+| Datum      | Szenario                           | Ergebnis                                                                                                                                                 |
+| ---------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-10-08 | Direkter Discord-Webhook           | Bestanden; Discord akzeptierte die synthetische Nachricht mit HTTP `204`. Grafanas Alarmweiterleitung wurde nicht geprüft.                               |
+| 2026-10-08 | Entwicklungs-Stack Grafana-API     | Nicht verifiziert; Loki akzeptierte synthetische Einträge, aber die Grafana-API lieferte HTTP `401`. Kein Discord-Alarm empfangen; E-Mail nicht geprüft. |
+| 2026-10-08 | Isolierte Grafana/Loki-Integration | Bestanden; alle drei Logregeln lösten aus und wurden an den lokalen Test-Sink zugestellt. Echte Discord-/E-Mail-Zustellung nicht geprüft.                |
+| 2026-10-08 | Regel-Provisionierung              | Verschachtelte Regeldatei-Mounts korrigiert; Grafana meldete danach 14 geladene Regeln und aktivierte Auswertung.                                        |
+| 2026-10-08 | Grafana-E-Mail-Kontaktpunkttest    | Nicht ausgeführt.                                                                                                                                        |
+| 2026-10-08 | Echter 429-Playwright-Test         | Als optionales Szenario hinzugefügt; nicht ausgeführt.                                                                                                   |

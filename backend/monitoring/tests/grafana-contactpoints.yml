@@ -1,0 +1,11 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: monitoring-test
+    receivers:
+      - uid: monitoring-test
+        type: webhook
+        settings:
+          url: http://notification-sink:9000/receive
+          httpMethod: POST

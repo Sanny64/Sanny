@@ -22,6 +22,29 @@
   width: 100%;
 }
 
+html[data-theme="dark"] .account-linking-container,
+html.dark .account-linking-container {
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #d1d5db;
+  --color-text-tertiary: #cbd5e1;
+  --color-background-secondary: #2d2f43;
+  --color-border: #626574;
+  --color-primary: #5b21b6;
+  --color-primary-dark: #4c1d95;
+  color: var(--color-text-primary);
+  background: linear-gradient(135deg, #16171d 0%, #1f2028 100%);
+}
+
+html[data-theme="dark"] .account-linking-card,
+html.dark .account-linking-card {
+  background: #1f2028;
+}
+
+html[data-theme="dark"] .account-icon,
+html.dark .account-icon {
+  background-color: #2d2f43;
+}
+
 .account-linking-card h1 {
   font-size: 1.75rem;
   margin: 0 0 0.5rem 0;

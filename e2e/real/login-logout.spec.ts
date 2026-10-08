@@ -146,11 +146,68 @@ test("creates or loads a password user through live Auth0 @real", async ({
   const appUrl = env.SANNY_E2E_APP_URL ?? "https://127.0.0.1:5176";
   const apiUrl = env.SANNY_E2E_API_URL ?? "https://localhost:8443";
 
+  const auth0StepResponses: string[] = [];
+  let cloudflareChallengeDetected = false;
+  page.on("response", (response) => {
+    const responseUrl = new URL(response.url());
+    if (responseUrl.pathname.startsWith("/u/")) {
+      if (response.headers()["cf-mitigated"]?.toLowerCase() === "challenge") {
+        cloudflareChallengeDetected = true;
+      }
+      if (response.status() >= 400) {
+        void response
+          .text()
+          .then((body) => {
+            if (
+              /\/cdn-cgi\/challenge-platform|cf-turnstile|cf_chl_|challenges\.cloudflare\.com|verify you are human|checking your browser/i.test(
+                body,
+              )
+            ) {
+              cloudflareChallengeDetected = true;
+            }
+          })
+          .catch(() => {});
+      }
+      auth0StepResponses.push(
+        `${response.request().method()} ${responseUrl.pathname} ${response.status()}`,
+      );
+    }
+  });
+
   await beginSignIn(page, appUrl, apiUrl);
   await page.getByLabel(/email address/i).fill(email!);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  const passwordInput = page.locator('input[type="password"]');
-  await passwordInput.waitFor({ state: "visible", timeout: 20_000 });
+  const passwordInput = page.locator('input[type="password"]:visible');
+  try {
+    await passwordInput.waitFor({ state: "visible", timeout: 20_000 });
+  } catch {
+    const currentUrl = new URL(page.url());
+    const visibleText = (await page.locator("body").innerText())
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
+      .replace(/\s+/g, " ")
+      .slice(0, 400);
+    const cloudflareChallengeUi =
+      (await page
+        .getByText(
+          /verify you are human|verifying you are human|checking your browser|cloudflare/i,
+        )
+        .count()) > 0 ||
+      (await page
+        .locator(
+          'iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"], #challenge-form, input[name="cf-turnstile-response"], input[name="cf_chl_rc_i"]',
+        )
+        .count()) > 0;
+    if (cloudflareChallengeDetected || cloudflareChallengeUi) {
+      test.skip(
+        true,
+        "Cloudflare verification blocked the automated Auth0 login; verify this identity manually in a supported browser.",
+      );
+    }
+    throw new Error(
+      `Auth0 did not advance to password entry at ${currentUrl.host}${currentUrl.pathname}. ` +
+        `UI: ${visibleText}. Auth0 responses: ${auth0StepResponses.join(", ") || "none"}.`,
+    );
+  }
   await passwordInput.fill(password!);
   await submitCredentialsAndWaitForCallback(page, () =>
     page.getByRole("button", { name: /continue|log in/i }).click(),

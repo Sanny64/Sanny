@@ -1,0 +1,134 @@
+# Schnellstart: Account-Verknüpfung lokal testen
+
+Diese Anleitung führt dich Schritt für Schritt durch das Testen der Account-Verknüpfung auf deinem lokalen Rechner.
+
+## Voraussetzungen
+
+1. Node.js 24 und npm; installiere Workspace-Abhängigkeiten einmalig im Repository-Stammverzeichnis mit `npm ci`.
+2. Docker Desktop für den lokalen Backend-Stack.
+3. Eine dedizierte Auth0-Entwicklungsanwendung und Testkonten. Verwende keine persönlichen Konten.
+
+## 1. Auth0-Anwendung konfigurieren
+
+Konfiguriere Callback-, Logout- und CORS-URLs gemäß [Lokale Einrichtung der Account-Verknüpfung](./account-linking-testing). Halte den Test-Tenant und die lokale Umgebung von der Produktion getrennt.
+
+## 2. Dienste starten
+
+Öffne drei Terminals im Repository-Stammverzeichnis und führe die folgenden Befehle aus:
+
+### Terminal 1: Backend-Stack
+
+```bash
+npm run start:backend
+```
+
+Die lokale HTTPS-API ist über den Proxy unter `https://localhost:8443` verfügbar.
+
+### Terminal 2: Login-App
+
+```bash
+npm run dev:login
+```
+
+Die App ist unter `https://localhost:5174` verfügbar.
+
+### Terminal 3: Sanny-App
+
+```bash
+npm run dev:sanny
+```
+
+Die App ist unter `https://localhost:5173` verfügbar.
+
+## 3. Ablauf der Account-Verknüpfung testen
+
+### Schritt 1: Primären Account erstellen (E-Mail und Passwort)
+
+1. Öffne https://localhost:5174 in deinem Browser.
+2. Registriere dich mit:
+   - E-Mail-Adresse: `test+primary@example.com`
+   - Passwort: Verwende ein einmaliges Testpasswort aus deinem Passwort-Manager.
+   - Benutzername: `test_primary`
+3. Du solltest angemeldet und weitergeleitet werden.
+
+### Schritt 2: Account-Verknüpfung auslösen
+
+1. Klicke auf **Logout**, um den primären Account abzumelden.
+2. Suche auf der Login-Seite nach **„Continue with Google“** oder einem anderen OAuth-Anbieter.
+3. Melde dich bei diesem Anbieter mit derselben E-Mail-Adresse (`test+primary@example.com`) an.
+4. Auth0 erkennt die doppelte E-Mail-Adresse und leitet zur Seite für die Account-Verknüpfung weiter.
+
+### Schritt 3: Account-Verknüpfung bestätigen
+
+Die Account-Linking-Seite unter `https://localhost:5174/confirm-linking` sollte Folgendes anzeigen:
+
+- Details des primären Accounts
+- Details des sekundären Accounts
+- Eine Schaltfläche **„Authenticate & Continue“**
+
+1. Klicke auf **„Authenticate & Continue“**.
+2. Ein Popup fordert dich auf, dich beim sekundären Anbieter (Google) zu authentifizieren.
+3. Schließe die Authentifizierung ab.
+4. Nach erfolgreicher Authentifizierung wird das Popup geschlossen.
+5. Die Accounts werden zusammengeführt und du wirst zur Haupt-App weitergeleitet.
+
+### Schritt 4: Erfolgreiche Verknüpfung prüfen
+
+1. Du solltest nun in der Haupt-App angemeldet sein (https://localhost:5173).
+2. Prüfe das Ergebnis der Account-Verknüpfung über die normale Profilansicht der Anwendung und die isolierte Testdatenbank.
+3. Verwende zum Prüfen von Claims bei Bedarf einen freigegebenen lokalen Decoder mit einem nicht produktiven Test-Token. Füge aktive Access-, ID- oder Refresh-Tokens, Cookies oder Autorisierungscodes niemals in Online-Tools, Browserkonsolen, Tickets oder Chats ein.
+
+## 4. Datenbank prüfen
+
+Verwende einen freigegebenen, schreibgeschützten Datenbank-Client und wähle nur nicht geheime Felder aus:
+
+```sql
+SELECT id, email, auth0Sub, emailVerified FROM User WHERE email = 'test+primary@example.com';
+```
+
+## Fehlerbehebung
+
+### Fehler „Invalid redirect_uri“
+
+## Verifikation
+
+Prüfe beide Richtungen der Account-Verknüpfung, die Eigentums-Reauthentifizierung, Bestätigen und Abbrechen sowie den resultierenden Auth0-/lokalen Kontostatus mit dedizierten Testkonten. Der Google-Automatisierungstest wird absichtlich übersprungen; Google-abhängige Abläufe müssen in einem unterstützten Browser manuell geprüft werden. Die automatisierte Abdeckung und ihre Grenzen stehen unter [Automatisierte Tests](./automated-testing).
+
+- **Ursache**: Die E-Mail-Adresse des sekundären Accounts stimmt nicht mit der des primären Accounts überein.
+- **Lösung**: Stelle sicher, dass beide Accounts exakt dieselbe E-Mail-Adresse verwenden.
+- **Debugging**: Prüfe die Backend-Logs auf Meldungen zu abweichenden E-Mail-Adressen.
+
+### Popup-Fenster wird blockiert
+
+- **Ursache**: Der Browser blockiert Popups.
+- **Lösung**: Erlaube Popups für `localhost:5174` in den Browsereinstellungen.
+- **Prüfung**: Suche in der Adressleiste nach einem Hinweis auf ein blockiertes Popup.
+
+### „CORS Error“ in der Konsole
+
+- **Ursache**: Der Ursprung fehlt in `DEV_CORS_ORIGINS` in `backend/.env`.
+- **Lösung**: Prüfe, ob `DEV_CORS_ORIGINS` sowohl `https://localhost:5174` als auch `https://localhost:5173` enthält.
+- **Hinweis**: Nach Änderungen an `.env` muss das Backend neu gestartet werden.
+
+### „Redis Connection Error“
+
+- **Ursache**: Der Redis-Container des Backends ist nicht verfügbar oder seine TLS-/Passwortkonfiguration stimmt nicht überein.
+- **Lösung**: Starte den Docker-Compose-Stack des Backends und prüfe die bereinigten Container-Statusmeldungen und Logs. Verwende kein nicht konfiguriertes öffentliches Redis-Image als Ersatz.
+
+### Datenbankverbindungsfehler
+
+- **Ursache**: MySQL läuft nicht oder die Zugangsdaten sind falsch.
+- **Lösung**: Prüfe, ob MySQL läuft und `DATABASE_URL` in `backend/.env` korrekt ist.
+- **Prüfung**: Aktiviere bei Bedarf `DATABASE_URL` für die Entwicklungsumgebung in `backend/.env`.
+
+## Umgebungskonfiguration
+
+Verwende [Lokale Einrichtung der Account-Verknüpfung](./account-linking-testing) als zentrale Referenz für Auth0-Callback-/CORS- und lokale Umgebungswerte.
+
+## Verifikation
+
+Prüfe beide Richtungen der Account-Verknüpfung, die Eigentums-Reauthentifizierung, Bestätigen und Abbrechen sowie den resultierenden Auth0-/lokalen Kontostatus mit dedizierten Testkonten. Der Google-Automatisierungstest wird absichtlich übersprungen; Google-abhängige Abläufe müssen in einem unterstützten Browser manuell geprüft werden. Die automatisierte Abdeckung und ihre Grenzen stehen unter [Automatisierte Tests](./automated-testing).
+
+## Support
+
+Weitere Informationen zur Account-Linking-Architektur und Auth0-Konfiguration findest du unter [Lokale Einrichtung der Account-Verknüpfung](./account-linking-testing).

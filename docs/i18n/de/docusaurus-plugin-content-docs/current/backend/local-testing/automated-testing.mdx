@@ -5,52 +5,62 @@ description: Die gemockten und Live-Playwright-End-to-End-Tests lokal ausführen
 
 ## Testbefehle
 
-Führe die Befehle im Repository-Stammverzeichnis aus. Installiere die drei Playwright-Browser einmalig mit `npx playwright install chromium firefox msedge`. Der vollständige Befehl `npm run test` benötigt außerdem eine erreichbare Entwicklungs-API/Auth0-Umgebung sowie dedizierte Zugangsdaten unter `TESTUSER_EMAIL` und `TESTUSER_PASSWORD`.
+Führe die Befehle im Repository-Stammverzeichnis aus. Installiere die Playwright-Browser einmalig mit `npx playwright install chromium firefox msedge`.
 
-| Befehl                             | Zweck                                                              |
-| ---------------------------------- | ------------------------------------------------------------------ |
-| `npm run test:backend`             | Typprüfung und Backend-Unit-Tests.                                 |
-| `npm run test:backend:redis`       | Redis-Session-Integrationstest; Docker erforderlich.               |
-| `npm run test:e2e:mocked`          | Gemockte UI-E2E-Tests in Chromium, Firefox und Edge.               |
-| `npm run test:e2e`                 | Gemockte E2E-Tests plus Live-Passwort-Flow in sichtbarem Chromium. |
-| `npm run test:e2e:mocked:chromium` | Gemockte UI-Suite nur in Chromium.                                 |
-| `npm run test:e2e:mocked:firefox`  | Gemockte UI-Suite nur in Firefox.                                  |
-| `npm run test:e2e:mocked:edge`     | Gemockte UI-Suite nur in Edge.                                     |
-| `npm run test`                     | Alle Prüfungen einschließlich Live-Passwort-Flow bei Auth0.        |
+| Befehl                             | Zweck                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `npm run test:backend`             | Backend-Typprüfung sowie Backend-Unit- und Monitoring-Tests.            |
+| `npm run test:backend:redis`       | Redis-Session-Integration; Docker muss verfügbar sein.                  |
+| `npm run test:e2e:mocked`          | Gemockte Browser-Tests in Chromium, Firefox und Edge.                   |
+| `npm run test:e2e:mocked:chromium` | Gemockte Browser-Tests nur in Chromium.                                 |
+| `npm run test:e2e:mocked:firefox`  | Gemockte Browser-Tests nur in Firefox.                                  |
+| `npm run test:e2e:mocked:edge`     | Gemockte Browser-Tests nur in Edge.                                     |
+| `npm run test:e2e`                 | Gemockte und Live-Auth0-E2E-Suites in Chromium, Firefox und Edge.       |
+| `npm run test:e2e:real`            | Live-Auth0-Tests in sichtbarem Chromium, Firefox und Edge.              |
+| `npm run test:e2e:real:chromium`   | Live-Auth0-Tests nur in sichtbarem Chromium.                            |
+| `npm run test:e2e:real:firefox`    | Live-Auth0-Tests nur in sichtbarem Firefox.                             |
+| `npm run test:e2e:real:edge`       | Live-Auth0-Tests nur in sichtbarem Edge.                                |
+| `npm run test`                     | Root-Gate für Formatierung, Backend, Redis, Frontend und Browser-Tests. |
 
-Die gemockte UI-Suite prüft anonyme und authentifizierte Sitzungsaktionen (einschließlich CSRF beim Abmelden), Self-Service- und Admin-Rolleninteraktionen, Account-Verknüpfung, WCAG-2.2-AA-Regeln mit axe, Tastaturbedienung, horizontalen mobilen Überlauf und einen Chromium-Screenshot-Baseline. Gemockte Anfragen prüfen nur Frontend-Verhalten und API-Verträge; verwende Backend-Tests oder den lokalen Docker-Stack, wenn das echte Backend-Verhalten relevant ist.
+Der vollständige Gate benötigt Docker, installierte Playwright-Browser, eine erreichbare Entwicklungs-API/Auth0-Umgebung und dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`. Die Live-Suite verwendet keine persönlichen Konten. `npm run test` enthält Frontend-Lint und App-Builds über `npm run test:frontend`; der Docs-Build bleibt separat. Siehe [Frontend Local Testing](../../frontend/local-testing/automated-testing).
 
-## Findings zur Testabdeckung
+## Was der Gate prüft
 
-Der vollständige `npm test`-Gate war am 2026-10-03 erfolgreich:
+| Bereich                             | Automatisierte Nachweise                                                                                                                                          | Grenze                                                                                                                                |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend                             | Typprüfung, Unit-Tests, Session-/CSRF-Tests und Redis-Session-Integration.                                                                                        | Kein Penetrationstest und keine Bewertung einer gehosteten Umgebung.                                                                  |
+| Öffentliche und authentifizierte UI | Gemockte Playwright-Tests für aktuelle öffentliche Routen, Account-Verknüpfung, Sitzungsaktionen, Settings sowie erlaubte/abgewiesene Admin-Zustände.             | Die meisten API-Antworten sind gemockt; geprüft werden UI-Verhalten und Verträge, nicht die Persistenz des Backends.                  |
+| Live-Authentifizierung/Sicherheit   | Dedizierter Auth0-Passwort-Login; Session-Cookie-Attribute; CSRF-Ablehnung bei Profil-, Admin-Rollen- und Logout-Mutationen; erfolgreiches Logout mit CSRF-Token. | Prüft weder den gesamten Live-Account-Lebenszyklus noch erfolgreiche Profil-/Admin-Mutationen.                                        |
+| Accessibility                       | `e2e/mock/login-accessibility.spec.ts` und `e2e/mock/sanny-accessibility.spec.ts`: Axe-WCAG-2.2-AA, Tastatur/Fokus, Responsive und Chromium-Baselines.            | Nicht jede Theme-/Browserpräferenz-Kombination wird geprüft. Screenreader, 200%-Zoom und Reduced Motion erfordern manuelle Prüfungen. |
+| Visuelle Regression                 | Chromium-Screenshots für Home, Login-Helper, Account-Settings und gefüllte Admin-Ansicht auf Desktop/Mobil sowie eine mobile Settings-Baseline.                   | Screenshot-Baselines belegen keine visuelle Parität zwischen Browsern.                                                                |
 
-- Formatierung, Backend-Typprüfung und Backend-Tests bestanden (146 Backend-Tests bestanden, 1 übersprungen); die echte Redis-Integration bestand alle 6 Tests.
-- Frontend-Lint und Builds für Login, Sanny, Shared Packages und Docs bestanden. Die Login- und Sanny-Builds meldeten Chunkgrößen-Warnungen für Bundles über 500 kB.
-- Die gemockten Playwright-E2E-Tests bestanden 100 Tests; 2 Screenshot-Fälle außerhalb von Chromium wurden erwartungsgemäß übersprungen. Der Live-Auth0-Passwort-Flow bestand; der Google-Automatisierungstest wurde übersprungen.
+## Grenzen und Abschluss
 
-### Aktuelle Abdeckungsgrenzen
+`npm run test` ist ein Regression-Gate für die oben genannten Fälle, aber kein Nachweis, dass jedes Feature, jede Rolle, jeder Provider, jede Präferenz oder jede Sicherheitskontrolle geprüft wurde. Die Rückverfolgbarkeitsmatrix ist noch nicht vollständig. Nicht abgedeckte Kombinationen gelten als unbekannt und nicht als implizit geprüft. Es gibt noch keine gehostete Staging-Umgebung; daher ist eine Staging-Freigabe derzeit nicht möglich.
 
-- Die Browser-E2E-Tests konzentrieren sich derzeit auf Authentifizierungs-/Sitzungsaktionen, Settings/Admin, Account-Linking-Proof-/Resume-Flows und ausgewählte Accessibility-Prüfungen. Die meisten Frontend-API-Antworten sind gemockt; der Live-Auth0-Browsertest umfasst den Passwortnutzer-Pfad und Logout, nicht den vollständigen Account-Lebenszyklus.
-- Home, Portfolio, Projekte-Übersicht, Blog, Games und Party-Übersicht zeigen derzeit nur übersetzten Text. Route-Smoke-Tests sollten das aktuelle Rendering und die Navigation prüfen, nicht noch nicht implementiertes Verhalten. Projekt-Detail- und Party-Unterseiten müssen vor verhaltensspezifischen Erwartungen einzeln geprüft werden.
-- Automatisierte axe-Prüfungen decken Account-Link-Bestätigung, Settings und den abgewiesenen Admin-Zustand ab. Tastaturprüfungen konzentrieren sich auf die Account-Link-Bestätigung; die visuelle Baseline ist ein mobiler Settings-Screenshot in Chromium.
-- Backend-Tests enthalten gezielte Security-Prüfungen. Ein erfolgreicher Lauf ist jedoch weder eine umfassende Sicherheitsbewertung noch ein Penetrationstest.
-- Google-Anmeldung und Google-abhängige Account-Verknüpfung müssen manuell in einem unterstützten Browser geprüft werden; automatisierter Google-Login darf kein Gate sein.
+Bevor eine vollständige Produktverifikation behauptet wird, müssen die folgenden Lücken geschlossen und die Ergebnisse festgehalten werden:
 
-Umsetzbare Testaufgaben stehen separat in `backend/TODO.md` unter **Remaining test coverage**. Historische Deployment- und Infrastrukturprüfungen gehören in [Monitoring and Verification](../monitoring.mdx), nicht in die Aufgabenliste.
+- **Accessibility:** Screenreader testen; 200%-Zoom, Reduced Motion und alle unterstützten Theme-/Zustandskombinationen prüfen. Automatisierte Ansichtsprüfungen ersetzen diese Kontrollen nicht.
+- **Google-Provider-Flows:** Google-Login, beide Richtungen der Account-Verknüpfung, Eigentums-Reauthentifizierung, Bestätigen/Abbrechen sowie den resultierenden Auth0-/lokalen Kontostatus manuell prüfen. Der Google-Playwright-Test wird bewusst übersprungen, da Provider kontrollierte Browser blockieren können.
+- **Gehostete Sicherheit:** isoliertes Staging, Netzwerk-/Firewall-Grenzen, Auth0-Login/Logout, Account-Lebenszyklus, Refresh-Verhalten, Pagination und Fehlerverträge validieren. Lokale Tests zertifizieren keine Produktionssicherheit.
+- **Feature-Rückverfolgbarkeit:** Jedes implementierte Feature und jede Sicherheitskontrolle einem automatisierten Test oder einer dokumentierten manuellen Prüfung zuordnen. Platzhalter und nicht unterstütztes Verhalten ausdrücklich kennzeichnen.
 
-Visuelle Baselines liegen bei den E2E-Tests. Nach einer beabsichtigten UI-Änderung kannst du den Chromium-Screenshot mit `npx playwright test e2e/mock/accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots` aktualisieren und den Bildvergleich prüfen.
+Offene manuelle Prüfungen und Deployment-Aufgaben stehen in `backend/TODO.md` im Repository. Gehostete Verifikationsnachweise gehören in [Monitoring and Verification](../monitoring.mdx); lokale Tests und CI-Ergebnisse sind keine Staging-Freigabe.
 
-Live-Auth0-Prüfungen:
+## Screenshot-Baselines
 
-| Befehl                         | Zweck                                                |
-| ------------------------------ | ---------------------------------------------------- |
-| `npm run test:e2e:real`        | Live-Auth0-Prüfungen in sichtbarem Chromium.         |
-| `npm run test:e2e:real:headed` | Live-Auth0-Prüfungen in Edge mit sichtbarem Fenster. |
+Die Baselines sind Chromium-spezifisch und liegen bei der E2E-Spezifikation. Nach einer beabsichtigten visuellen Änderung:
 
-Die Live-Suite verwendet dedizierte Testkonten. Stelle `TESTUSER_EMAIL`, `TESTUSER_PASSWORD`, `TESTGOOGLEUSER_EMAIL` und `TESTGOOGLEUSER_PASSWORD` über eine lokale Umgebungskonfiguration bereit. Committe niemals echte Zugangsdaten und verwende keine persönlichen Konten für automatisierte Tests.
+```sh
+npx playwright test e2e/mock/sanny-accessibility.spec.ts --project=chromium --grep "visual baseline" --update-snapshots
+```
 
-## Einschränkung bei der Google-Anmeldung
+Prüfe die geänderten Bilder, bevor du Baselines akzeptierst.
 
-Google kann Anmeldungen blockieren, wenn erkannt wird, dass ein Browser durch Software-Automatisierung gesteuert wird. Das kann auch bei sichtbarem Edge passieren: Das Fenster ist zwar sichtbar, aber Playwright steuert den Browser weiterhin. Google kann dann „Dieser Browser oder diese App ist möglicherweise nicht sicher“ anzeigen und den Live-Social-Login verhindern. Diese Einschränkung liegt beim Anbieter und weist für sich genommen nicht auf einen Fehler der Anwendung hin.
+## Verwandte Anleitungen
 
-Der vollständige Befehl `npm run test` kontaktiert Auth0 für den dedizierten Passwort-Test; der Google-Automatisierungstest wird explizit übersprungen. Prüfe Google-Anmeldung und Account-Verknüpfung manuell in einem unterstützten Browser. Siehe Googles [Hinweise zur Anmeldung mit unterstützten Browsern](https://support.google.com/accounts/answer/7675428?hl=de) und Playwrights Empfehlung, [Drittanbieter-Abhängigkeiten nicht zu testen](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).
+- [Lokaler Account-Linking-Quickstart](./quickstart-testing) für den manuellen lokalen Ablauf.
+- [Lokales Account-Linking-Setup](./account-linking-testing) für Auth0- und lokale Service-Konfiguration.
+- [Monitoring and Verification](../monitoring.mdx) für datierte operative Verifikationsnachweise.
+
+Google kann Automatisierung auch in einem sichtbaren Headed-Browser blockieren. Das ist eine Provider-Einschränkung und für sich genommen keine Anwendungsregression. Siehe Googles [Hinweise zur Anmeldung mit unterstützten Browsern](https://support.google.com/accounts/answer/7675428?hl=de) und Playwrights Empfehlung, [Drittanbieter-Abhängigkeiten nicht zu testen](https://playwright.dev/docs/best-practices#avoid-testing-third-party-dependencies).

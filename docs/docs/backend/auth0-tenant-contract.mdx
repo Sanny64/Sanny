@@ -1,145 +1,65 @@
 ---
 title: Auth0 Tenant Contract
-description: Non-secret Auth0 settings required by the backend.
+description: Non-secret Auth0 settings and requirements for the backend.
 sidebar_position: 2
 ---
 
-# Auth0 tenant contract
+# Auth0 Tenant Contract
 
-Tenant configuration is managed in Auth0 and must be checked separately from source code. Do not store client secrets, database passwords, certificates, private keys, or access tokens in this document.
+Tenant configuration is managed in Auth0 and must be verified independently of the source code. Never put client secrets, database passwords, certificates, private keys, or access tokens in this document.
 
-## Verification status
+## Verification Status
 
-The backend source and its automated tests verify the local OAuth and token-handling contract. The deployed Auth0 tenant still requires an operator-led staging verification. Mark each item complete only after checking it in the intended tenant and recording the date and tenant name in the deployment runbook.
+Source contracts and automated tests verify local OAuth and token behavior. The hosted Auth0 tenant still requires an authorized staging review. Mark a check complete only after verifying the intended tenant and recording the date and outcome in the restricted deployment record. Keep tenant identifiers and reviewer details out of public docs.
 
-## Browser authentication
+## Browser Authentication
 
-- Source: the backend generates a per-login PKCE verifier and `S256` challenge. Tenant: use Authorization Code Flow with PKCE and `S256`.
-- Allow only the deployed HTTPS callback, success redirect, and logout redirect URLs.
-- Enable refresh-token rotation for the application.
-- Allow the `offline_access` scope.
-- Keep the database connection actions deployed and connected to the intended MariaDB instance.
+- The backend creates a PKCE verifier and `S256` challenge for every login. Configure the tenant to use Authorization Code Flow with PKCE and `S256`.
+- Register only the exact HTTPS callback, success, and logout URLs for each deployment.
+- Enable refresh-token rotation and reuse detection according to the tenant policy.
+- Allow the `offline_access` scope for the application.
+- Deploy the Database Actions and connect them to the intended MariaDB database.
 
-## API and claims
+## API and Claims
 
-- Configure the API identifier to match `AUTH0_AUDIENCE`.
-- Tokens must have the configured issuer, the API audience, a non-empty `sub`, and valid expiry/signature.
-- Permissions are read from the `permissions` claim, or from OAuth `scope` when the explicit claim is absent.
-- Roles, email, and name use configured custom-claim namespaces (for documentation examples, use the reserved `https://example.invalid/` namespace); `AUTH0_ROLES_CLAIM` and the corresponding email/name overrides must match the tenant's deployed Action configuration. Standard `email` and `name` claims are fallback values.
+- The API identifier must match `AUTH0_AUDIENCE`.
+- Tokens must have the configured issuer and audience, a non-empty `sub`, valid expiry, and valid signature.
+- Read permissions from the `permissions` claim or, when absent, OAuth `scope`.
+- Roles, email, and name use configured custom-claim namespaces. The reserved `https://example.invalid/` namespace is for documentation examples only; the tenant Action and API configuration must use the same actual namespace. `AUTH0_ROLES_CLAIM` and email/name overrides may change it. Standard `email` and `name` claims are fallbacks.
 - Local account creation requires `email_verified === true`.
-- Missing required permissions or roles must deny the request; email or name must never grant authorization.
-- The Login-flow `roleClaims.js` Action assigns the Auth0 `user` role to non-database users when it is absent, then includes it in the roles claim for that login. Configure its `AUTH0_DEFAULT_ROLE_ID` to the reviewed `user` role ID used by the Post User Registration Action, and provide `AUTH0_DOMAIN`, `AUTH0_M2M_CLIENT_ID`, `AUTH0_M2M_CLIENT_SECRET`, and `AUTH0_MGMT_AUDIENCE`. The M2M client needs `update:users`; database registrations continue to use `assignDefaultUserRole.js`.
+- Missing required permissions or roles must deny access. Email and name must never grant permissions.
+- The Login Action `roleClaims.js` assigns the Auth0 `user` role to non-Database users when needed and includes it in the roles claim. `AUTH0_DEFAULT_ROLE_ID` must match the reviewed role. The M2M app needs `update:users`; Database registration continues to use `assignDefaultUserRole.js`.
 
-## Privileged management API
+## Privileged Management API
 
-- Keep role synchronization disabled unless `AUTH0_ROLE_SYNC_ENABLED=true` is intentional.
-- When role synchronization is enabled, admins with `write:users` and recent MFA can assign any role that exists in Auth0; no role allowlist is enforced.
-- Grant the machine-to-machine client only the least-privilege Management API scopes required by the enabled operation.
+- Keep role synchronization disabled unless `AUTH0_ROLE_SYNC_ENABLED=true` is explicitly intended.
+- When enabled, administrators with `write:users` and recent MFA may assign any role present in Auth0; there is no role allowlist.
+- Grant the M2M application only the minimum Management API permissions required.
 
-## MFA step-up and password reset
+## MFA Step-Up and Password Reset
 
-- Deploy `backend/auth0/post-login/mfaStepUp.js` in the Login flow and set its
-  `MFA_ACR` secret to
-  `http://schemas.openid.net/pape/policies/2007/06/multi-factor`.
-  The Action requests MFA only when this value is explicitly requested.
-- Enable the intended MFA factors in Security -> Multi-factor Auth and ensure
-  administrators can complete enrollment and step-up. For Actions that customize
-  factor selection, enable **Customize MFA Factors using Actions** under
-  **Additional Settings**. The Auth0 error
-  `MFA customized via PostLogin action but feature is not enabled` indicates a
-  missing tenant feature setting, not proof of bot detection. Check the deployed
-  Login Actions as well as the source mirror.
-- Self-service password-reset email requests require a valid Sanny session, but
-  do not request MFA step-up. Admin reset requests additionally require the
-  `admin` role, `write:users`, and MFA completed within the last 15 minutes.
-  Do not remove those guards to work around a tenant configuration error.
-- Both handlers create a Management API `/tickets/password-change` ticket with
-  `AUTH0_CLIENT_ID`, `AUTH0_DATABASE_CONNECTION_ID`, and the target user's stored
-  email. Set the non-secret `con_...` ID of the same connection identified by
-  `AUTH0_DATABASE_CONNECTION`. Enable that connection for the application and
-  grant the M2M client `create:user_tickets`. Targeting the database connection by
-  email also supports database identities linked to a social primary account;
-  social-only accounts must reset their password with their identity provider.
-- Tickets expire after 15 minutes and do not mark email as verified or include
-  email in redirects. Configure the application's default login route in Auth0
-  for the completion redirect. Tickets are delivered only to the target user's
-  stored email, never returned to the requester or logged.
-- Sanny sends a bilingual plain-text email through `SMTP_HOST` (hostname with
-  optional port, default 587), `SMTP_USER`, `SMTP_PASSWORD`, and
-  `SMTP_FROM_ADDRESS` (a single mailbox). Port 465 uses implicit TLS; other ports
-  require STARTTLS. Certificate verification is not disabled. Success means the
-  SMTP server accepted the message, not that inbox delivery is guaranteed.
-- The public `/dbconnections/change_password` endpoint is no longer used.
-  Its `requires_verification` / `Suspicious request requires verification` error
-  indicates a Bot Detection challenge that a server-to-server request cannot
-  complete. Keep Bot Detection enabled; authenticated Management API ticket
-  creation and SMTP delivery avoid that incompatible public request flow.
-- Auth0 failures are logged server-side with the upstream status and detail.
-  The reset endpoints return a safe `502` provider-failure response, or `429`
-  for rate limiting. SMTP configuration or delivery failure returns a safe `503`.
-  An Auth0 `401` is not returned as a Sanny session `401`.
-  Local session and MFA guards retain their `401` responses.
-- If Auth0 rejects the email request, inspect the server log entry
-  `Auth0 error requesting password reset email` and the corresponding Auth0
-  tenant log. Check M2M scopes, database connection ID, and SMTP settings instead
-  of disabling attack-protection settings.
+- Deploy `backend/auth0/post-login/mfaStepUp.js` in the Login flow. Set `MFA_ACR` to `http://schemas.openid.net/pape/policies/2007/06/multi-factor`. The Action requests MFA only when that value is explicitly requested.
+- Enable the intended factors under **Security > Multi-factor Auth**. If Actions customize the factor selection, enable **Customize MFA Factors using Actions**.
+- User password reset requires a valid Sanny session but no MFA step-up. Admin reset additionally requires the admin role, `write:users`, and MFA within the last 15 minutes.
+- Both handlers create a Management API `/tickets/password-change` ticket using `AUTH0_CLIENT_ID`, `AUTH0_DATABASE_CONNECTION_ID`, and the stored user email. The non-secret `con_` connection ID must match the configured Database Connection, which must be enabled for the application. The M2M client needs `create:user_tickets`.
+- Tickets expire after 15 minutes, do not mark email as verified, and must not put email in redirects. The redirect target uses only the stored user email. Social-only accounts reset passwords at their identity provider.
+- Sanny sends bilingual plain-text mail through SMTP. Port 465 uses implicit TLS; other ports use STARTTLS. Certificate verification must remain enabled. SMTP acceptance alone does not verify mailbox delivery.
+- Do not use the public `/dbconnections/change_password` endpoint. Bot Detection errors there cannot be interactively completed by a server-side call. Do not disable Bot Detection.
+- Reset endpoints return safe `502` errors or `429` on rate limiting; SMTP errors return safe `503`. An Auth0 `401` must not be surfaced as a Sanny session `401`.
 
-See [Auth0's MFA customization prerequisites](https://auth0.com/docs/secure/multi-factor-authentication/customize-mfa/customize-mfa-selection-universal-login).
+## Linked Identities and Canonical Subjects
 
-## Linked identities and canonical subjects
+- Deploy `backend/auth0/post-login/linkAccounts.js` in the Auth0 Login flow. Backend or container deployment does not deploy Actions.
+- On later Database logins, the Action must call `api.authentication.setPrimaryUser` when the verified Google primary identity contains that Database identity. Existing `confirmed` metadata must not skip canonicalization.
+- If identities remain unlinked, require ownership proof again even when metadata says `confirmed`. Only a current `pending` state suppresses duplicate prompts for five minutes.
+- Secondary ownership-proof logins (`link_proof=true`) intentionally retain the Database subject and must not be canonicalized before verification.
+- Google is the canonical primary identity. Ownership proof is required for the other account. The backend checks the exact `proofUserId`; the signed proof contains `authenticatedUserId`.
+- Deploy Actions and backend together. If `account_linking_needed` occurs despite a stored Google identity, inspect the token subject and deployed Action version. Do not bypass the check by reversing link validation or rewriting local subjects.
+- If linking is not offered, verify both accounts have `email_verified: true`, the providers are enabled, and the Action is active in the Login flow. Set `ACCOUNT_LINK_CONFIRMATION_URL` per environment to the backend `/api/v001/auth/confirm-account-linking` route.
 
-- Deploy `backend/auth0/post-login/linkAccounts.js` in the Auth0 Login flow.
-  Local source changes and backend container rebuilds do not deploy Actions.
-- On subsequent database logins, the Action must call
-  `api.authentication.setPrimaryUser` when the verified Google primary's
-  `identities` contains that exact database identity. A prior `confirmed`
-  metadata flag must not skip this canonicalization. Matching email or decision
-  metadata alone is not evidence of a link.
-- If a `confirmed` metadata flag remains but the identities are not linked,
-  the Action must prompt for ownership proof again. Only a recent `pending`
-  decision suppresses a duplicate prompt (for five minutes); expired or invalid
-  pending timestamps permit retry.
-- Secondary ownership-proof logins (`link_proof=true`) intentionally retain the
-  database subject. They must not be canonicalized before proof verification.
-- The canonical primary is always Google, but the ownership-proof target is the
-  account not used for the current login: Google login requires database proof;
-  database login (including a first password set through reset) requires Google
-  proof. The Action passes `proofUserId`, the backend enforces that exact subject,
-  and the signed proof includes `authenticatedUserId`. On continuation the Action
-  checks this against the opposite of its original login subject. Deploy the
-  updated Action and backend together; restart pending links after deployment.
-- If the backend reports `account_linking_needed` even though the stored Google
-  profile contains the database identity, check the token subject and deployed
-  Action version. A database-subject token must not be accepted as a Google
-  primary session by reversing the backend's link check or rewriting the local
-  account subject. Restart login after deploying the corrected Action so Auth0
-  issues a new primary-subject token with the appropriate claims.
-- If the identities are not linked, inspect the Action's
-  `post-login account link detection` logs: both accounts must have
-  `email_verified: true` and their providers must be allowed. Verify that the
-  deployed Action is attached to the Login flow and its environment-specific
-  `ACCOUNT_LINK_CONFIRMATION_URL` points to the backend's
-  `/api/v001/auth/confirm-account-linking` route. The backend intentionally
-  creates no session on this conflict, so a following `/auth/me` `401` is a
-  consequence, not the cause. Do not fix it by accepting matching emails or
-  changing the stored subject without a verified Auth0 link.
+### Password Reset During Ownership Proof
 
-### Password reset during ownership proof
-
-- Set the OAuth application's **Application Login URI** in Auth0 to
-  `https://localhost:5174/account-link-proof-resume` for local testing, or the
-  deployed login frontend's `/account-link-proof-resume` URL for production.
-  This is the default login route used by New Universal Login after password
-  reset. It is not the OAuth callback URL.
-- The proof popup first visits the login frontend to save its opaque pending
-  state and expiry in that window's `sessionStorage`. After reset, Auth0's
-  completion/return-to-application button takes the same popup to the resume
-  route, which starts a fresh secondary authentication using the pending state.
-  The reset itself is never treated as proof of account ownership.
-- Expired state requires restarting linking. Outside a proof popup, the default
-  login route starts ordinary backend login. Completing reset in a different tab
-  does not automatically resume the original popup.
-- Continuations are constructed by the backend using `AUTH0_DOMAIN`, matching
-  the host used for `/authorize`. Do not mix the tenant domain and custom domain
-  for the same Auth0 transaction. The login frontend no longer uses a separate
-  `VITE_AUTH0_DOMAIN` to construct `/continue`.
+- Local tests may set the Auth0 Application Login URI to `https://localhost:5174/account-link-proof-resume`. Production must use the equivalent route on the deployed login frontend. This is not the OAuth callback URL.
+- The popup stores opaque pending state and expiry in `sessionStorage`. After reset, that popup resumes ownership proof through the resume route.
+- Password reset alone is not ownership proof. Expired state requires restarting linking; a reset in another tab does not resume the original popup automatically.
+- Continuations use `AUTH0_DOMAIN`. Do not mix tenant and custom domains within one Auth0 transaction.

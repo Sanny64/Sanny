@@ -22,3 +22,23 @@ test("logSecurityEvent strips sensitive authentication data from logs", () => {
   assert.ok(!JSON.stringify(recorded).includes("__Host-sanny_session"));
   assert.ok(!JSON.stringify(recorded).includes("__Host-sanny_csrf"));
 });
+
+test("logSecurityEvent removes identifiers and query strings", () => {
+  const recorded = logSecurityEvent("admin_user_update_failed", {
+    userId: 42,
+    auth0Sub: "auth0|private-user",
+    email: "private@example.test",
+    ip: "203.0.113.1",
+    path: "/api/v001/users/42?code=private-code",
+  });
+
+  assert.equal(recorded.userId, undefined);
+  assert.equal(recorded.auth0Sub, undefined);
+  assert.equal(recorded.email, undefined);
+  assert.equal(recorded.ip, undefined);
+  assert.equal(recorded.path, "/api/v001/users/:id");
+  assert.doesNotMatch(
+    JSON.stringify(recorded),
+    /private-user|private@example|203\.0\.113\.1|private-code/,
+  );
+});

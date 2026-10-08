@@ -1,7 +1,7 @@
 ---
 title: Auth0 Database Action Scripts
 description: Functionality and invocation contract for Auth0 custom database scripts.
-sidebar_position: 3
+sidebar_position: 5
 ---
 
 # Auth0 database action scripts
@@ -30,6 +30,12 @@ In Auth0 Dashboard:
 
 Auth0 executes these functions with specific arguments and expects the callback contract documented below.
 
+The scripts connect directly to MariaDB/MySQL using values configured in the
+custom database connection's script configuration in Auth0. These values are
+separate from `backend/.env`; Auth0 cannot read the backend's local environment
+file. Use a dedicated database account with only the permissions needed on the
+`User` table, and require TLS certificate validation.
+
 ## Delete scope and social-connection users
 
 `delete.js` is only invoked for users of this custom database connection. Deleting a
@@ -40,14 +46,48 @@ deletes any whose Auth0 identity no longer exists.
 
 ## Script contract summary
 
-| File                | Exported function                              | Purpose                                            | Success callback                                                     | Not found behavior                                                          |
-| ------------------- | ---------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `login.js`          | `login(identifierValue, password, callback)`   | Validate credentials by email and password hash    | `callback(null, { user_id, username, email, name, email_verified })` | `WrongUsernameOrPasswordError`                                              |
-| `create.js`         | `create(user, callback)`                       | Create a user if email is not in use               | `callback(null)`                                                     | `ValidationError("user_exists", ...)` when duplicate                        |
-| `verify.js`         | `verify(email, callback)`                      | Check if email exists                              | `callback(null, true/false)`                                         | Returns `false` (not an error)                                              |
-| `changePassword.js` | `changePassword(email, newPassword, callback)` | Update password hash for an existing user          | `callback(null, true)`                                               | `ValidationError("invalid_request", ...)` if user missing or no row updated |
-| `delete.js`         | `remove(id, callback)`                         | Delete the local row (`WHERE id = ?`) for users    | `callback(null)`                                                     | `Error("Invalid id")` for a non-numeric/non-positive id                     |
-| `getUser.js`        | `getByEmail(email, callback)`                  | Look up a user profile by email for Auth0 Get User | `callback(null, { user_id, username, email, name, email_verified })` | `callback(null)` when no user exists                                        |
+| File                | Exported function                              | Purpose                                   | Success callback                                                                         | Not found behavior                                                         |
+| ------------------- | ---------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `login.js`          | `login(email, password, callback)`             | Validate email/password credentials       | `callback(null, { id, email, username, name, email_verified })`                          | `ValidationError("user_not_found", ...)` or `WrongUsernameOrPasswordError` |
+| `create.js`         | `create(user, callback)`                       | Create a password or Google-backed user   | Password signup returns `callback(null, { id })`; Google signup returns `callback(null)` | `ValidationError` for invalid input or account conflicts                   |
+| `verify.js`         | `verify(email, callback)`                      | Mark an unverified user email as verified | `callback(null, true)`                                                                   | `ValidationError("verification_failed", ...)` if no row was updated        |
+| `changePassword.js` | `changePassword(email, newPassword, callback)` | Change a user's password hash             | `callback(null, true)`                                                                   | `ValidationError` for invalid input, missing user, reuse, or failed update |
+| `delete.js`         | `remove(id, callback)`                         | Delete a local row by numeric database ID | `callback(null)`                                                                         | `Error("Invalid id")` for a non-numeric/non-positive id                    |
+| `getUser.js`        | `getByEmail(email, callback)`                  | Look up a user profile by email           | `callback(null, { id, email, email_verified, username, name })`                          | `callback(null)` when no user exists                                       |
+
+## Required environment Variables
+
+| Configuration key | Value                                                               |
+| ----------------- | ------------------------------------------------------------------- |
+| `DB_HOST`         | Database hostname reachable from Auth0's custom database runtime    |
+| `DB_PORT`         | Database port, normally `3306`                                      |
+| `DB_USER`         | Dedicated database account with only the required user-table access |
+| `DB_PASSWORD`     | Secret for that database account                                    |
+| `DB_NAME`         | Database containing the Prisma `User` table                         |
+| `DB_SSL_CA`       | Trusted CA certificate for the database TLS connection              |
+
+`DB_SSL_CA` should be the PEM CA certificate provided by your database host.
+
+For Hetzner Managed MariaDB/MySQL, see the
+[Hetzner certificate documentation](https://docs.hetzner.com/managed/databases/mariadb-mysql/#encrypted-access).
+The scripts normalize escaped newlines in the configured certificate and use
+`rejectUnauthorized: true`; do not disable certificate verification.
+
+The `create.js` and `changePassword.js` scripts also accept optional policy
+configuration values. Defaults are shown below:
+
+| Configuration key          | Default | Meaning                                                                       |
+| -------------------------- | ------- | ----------------------------------------------------------------------------- |
+| `EMAIL_MAX_LENGTH`         | `254`   | Maximum normalized email length.                                              |
+| `USERNAME_MIN_LENGTH`      | `3`     | Minimum username length (`create.js` only).                                   |
+| `USERNAME_MAX_LENGTH`      | `30`    | Maximum username length (`create.js` only).                                   |
+| `PASSWORD_MIN_LENGTH`      | `15`    | Minimum trimmed password length.                                              |
+| `PASSWORD_MAX_BYTES`       | `72`    | Maximum password bytes, matching bcrypt's input limit.                        |
+| `PASSWORD_MIN_CLASS_COUNT` | `3`     | Minimum number of uppercase, lowercase, digit, and special-character classes. |
+
+Passwords with three repeated or sequential characters in a row are rejected
+by both scripts. Keep the Auth0 connection's password policy aligned with these
+script checks.
 
 ## Per-script details
 
@@ -61,20 +101,14 @@ deletes any whose Auth0 identity no longer exists.
 - Check if user exists.
 - Compare passwordInput against currentHash.
 
-Expected callback on success:
+Expected callback on success (the script returns `id`, not `user_id`):
 
 ```js
 callback(null, {
   id: rows[0].id,
   email: rows[0].email,
   username: rows[0].username,
-  // Auth0 normalizes the profile's display "Name" from this return value;
-  // without it, Auth0 falls back to the email.
   name: rows[0].username,
-  // Auth0 does not automatically sync our custom DB's emailVerified flag
-  // onto its own persisted user profile; it must be reported here so
-  // Post Login Actions (role claims, account linking) see the correct
-  // verification status.
   email_verified: rows[0].emailVerified,
 });
 ```
@@ -101,130 +135,97 @@ callback(
 ### Create.js
 
 - Normalize SSL Certificate.
-- Trim and lowercase `user.email`.
+- Trim and lowercase emailInput.
 - Begin a transaction.
 - Look up any existing user by email (`SELECT ... FOR UPDATE`) to lock the row.
 - Hash `user.password` (or a random fallback) with bcrypt regardless of outcome, to avoid timing side-channel attacks.
-- Determine which of the 8 cases applies based on whether a row exists, whether it has a password, whether it has a Google `auth0Sub`, and whether the incoming `user` has a `password` or a Google `auth0Sub`.
-- On a conflict case (1–5), roll back the transaction and return a `ValidationError`.
-- On a new-user case (6–7), insert the new `User` row (email/password or email/auth0Sub), commit the transaction, and return success.
-- On an unmatched case (8), roll back and return a generic `ValidationError`.
+- Validate normalized email and username; validate the password when one is supplied. Google signup is identified by a `google-oauth2|...` `auth0Sub`.
+- Hash the supplied password, or a random fallback for Google signup, before resolving the account case. Only password signup stores that hash.
+- On a conflict case (1–5), roll back and return a `ValidationError`; on a new-user case (6–7), insert a row with `emailVerified` set to true and commit.
 - Always end the connection before invoking the callback.
 
-Expected callback on success (Case 6):
+Success callbacks differ by signup type. Email/password signup (Case 6) sets
+`auth0Sub` to `auth0|<database-id>` and returns:
 
 ```js
-callback(null, {
-  id: String(user.id),
-  email: email,
-  username: user.username,
-});
+callback(null, { id: String(insertResult.insertId) });
 ```
 
-Expected callback on success (Case 7):
+Google signup (Case 7) stores the supplied Google `auth0Sub` and returns no
+profile object:
 
 ```js
-callback(null, {
-  id: String(user.id),
-  email: user.email,
-  username: user.username,
-  auth0Sub: user.auth0Sub,
-});
+callback(null);
 ```
 
-Expected callback on error — Case 1 (email/password user already exists):
+The current conflict cases are:
 
-```js
-callback(
-  new ValidationError(
-    "email_user_exists",
-    `A user with the email "${email}" already exists.`,
-  ),
-);
-```
+| Error code           | Situation                                                              |
+| -------------------- | ---------------------------------------------------------------------- |
+| `email_user_exists`  | Password signup for an email that already has a password account.      |
+| `google_user_exists` | Google signup for an email that already has a Google account.          |
+| `user_exists`        | Existing row already has both a password and Google subject.           |
+| `use_email_login`    | Google signup attempted for an existing password account.              |
+| `use_google_login`   | Password signup attempted for an existing Google account.              |
+| `unexpected_case`    | The request does not match a supported password or Google signup case. |
 
-Expected callback on error — Case 2 (Google user already exists):
-
-```js
-callback(
-  new ValidationError(
-    "google_user_exists",
-    `A user with the google connection for "${user.email}" already exists.`,
-  ),
-);
-```
-
-Expected callback on error — Case 3 (both password and Google user exist, shouldn't happen in practice):
-
-```js
-callback(
-  new ValidationError(
-    "user_exists",
-    `A user with the email "${email}" and google connection already exists.`,
-  ),
-);
-```
-
-Expected callback on error — Case 4 (existing password user attempts Google signup):
-
-```js
-callback(
-  new ValidationError(
-    "use_email_login",
-    `Please use email/password login for the user with email: "${email}".`,
-  ),
-);
-```
-
-Expected callback on error — Case 5 (existing Google user attempts password signup):
-
-```js
-callback(
-  new ValidationError(
-    "use_google_login",
-    `Please use "Login with Google" for the user with email: "${email}".`,
-  ),
-);
-```
-
-Expected callback on error — Case 8 (validation error, should not happen unless more social logins are added):
-
-```js
-callback(
-  new ValidationError(
-    "unexpected_case",
-    `Your create request for the email: "${email}" didn't match any known patterns: Please reach out to the support team at \`*insert support email\` for further assistance.`,
-  ),
-);
-```
+Invalid email, username, or password input returns `ValidationError` with code
+`invalid_input`. Email is trimmed and lowercased; username is trimmed. Password
+checks also reject three repeated or sequential characters in a row.
 
 ### Verify.js
 
 - Normalize SSL Certificate.
-- Trim and lowercase `user.email`.
+- Trim and lowercase the email input.
 - Begin a transaction.
 - Run `UPDATE User SET emailVerified = true WHERE emailVerified = false AND email = ? LIMIT 1` for the given email.
-- Commit the transaction and return whether the update actually affected a row (`result.affectedRows`), not the length of the (non-array) update result.
+- Commit the transaction and return `true` only if the update affected a row (`result.affectedRows`).
 - Always end the connection before invoking the callback.
-  Expected callback on success (user found and verified):
+  Expected callback on success (an unverified user was updated):
 
 ```js
 callback(null, true);
 ```
 
-Expected callback if no matching unverified user was found:
+If the email is unknown or is already verified, the script rolls back and
+returns `ValidationError("verification_failed", ...)`; it does not return
+`false`.
 
-```js
-callback(null, false);
-```
+### ChangePassword.js
 
-### Shared error handling:
+- Trim and lowercase the email; trim and validate the new password using the
+  password policy above.
+- Lock the matching row with `SELECT ... FOR UPDATE`; return
+  `ValidationError("user_not_found", ...)` if no row exists.
+- Reject a password that matches the current hash with
+  `ValidationError("password_reuse", ...)`.
+- Hash accepted passwords with bcrypt cost 12 and update the row in a
+  transaction. Successful update returns `callback(null, true)`.
+- Validation errors use `invalid_input`; a failed update uses
+  `invalid_request`. Database and bcrypt errors are passed to the callback.
 
-Expected callback on query or connection error:
+### Delete.js
 
-```js
-callback(err);
-```
+- Accept a positive integer database ID (a number or numeric string); otherwise
+  return `Error("Invalid id: ...")` before connecting.
+- Delete by `User.id` in a transaction and return `callback(null)` after commit.
+- A valid ID that matches no row is still treated as a successful delete.
+- This only handles users belonging to the custom database connection. Deleting
+  a Google user in Auth0 does not invoke this script; stale local social-user
+  cleanup is handled separately by the backend's scheduled cleanup utility.
+
+### GetUser.js
+
+- Trim and lowercase the email input, then read the profile under a transaction.
+- Return `callback(null)` when no row matches.
+- On success, return the string ID, email, `email_verified` boolean, username,
+  and name (set to the username). The password hash is never selected.
+
+### Shared error handling
+
+Query, connection, transaction, and hashing failures are passed to the callback
+as errors. Transactional operations roll back on failure and close the
+connection before invoking the callback.
 
 ## How to call them in Auth0 tests
 
@@ -247,5 +248,4 @@ The script must always finish via the provided `callback`:
 ## Local development notes
 
 - Scripts rely on Auth0 runtime globals like `configuration`, `ValidationError`, and `WrongUsernameOrPasswordError`.
-- To test locally outside Auth0, you must mock those globals and provide a test database connection.
 - Do not commit secrets or `.env` values to docs or source.

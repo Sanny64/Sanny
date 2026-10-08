@@ -351,9 +351,13 @@ export async function requestSelfPasswordResetHandler(
       err instanceof Auth0ManagementError ||
       err instanceof PasswordResetMailError
     ) {
-      console.error(
-        "Auth0 error requesting password reset email:",
-        err instanceof Auth0ManagementError ? err.statusCode : "SMTP",
+      request.log.error(
+        {
+          operation: "password_reset",
+          statusCode:
+            err instanceof Auth0ManagementError ? err.statusCode : undefined,
+        },
+        "Password reset provider request failed",
       );
       const safe = createPasswordResetErrorResponse(err);
       return reply
@@ -361,7 +365,13 @@ export async function requestSelfPasswordResetHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    console.error("Unexpected error requesting password reset:", err);
+    request.log.error(
+      {
+        operation: "password_reset",
+        errorType: err instanceof Error ? err.name : "unknown",
+      },
+      "Password reset request failed",
+    );
     const safe = createSafeErrorResponse(err, 400);
     return reply
       .code(safe.status)
@@ -594,9 +604,13 @@ export async function requestUserPasswordResetHandler(
       err instanceof Auth0ManagementError ||
       err instanceof PasswordResetMailError
     ) {
-      console.error(
-        "Auth0 error requesting password reset email:",
-        err instanceof Auth0ManagementError ? err.statusCode : "SMTP",
+      request.log.error(
+        {
+          operation: "password_reset",
+          statusCode:
+            err instanceof Auth0ManagementError ? err.statusCode : undefined,
+        },
+        "Password reset provider request failed",
       );
       const safe = createPasswordResetErrorResponse(err);
       return reply
@@ -604,7 +618,13 @@ export async function requestUserPasswordResetHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    console.error("Unexpected error requesting password reset:", err);
+    request.log.error(
+      {
+        operation: "password_reset",
+        errorType: err instanceof Error ? err.name : "unknown",
+      },
+      "Password reset request failed",
+    );
     const safe = createSafeErrorResponse(err, 400);
     return reply
       .code(safe.status)
@@ -685,9 +705,9 @@ export async function getAvailableRolesHandler(
     if (err instanceof Auth0ManagementError) {
       const statusCode =
         err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 502;
-      console.error(
-        "Auth0 Management API error fetching roles:",
-        err.statusCode,
+      request.log.error(
+        { operation: "auth0_role_list", statusCode },
+        "Auth0 Management API request failed",
       );
       const safe = createSafeErrorResponse(err, statusCode);
       return reply
@@ -695,7 +715,13 @@ export async function getAvailableRolesHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    console.error("Unexpected error fetching roles:", err);
+    request.log.error(
+      {
+        operation: "auth0_role_list",
+        errorType: err instanceof Error ? err.name : "unknown",
+      },
+      "Auth0 role list request failed",
+    );
     const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)
@@ -734,9 +760,9 @@ export async function getUserRolesHandler(
     if (err instanceof Auth0ManagementError) {
       const statusCode =
         err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 502;
-      console.error(
-        "Auth0 Management API error fetching user roles:",
-        err.statusCode,
+      request.log.error(
+        { operation: "auth0_user_roles", statusCode },
+        "Auth0 Management API request failed",
       );
       const safe = createSafeErrorResponse(err, statusCode);
       return reply
@@ -744,7 +770,13 @@ export async function getUserRolesHandler(
         .send({ error: safe.error, message: safe.message });
     }
 
-    console.error("Unexpected error fetching user roles:", err);
+    request.log.error(
+      {
+        operation: "auth0_user_roles",
+        errorType: err instanceof Error ? err.name : "unknown",
+      },
+      "Auth0 user roles request failed",
+    );
     const safe = createSafeErrorResponse(err, 500);
     return reply
       .code(safe.status)

@@ -1,0 +1,50 @@
+---
+title: Automatisierte Frontend-Tests
+description: Gemeinsame UI-Komponenten-, Frontend-Lint/Build- und Browser-Tests ausführen.
+---
+
+## Befehle
+
+Alle Befehle im Repository-Stammverzeichnis ausführen.
+
+| Befehl                                 | Zweck                                                                      |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| `npm run test -w login`                | Login-Lint über das Workspace-Testskript ausführen.                        |
+| `npm run test -w sanny`                | Sanny-Lint über das Workspace-Testskript ausführen.                        |
+| `npm run test:frontend`                | Beide Apps linten/bauen, Shared Packages linten und UI-Komponenten testen. |
+| `npm run test:components`              | Vitest-Komponententests für das gemeinsame UI-Paket.                       |
+| `npm run lint:login`                   | Login-Frontend linten.                                                     |
+| `npm run lint:sanny`                   | Öffentliches Frontend linten.                                              |
+| `npm run lint -w @sanny/i18n`          | Gemeinsames Lokalisierungspaket linten.                                    |
+| `npm run lint -w @sanny/styles`        | Gemeinsames Styles-Paket linten.                                           |
+| `npm run lint -w @sanny/ui`            | Gemeinsames UI-Paket linten.                                               |
+| `npm run build:login`                  | Shared Workspaces in Abhängigkeitsreihenfolge und danach Login bauen.      |
+| `npm run build:sanny`                  | Shared Workspaces in Abhängigkeitsreihenfolge und danach Sanny bauen.      |
+| `npm run test:e2e:mocked`              | Gemockte UI-E2E-Tests in Chromium, Firefox und Edge.                       |
+| `npm run test:e2e:accessibility:login` | Login-Accessibility-E2E in allen Browserprojekten.                         |
+| `npm run test:e2e:accessibility:sanny` | Sanny-Accessibility-E2E in allen Browserprojekten.                         |
+
+Das Workspace-`test`-Skript jeder App führt deren Lint aus. `npm run test:frontend` führt beide Workspace-Tests aus, baut beide Apps in Abhängigkeitsreihenfolge, lintet alle Shared Packages und testet die gemeinsamen UI-Komponenten. Das Root-`npm run test` enthält dieses Frontend-Gate und alle gemockten/Live-Browser-Suites; der Docs-Build bleibt separat.
+
+## Komponentenabdeckung
+
+`shared/packages/ui/src/tests/ui-components.test.tsx` prüft Tastaturbedienung und Deaktivierung von Buttons, Checkbox-Beschriftungen und Feedback, Toast-Status-/Fehlermeldungen und Aktionen, Theme-/Sprachpersistenz sowie Fehlerseiteninhalt. Nicht jede Prop- oder Zustandskombination ist abgedeckt.
+
+## Browserabdeckung
+
+Gemockte Playwright-Tests liegen in `e2e/mock/`. Die Accessibility-Tests sind auf `login-accessibility.spec.ts` und `sanny-accessibility.spec.ts` verteilt und mit den app-spezifischen Befehlen oben einzeln ausführbar. Weitere Specs prüfen Routen/Lokalisierung, Login/Logout, Settings/Admin und Account-Linking. Öffentliche Inhaltsseiten zeigen derzeit übersetzte Platzhalter ohne interaktive Steuerelemente; die eigenständigen Spiele Guess-the-Number und Blockrunner sind von den Interaktionstests dieses Projekts ausgenommen. Gemockte API-Antworten belegen nur Frontend-Verhalten und API-Verträge, nicht Backend-Persistenz oder Live-Auth0-Verhalten.
+
+Axe prüft mit WCAG-2.2-AA-Tags alle registrierten öffentlichen Sanny-Routen und die getesteten Settings-/Admin-Zustände sowie die Login-Hilfsrouten. Die app-eigenen Accessibility-Specs decken englische/deutsche Spracheinstellungen und helle/dunkle Themes in Chromium, Firefox und Edge ab. `accessibility.spec.ts` prüft zusätzlich die Initialisierung von Sprache und Theme in beiden Apps sowie System-Theme-Wechsel mit gespeicherter manueller Auswahl in den Sanny-Settings. Diese automatisierten Prüfungen ersetzen weder Screenreader-Prüfungen noch Tests bei 200% Zoom.
+
+## Offene Prüfungen
+
+- [x] Verhaltenstests für alle interaktiven öffentlichen Funktionen im Projekt ergänzen. Öffentliche Sanny-Inhaltsseiten sind ausdrücklich als Platzhalter ohne Steuerelemente getestet; Login/Session, Settings/Admin und Account-Linking besitzen eigene Specs. Eigenständige Spiele sind vom Projektumfang ausgenommen.
+- [x] System-Light/Dark-Initialisierung und -Wechsel, gespeicherte manuelle Theme-Auswahl und Axe-Prüfungen der Settings in Chromium testen.
+- [x] Axe-Abdeckung auf unterstützte Routen/Zustände und helle/dunkle Themes erweitern. Alle registrierten öffentlichen Sanny-Routen und getesteten Settings-/Admin-Zustände sowie Login-Hilfsrouten laufen mit englischen/deutschen Spracheinstellungen in Chromium, Firefox und Edge.
+- [ ] Tastaturabläufe für Login, Settings, Admin und Account-Linking auf Englisch und Deutsch abschließen.
+- [ ] Screenreader, 200%-Zoom und Reduced Motion manuell prüfen. Forced Colors/hohen Kontrast als unterstützt oder nicht unterstützt dokumentieren.
+- [ ] Chromium-Desktop-/Mobil-Baselines nach beabsichtigten Änderungen prüfen; sie belegen keine visuelle Parität mit Firefox oder Edge.
+- [x] Frontend-Lint/Build, gemeinsame Komponenten sowie Login-/Sanny-Accessibility-Tests liefen lokal am 2026-10-09.
+- [ ] Dieselben Frontend-Prüfungen in CI auf der exakten Deployment-Revision verifizieren und offene Befunde dokumentieren.
+
+Die vollständige Accessibility-, Provider- und Staging-Checkliste steht unter [Manuelle Tests](../../backend/local-testing/manual-testing.mdx).

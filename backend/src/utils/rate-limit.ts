@@ -4,6 +4,7 @@ import {
   getSessionStoreClient,
   getSessionSubject,
 } from "./session.js";
+import { recordRedisFallback } from "./metrics.js";
 
 export type RateLimitConfig = {
   max: number;
@@ -172,6 +173,7 @@ async function checkAuth0GlobalBudget(): Promise<boolean> {
     })) as [number, number];
     return Number(result[0]) <= auth0GlobalBudgetPerMin;
   } catch {
+    recordRedisFallback("auth0_budget");
     const fallback = fallbackIncrement(auth0GlobalKey, auth0GlobalWindowMs);
     return fallback.count <= auth0GlobalBudgetPerMin;
   }
@@ -206,6 +208,7 @@ export async function applyRateLimit(
     count = Number(result[0]);
     retryAfterMs = Math.max(Number(result[1]), 0);
   } catch {
+    recordRedisFallback("rate_limit");
     const fallback = fallbackIncrement(key, config.windowMs);
     count = fallback.count;
     retryAfterMs = fallback.ttl;

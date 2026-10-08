@@ -1,0 +1,48 @@
+---
+title: Übersicht für lokale Tests
+description: Lokale Sanny-Dienste starten und die passende Testanleitung wählen.
+---
+
+## Lokale Dienste starten
+
+Führe die Befehle im Repository-Stammverzeichnis aus. Installiere Abhängigkeiten einmalig mit `npm ci`.
+
+| Dienst        | Befehl                  | Lokale URL               |
+| ------------- | ----------------------- | ------------------------ |
+| Backend-Stack | `npm run start:backend` | `https://localhost:8443` |
+| Login-App     | `npm run dev:login`     | `https://localhost:5174` |
+| Sanny-App     | `npm run dev:sanny`     | `https://localhost:5173` |
+
+Der Backend-Befehl startet den konfigurierten Docker-Compose-Stack. Verwende eine dedizierte Entwicklungsanwendung bei Auth0 und Testkonten; nutze niemals persönliche Konten und committe keine Zugangsdaten.
+
+## Anleitung wählen
+
+- [Automatisierte Tests](./automated-testing): Befehle, Abdeckung, Grenzen und Abschlusskriterien der lokalen/CI-Tests.
+- [Account-Linking-Schnellstart](./quickstart-testing): Schritt-für-Schritt-Anleitung zum manuellen Account-Linking.
+- [Account-Verknüpfung lokal konfigurieren](./account-linking-testing): erforderliche Auth0-Konfiguration und lokale Dienste.
+
+Die automatisierte Suite überspringt den Google-Login absichtlich. Google-Provider-Flows müssen manuell geprüft werden; Details stehen in der Testanleitung.
+
+## Vor dem Staging
+
+- [ ] Automatisierte Tests ausführen und Ergebnis dokumentieren. `npm run test` führt kein Frontend-Lint und keine Frontend-Builds aus; dafür die [Frontend-Tests](../../frontend/local-testing/automated-testing) verwenden.
+- [ ] Alle ausgelieferten öffentlichen Interaktionen prüfen, nicht nur das Laden der Routen: Navigation, Projekt-/Blog-Links, Spiele und Party-Seiten. Unterstützte und bewusst statische Seiten festhalten.
+- [ ] Passwortregistrierung/-anmeldung, E-Mail-Verifizierung, Passwort-Reset, Logout und Sitzungsablauf mit dedizierten Testkonten prüfen.
+- [ ] Google-Anmeldung und Account-Verknüpfung in beiden Richtungen prüfen: Besitz-Reauthentifizierung, Bestätigen, Abbrechen, Ablauf/Bereinigung und resultierende Auth0-/lokale Kontodaten. Siehe [Account-Linking](./account-linking-testing).
+- [ ] Erfolgreiche Profiländerung, Kontolöschung, Admin-Suche/Paginierung, Rollenänderung, Passwort-Reset und Ablehnung für Nicht-Admins in isolierter Umgebung prüfen; Persistenz und Bereinigung bestätigen.
+- [ ] Live-MFA und E-Mail-OTP-Step-up einschließlich Abbruch, Wiederherstellung, Ablauf und Wiederholung für sensible Aktionen prüfen.
+
+## Barrierefreiheit
+
+- [ ] Hauptabläufe auf Deutsch und Englisch ausschließlich per Tastatur prüfen: sichtbarer Fokus, Reihenfolge, Skip-Navigation, Dialoge sowie Status-/Fehlermeldungen.
+- [ ] Mit Screenreader auf unterstütztem Browser prüfen: Settings, erlaubte/abgelehnte Admin-Zustände, Account-Link-Bestätigung, Login und Fehlerzustände.
+- [ ] Bei 200% Zoom sicherstellen, dass Inhalte und Bedienelemente weder abgeschnitten noch überlagert sind.
+- [ ] Betriebssystempräferenz für reduzierte Bewegung aktivieren und prüfen, dass Animationen reduziert werden. Die Styles enthalten eine Regel, aber keinen automatisierten Nachweis.
+- [ ] Hell-/Dunkel-Theme und Deutsch/Englisch prüfen, einschließlich Systempräferenz, Systemwechsel und gespeicherter manueller Auswahl. Forced Colors/hohen Kontrast als unterstützt oder nicht unterstützt dokumentieren.
+
+## Gehostetes Staging und Nachweise
+
+- [ ] Alle Punkte unter [Deployment und Wiederherstellung](../deployment) prüfen, darunter Umgebungsisolation, Proxy/Direktzugriff, HTTPS/Security-Header, Rate-Limits, PKCE-Replay, Refresh/Re-use, Sitzungsablauf und Backup/Restore.
+- [ ] Grafana-Regelauswertung sowie echte Discord-/E-Mail-Zustellung prüfen. Ein direkter Discord-Webhook-Test beweist keine Grafana-Zustellung; siehe [Monitoring-Integrationstests](./monitoring-integration-testing).
+- [ ] Logs/Metriken auf Geheimnisse, personenbezogene Daten, unbeschränkte Labels oder Query-Leaks prüfen; geschützte Monitoring-Endpunkte dürfen öffentlich nicht erreichbar sein.
+- [ ] Für jede Prüfung Datum, Build/Revision, Umgebung, Browser/Gerät oder Hilfstechnologie, Szenario, Ergebnis und Restrisiken in einem zugriffsbeschränkten Deployment-Nachweis dokumentieren. Keine Zugangsdaten oder personenbezogenen Daten aufnehmen.

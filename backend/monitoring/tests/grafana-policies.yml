@@ -1,0 +1,6 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: monitoring-test
+    group_by: ["alertname"]

@@ -1,54 +1,49 @@
 ---
-title: Monitoring and Verification
-description: Backend observability, safe logging, alerting, and verification records.
-sidebar_position: 6
+title: Monitoring Setup
+description: Backend observability, safe logging and alerting.
+sidebar_position: 7
 ---
 
-# Monitoring and verification
+# Monitoring
 
-## Signals and alerts
+## Collection
 
-Monitor the application, NGINX, Redis, database, and Auth0 integration. Alert on:
+Both Compose configurations run Prometheus, Grafana, Loki, and Promtail alongside the backend and NGINX. Prometheus scrapes Fastify, Redis Exporter, NGINX Exporter, Node Exporter, and itself every 15 seconds. The Redis Exporter connects to Redis over TLS with the configured CA and password; its endpoint is internal-only.
 
-- Fastify restarts, health-check failures, elevated 5xx responses, database connection failures, and abnormal query latency.
-- Repeated `429` responses by normalized route group and Redis failures or fallback limiter use.
-- OAuth initiation/callback spikes, rejected OAuth state, refresh rotation failures, and refresh-token reuse detection.
-- Auth0 Management API failures and repeated divergence during account deletion.
-- Failed NGINX/exporter scrapes and monitoring storage exhaustion.
+Fastify `/metrics` exports bounded HTTP request counts/latency, process metrics, Prisma operation duration and result, database/Redis probe status and duration, Redis fallback counts, refresh-token outcomes, and Auth0 Management API outcomes. Prisma labels are limited to a fixed operation name and success/failure; no SQL, parameters, identities, or tokens are exported. Database and Redis probes execute on each scrape.
 
-Use bounded metric labels: normalized route group and status class are useful; raw URLs, query strings, user identifiers, tokens, and arbitrary input are not. Keep Prometheus and exporter endpoints private.
+Promtail ships structured Pino application logs and NGINX access/error logs to Loki. Grafana is provisioned with Prometheus and Loki data sources and the NGINX security and Node Exporter dashboards.
 
-## Logs and privacy
+## Alerts and notifications
 
-Logs must not contain access/refresh tokens, session IDs, CSRF tokens, authorization codes, client secrets, database credentials, or request bodies. The configured NGINX access-log format records the URI path without its query string, but includes client IP, referrer, and user-agent. Restrict access, define retention, and assess whether referrer collection is necessary. Do not paste raw logs into tickets or chat.
+Grafana alert rules are provisioned from `backend/monitoring/alerting/rules/` and evaluated every minute.
 
-Loki/Promtail and monitoring volumes are operational data stores, not public endpoints. Restrict access and retention as for application logs.
+They query NGINX logs in Loki:
 
-## Network exposure
+- **429 Rate Limit Spike**: more than 20 logged `429` responses in five minutes; warning severity.
+- **Auth Endpoint Abuse**: more than 50 requests matching the auth route in five minutes; warning severity.
+- **Auth Callback Flood**: more than 20 requests matching the auth callback in five minutes; critical severity.
 
-- NGINX stub status listens on internal port `8081` and is restricted to the Docker network. Do not publish it on the host or expose it through the public TLS listener.
-- The NGINX exporter scrapes `http://nginx:8081/nginx_status` over the private compose network.
-- The compose files publish Node Exporter's port on the host; block it at the host firewall from untrusted networks or remove the host publication and scrape it internally.
-- Expose Grafana/Prometheus only through the intended authenticated proxy path.
-- The production compose currently maps proxy HTTP/HTTPS to host ports `8080`/`8443`. Verify and intentionally configure host-facing ports for the target platform rather than assuming standard public ports.
+Each rule must remain above its threshold for two minutes. The default Grafana notification contact point is Discord; critical alerts are routed to the configured email contact point. Grafana SMTP is enabled through Compose environment variables. Verify delivery to both destinations when changing provisioning or credentials.
 
-## Local verification record
+For local contact-point, rule-trigger, and rate-limit test procedures and recorded outcomes, see [Monitoring Integration Testing](./local-testing/monitoring-integration-testing.mdx). These opt-in tests can send real notifications and should only target the development stack.
 
-These records describe local checks only; they are not staging or production sign-off.
+Grafana also provisions Prometheus alerts for backend target failures/restarts, failed dependency probes, slow database probes and Prisma queries, Redis fallback use, refresh-token failures/replays, Auth0 Management API failures, missing/down exporter targets, and low host filesystem capacity. Target and storage alerts are operational signals; verify they fire and reach the configured contacts in the target environment.
 
-### Docker development, 2026-10-03
+The existing NGINX log-volume rules aggregate matching lines service-wide; they are coarse volume indicators, not normalized per-client attack detection or proof of an attack. Do not add client identifiers to metric labels.
 
-- HTTPS `/healthcheck` returned `200`; HTTP redirected to HTTPS.
-- Backend and Redis had no host-published ports. Public `/nginx_status` returned `404`, host port `8081` was unreachable, internal Docker access succeeded, and the exporter reported `nginx_up 1`.
-- Auth initiation returned `302`; repeated requests returned `429` with `Retry-After: 60`; health remained `200` after throttling.
-- A callback error request with spoofed forwarded host/protocol headers still redirected to the configured local frontend origin.
-- Backend tests: 146 passed, 1 skipped; real-Redis integration: 6 passed; mocked browser E2E: 28 passed; docs build succeeded.
-- Scope excludes hosted firewall/compose behavior and live Auth0 account flows.
+## Logs and retention
 
-### Local production-mode smoke check, 2026-10-03
+Pino writes application logs to stdout and `/app/logs/app.log`; Promtail tails the file from a persistent, read-only volume. Request serializers keep only a normalized route group and bounded method, response serializers keep the status code, and error serializers omit messages and stacks. Security-audit paths have query strings removed and dynamic user routes normalized. NGINX access logs contain timestamp, method, URI path (without the query string), status, response size, and request/upstream response times; client IP, referrer, and user-agent are omitted. Do not paste raw logs into tickets or chat.
 
-- The local backend reported `NODE_ENV=production`; HTTPS `/healthcheck` returned `200` with HSTS, and public `/nginx_status` remained unavailable.
-- The configured API origin did not resolve from the test host. Automated Google sign-in was blocked and the password flow did not reach the callback.
-- No account deletion or account-linking mutation was run. This was not a production deployment or a successful live authentication test.
+Loki uses filesystem storage with a configured retention period of seven days. Loki authentication is disabled, and its storage is operational data: keep it on the private Compose network and protect its volume and host. Prometheus, Loki, Grafana, app logs, NGINX logs, and Promtail positions use persistent Docker volumes. Backups and host-level retention/access controls remain deployment work.
 
-Record future checks using an environment label, date, build identifier, scope, outcomes, and unresolved risks in a restricted deployment record. Do not include tenant names/IDs, real hostnames, tester names, tokens, secrets, or user data in this repository.
+Backend logs and alerts must not expose access or refresh tokens, session IDs, CSRF tokens, authorization codes, client secrets, database credentials, or request bodies. Application logging uses explicit redaction; metric labels use bounded values and never include raw URLs, query strings, user identifiers, tokens, or arbitrary request input.
+
+## Network access
+
+- NGINX stub status listens on port `8081` and allows only the Compose subnet. The NGINX Exporter scrapes `http://nginx:8081/nginx_status` over the internal network. Do not publish the status endpoint or expose it through the public listener.
+- Backend `/metrics`, Redis Exporter, and Node Exporter are not exposed through NGINX or host-published ports. Prometheus scrapes them over the private Compose network.
+- Grafana and Prometheus have no host-published ports. NGINX proxies `/grafana/` and `/prometheus/` over TLS and protects both paths with HTTP Basic Authentication.
+- Both Compose files map NGINX HTTP/HTTPS to host ports `8080`/`8443`. Configure the host firewall and any external proxy deliberately for the target environment; do not assume these are standard public ports.
+- Keep Loki, Prometheus, exporters, Grafana, and monitoring volumes restricted to trusted operators and the private Compose network. Monitoring endpoint authentication does not replace host/network controls.
