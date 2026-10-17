@@ -1,10 +1,11 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Main from "./pages/Main";
+import Home from "./pages/Home";
 import AccountLinkingPage from "./pages/accountLinkingPage/AccountLinkingPage";
 import AccountLinkingProofPage from "./pages/accountLinkingPage/AccountLinkingProofPage";
 import AccountLinkingResumePage from "./pages/accountLinkingPage/AccountLinkingResumePage";
 import { prepareProofResume } from "./utils/proof-resume";
-import { ToastViewport } from "@sanny/ui";
+import { Error as ErrorPage, Settings, ToastViewport } from "@sanny/ui";
 
 const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
@@ -19,7 +20,10 @@ const router = createBrowserRouter([
   },
   {
     element: <Main />,
+    errorElement: <ErrorPage />,
     children: [
+      { path: "/", element: <Home /> },
+      { path: "/settings", element: <Settings /> },
       {
         path: "/confirm-linking",
         element: <AccountLinkingPage />,
@@ -28,6 +32,7 @@ const router = createBrowserRouter([
         path: "/account-link-proof-complete",
         element: <AccountLinkingProofPage />,
       },
+      { path: "*", element: <ErrorPage status={404} /> },
     ],
   },
 ]);

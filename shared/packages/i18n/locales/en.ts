@@ -41,6 +41,10 @@
     emailVerificationRequired: "Please verify your email before signing in.",
   },
   shared: {
+    auth: {
+      title: "Authentication",
+      noActiveRequest: "No authentication request is active.",
+    },
     settings: {
       title: "Settings",
       appearanceTitle: "Appearance",
@@ -56,7 +60,7 @@
         nextLanguage === "en" ? "Switch to English" : "Switch to German",
       accountTitle: "Your account",
       adminTitle: "Admin users",
-      username: "Username",
+      username: "Username:",
       loading: "Loading account...",
       noLocalAccount: "No local account exists yet.",
       createAccount: "Create account",

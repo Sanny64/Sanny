@@ -99,26 +99,18 @@
 }
 
 .admin-settings__user-actions .admin-settings__btn--unsaved {
-  background-color: var(--accent, #e67e22) !important;
-  color: #ffffff !important;
-  border-color: var(--accent, #e67e22) !important;
+  background-color: var(--accent) !important;
+  color: var(--on-accent) !important;
+  border-color: var(--accent) !important;
   font-weight: 600;
-  outline: 2px solid #e67e22 !important;
-  outline-offset: 1px;
-  box-shadow: 0 0 8px rgba(230, 126, 34, 0.5) !important;
-  transition:
-    background-color 0.2s ease,
-    transform 0.1s ease,
-    box-shadow 0.2s ease;
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
 }
 
 .admin-settings__user-actions
   .admin-settings__btn--unsaved:hover:not(:disabled) {
-  background-color: var(--accent-hover, #d35400) !important;
-  border-color: var(--accent-hover, #d35400) !important;
-  outline-color: #d35400 !important;
-  box-shadow: 0 0 12px rgba(211, 84, 0, 0.8) !important;
-  transform: translateY(-1px);
+  background-color: var(--accent-hover) !important;
+  border-color: var(--accent-hover) !important;
 }
 
 .admin-settings__user-actions
@@ -197,11 +189,11 @@
 }
 
 .admin-settings__modified-indicator {
-  color: #ff9f43 !important;
+  color: var(--warning) !important;
   font-size: 0.75rem;
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
 }
 
 .checkbox-container {

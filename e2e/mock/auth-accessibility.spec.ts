@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-const loginUrl = "https://127.0.0.1:5175";
+const authUrl = "https://127.0.0.1:5175";
 type Language = "en" | "de";
 type Theme = "light" | "dark";
 
@@ -55,8 +55,15 @@ async function captureDesktopAndMobile(page: Page) {
       height: viewport.height,
     });
     await page.evaluate(async () => document.fonts.ready);
+    await expect
+      .poll(() =>
+        page
+          .locator(".app-brand img")
+          .evaluate((image: HTMLImageElement) => image.naturalWidth),
+      )
+      .toBeGreaterThan(0);
     await expect(page).toHaveScreenshot(
-      `login-account-link-${viewport.name}.png`,
+      `auth-account-link-${viewport.name}.png`,
       {
         fullPage: true,
         animations: "disabled",
@@ -67,14 +74,49 @@ async function captureDesktopAndMobile(page: Page) {
   }
 }
 
+test("Auth root exposes accessible shared appearance controls and persists preferences", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("language")) {
+      localStorage.setItem("language", "en");
+      document.cookie = "language=en; path=/";
+    }
+    if (!localStorage.getItem("theme")) {
+      localStorage.setItem("theme", "light");
+      document.cookie = "theme=light; path=/";
+    }
+  });
+  await page.goto(authUrl);
+  await expect(
+    page.getByRole("heading", { name: "Authentication", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("No authentication request is active."),
+  ).toBeVisible();
+  await expectAccessible(page);
+
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expectAccessible(page);
+  await page.getByRole("button", { name: "Switch to German" }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.locator("html")).toHaveAttribute("lang", "de");
+  await expect(
+    page.getByRole("heading", { name: "Authentifizierung", exact: true }),
+  ).toBeVisible();
+  await expectAccessible(page);
+});
+
 for (const theme of ["light", "dark"] as const) {
   for (const language of ["en", "de"] as const) {
-    test(`${language} ${theme} Login helper routes pass the WCAG 2.2 AA axe audit`, async ({
+    test(`${language} ${theme} Auth helper routes pass the WCAG 2.2 AA axe audit`, async ({
       page,
     }) => {
       await setLanguage(page, language, theme);
       await page.goto(
-        `${loginUrl}/confirm-linking?${accountLinkParams().toString()}`,
+        `${authUrl}/confirm-linking?${accountLinkParams().toString()}`,
       );
       await expect(
         page.getByRole("heading", { name: "Link Your Accounts" }),
@@ -86,7 +128,7 @@ for (const theme of ["light", "dark"] as const) {
         expiresAt: String(Date.now() + 60_000),
       });
       await page.goto(
-        `${loginUrl}/account-link-proof-resume#${invalidResume.toString()}`,
+        `${authUrl}/account-link-proof-resume#${invalidResume.toString()}`,
       );
       await expect(page.getByRole("alert")).toContainText(
         "This account verification has expired or is unavailable.",
@@ -97,7 +139,7 @@ for (const theme of ["light", "dark"] as const) {
         window.close = () => {};
       });
       await page.goto(
-        `${loginUrl}/account-link-proof-complete#error=Authentication%20failed`,
+        `${authUrl}/account-link-proof-complete#error=Authentication%20failed`,
       );
       await expect(
         page.getByText("Completing account verification..."),
@@ -105,14 +147,14 @@ for (const theme of ["light", "dark"] as const) {
       await expectAccessible(page);
     });
 
-    test(`${language} ${theme} Login account linking has no narrow/wide overflow`, async ({
+    test(`${language} ${theme} Auth account linking has no narrow/wide overflow`, async ({
       page,
     }) => {
       await setLanguage(page, language, theme);
       for (const width of [320, 1440]) {
         await page.setViewportSize({ width, height: 900 });
         await page.goto(
-          `${loginUrl}/confirm-linking?${accountLinkParams().toString()}`,
+          `${authUrl}/confirm-linking?${accountLinkParams().toString()}`,
         );
         await expect(
           page.getByRole("heading", { name: "Link Your Accounts" }),
@@ -130,7 +172,7 @@ for (const theme of ["light", "dark"] as const) {
 }
 
 for (const theme of ["light", "dark"] as const) {
-  test(`${theme} Login account-link confirmation works by keyboard on mobile`, async ({
+  test(`${theme} Auth account-link confirmation works by keyboard on mobile`, async ({
     page,
   }) => {
     await setLanguage(page, "en", theme);
@@ -139,7 +181,7 @@ for (const theme of ["light", "dark"] as const) {
       window.open = () => null;
     });
     await page.goto(
-      `${loginUrl}/confirm-linking?${accountLinkParams().toString()}`,
+      `${authUrl}/confirm-linking?${accountLinkParams().toString()}`,
     );
 
     const continueButton = page.getByRole("button", {
@@ -171,7 +213,7 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
-test("Chromium visual baselines: Login account-link helper desktop and mobile", async ({
+test("Chromium visual baselines: Auth account-link helper desktop and mobile", async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -180,7 +222,7 @@ test("Chromium visual baselines: Login account-link helper desktop and mobile", 
   );
   await setVisualPreferences(page);
   await page.goto(
-    `${loginUrl}/confirm-linking?${accountLinkParams().toString()}`,
+    `${authUrl}/confirm-linking?${accountLinkParams().toString()}`,
   );
   await expect(
     page.getByRole("heading", { name: "Link Your Accounts" }),

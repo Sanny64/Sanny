@@ -26,7 +26,9 @@
     "party.css"
   ],
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.2.8",
     "@sanny/i18n": "*",
+    "framer-motion": "^12.43.0",
     "js-cookie": "^3.0.8"
   },
   "devDependencies": {

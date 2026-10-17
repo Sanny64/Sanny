@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { showToast } from "@sanny/ui";
+import { Button, showToast } from "@sanny/ui";
+import { ArrowDown, KeyRound, Link2, UserRound } from "lucide-react";
 import { translations, useLanguage } from "@sanny/i18n";
 import "../../styles/AccountLinkingPage.css";
 
@@ -67,14 +68,9 @@ function getProviderDisplayName(provider: string): string {
   return names[provider] || provider;
 }
 
-function getProviderIcon(provider: string): string {
-  const icons: Record<string, string> = {
-    "google-oauth2": "🔴",
-    auth0: "🔐",
-    facebook: "👨‍💼",
-    apple: "🍎",
-  };
-  return icons[provider] || "🔗";
+function getProviderIcon(provider: string) {
+  if (provider === "auth0") return <KeyRound size={20} aria-hidden="true" />;
+  return <UserRound size={20} aria-hidden="true" />;
 }
 
 export default function AccountLinkingPage() {
@@ -192,9 +188,9 @@ export default function AccountLinkingPage() {
         <div className="account-linking-card">
           <h1>Error</h1>
           <p className="error-message">{validationError}</p>
-          <button onClick={() => navigate("/")} className="secondary">
-            Return to Login
-          </button>
+          <Button variant="secondary" onClick={() => navigate("/")}>
+            Return to authentication
+          </Button>
         </div>
       </div>
     );
@@ -287,7 +283,7 @@ export default function AccountLinkingPage() {
             </div>
           </div>
 
-          <div className="arrow">↓</div>
+          <ArrowDown className="arrow" size={20} aria-hidden="true" />
 
           <div className="account-item">
             <div className="account-icon">{secondaryIcon}</div>
@@ -340,18 +336,15 @@ export default function AccountLinkingPage() {
         )}
 
         <div className="actions">
-          <button
+          <Button
             onClick={() => continueLinking("cancel")}
             disabled={isProcessing}
-            className="secondary"
+            variant="secondary"
           >
             Return to login
-          </button>
-          <button
-            onClick={handleConfirm}
-            disabled={isProcessing || isExpired}
-            className="primary"
-          >
+          </Button>
+          <Button onClick={handleConfirm} disabled={isProcessing || isExpired}>
+            <Link2 size={18} aria-hidden="true" />
             {isExpired
               ? "Request expired"
               : isProcessing
@@ -359,7 +352,7 @@ export default function AccountLinkingPage() {
                 : proof
                   ? "Confirm & Complete Linking"
                   : "Authenticate & Continue"}
-          </button>
+          </Button>
         </div>
 
         <div className="help-text">

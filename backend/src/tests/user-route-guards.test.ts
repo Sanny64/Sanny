@@ -1764,6 +1764,7 @@ test("DELETE /users/me preserves the self account when Auth0 denies deletion", a
             lastTouchedAt: now,
             authenticatedAt: now,
             mfaAuthenticatedAt: now,
+            emailMfaAuthenticatedAt: now,
           };
         },
         ...existingHandlers.slice(1),
@@ -1935,14 +1936,14 @@ test("non-admins cannot access admin-only user routes even with permissions", as
   }
 });
 
-test("self/admin password-reset routes require their specific MFA factors", async () => {
+test("self routes require email OTP and admin routes require authenticator MFA", async () => {
   const identity: AccessTokenIdentity = {
     sub: "auth0|test-admin",
     email: "admin@example.test",
     emailVerified: true,
     name: "Admin",
     roles: ["admin"],
-    permissions: ["write:users"],
+    permissions: ["write:users", "delete:me", "delete:users"],
     audiences: ["https://api.example.test"],
   };
   const server = Fastify();
@@ -1956,7 +1957,13 @@ test("self/admin password-reset routes require their specific MFA factors", asyn
     const isAdminReset =
       methods.includes("POST") &&
       route.url.endsWith("/users/:userId/password-reset");
-    if (!isSelfReset && !isAdminReset) return;
+    const isSelfDelete =
+      methods.includes("DELETE") && route.url.endsWith("/users/me");
+    const isAdminDelete =
+      methods.includes("DELETE") && route.url.endsWith("/users/:userId");
+    if (!isSelfReset && !isAdminReset && !isSelfDelete && !isAdminDelete) {
+      return;
+    }
 
     const existingHandlers = Array.isArray(route.preHandler)
       ? route.preHandler
@@ -1999,6 +2006,28 @@ test("self/admin password-reset routes require their specific MFA factors", asyn
     });
     assert.equal(adminReset.statusCode, 401);
     assert.deepEqual(adminReset.json(), {
+      error: "Unauthorized",
+      message: "MFA authentication required",
+      mfaRequired: true,
+    });
+
+    const selfDelete = await server.inject({
+      method: "DELETE",
+      url: "/api/v001/users/me",
+    });
+    assert.equal(selfDelete.statusCode, 401);
+    assert.deepEqual(selfDelete.json(), {
+      error: "Unauthorized",
+      message: "Email OTP authentication required",
+      emailOtpRequired: true,
+    });
+
+    const adminDelete = await server.inject({
+      method: "DELETE",
+      url: "/api/v001/users/42",
+    });
+    assert.equal(adminDelete.statusCode, 401);
+    assert.deepEqual(adminDelete.json(), {
       error: "Unauthorized",
       message: "MFA authentication required",
       mfaRequired: true,
@@ -2087,6 +2116,7 @@ test("self/admin deletion reports database failure as a server error after Auth0
           lastTouchedAt: now,
           authenticatedAt: now,
           mfaAuthenticatedAt: now,
+          emailMfaAuthenticatedAt: now,
         };
       },
       ...existingHandlers.slice(1),

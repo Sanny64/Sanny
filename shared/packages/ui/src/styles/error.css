@@ -1,0 +1,15 @@
+.error-page {
+  margin-top: 47%;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .error-page {
+    margin-top: 47%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .error-page {
+    margin-top: 47%;
+  }
+}

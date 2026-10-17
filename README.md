@@ -38,16 +38,16 @@ Installation: npm install
 In the project directory, run one of the workspace scripts:
 
 - npm run dev:sanny
-- npm run dev:login
+- npm run dev:auth
 - npm run dev:docs
 
 For quality checks, use scripts defined by the root `package.json`:
 
 - `npm run format:check`
 - `npm run test`
-- `npm run lint:backend`, `npm run lint:login`, `npm run lint:sanny`, and `npm run lint:docs`
+- `npm run lint:backend`, `npm run lint:auth`, `npm run lint:sanny`, and `npm run lint:docs`
 - Shared-package lint: `npm run lint -w @sanny/i18n`, `npm run lint -w @sanny/styles`, and `npm run lint -w @sanny/ui`
-- `npm run build:login`, `npm run build:sanny`, and `npm run build:docs`
+- `npm run build:auth`, `npm run build:sanny`, and `npm run build:docs`
 
 `npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](documenation/docs/backend/local-testing/automated-testing.mdx), [frontend automated testing guide](documenation/docs/frontend/local-testing/automated-testing.mdx), and [staging readiness checklist](backend/TODO.md).
 
@@ -84,12 +84,12 @@ Sanny/ (Root Workspace)
 │   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
 │   └── blockrunner/          # Independent game service / repository (programming challenge)
 │
-├── login/                    # Frontend: auth.sanny64.de (Vite + React + TS)
+├── auth/                    # Frontend: auth.sanny64.de (Vite + React + TS)
 │   ├── public/
 │   └── src/
 │       ├── assets/           # Frontend project specific assets
 │       ├── components/       # Custom frontend project exclusive components
-│       └── pages/            # LoginPage
+│       └── pages/            # Authentication helper routes
 │
 ├── sanny/                    # Frontend: sanny64.de (Vite + React + TS)
 │   ├── public/
@@ -127,6 +127,14 @@ Sanny/ (Root Workspace)
 - Routing via React-Router-Dom
 - Animations via Framer-Motion
 
+### Shared Visual System
+
+Sanny and Auth use the same semantic light/dark theme from `@sanny/styles`: neutral surfaces, green accents, locally bundled Manrope typography, consistent spacing, 4-8px radii, and visible keyboard focus. Theme selection continues to follow browser preferences until a manual choice is saved.
+
+`ThemeProvider` also supplies Framer Motion defaults through `MotionConfig` with `reducedMotion="user"`. `@sanny/ui` owns `AppShell`, route-entry motion, shared buttons, settings, and notifications. Both apps import the shared global/layout CSS in `src/main.tsx`, including standalone error and proof-resume routes. App-specific styles consume semantic variables instead of defining another light/dark palette. Auxiliary party routes keep their scoped colors.
+
+The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:auth`, and `test:e2e:accessibility:auth`. Its workflow publishes an artifact to `/public_html/auth/`; the hosting document root for `auth.sanny64.de` must match. The former login workspace/script names are no longer supported. Backend login endpoints and Auth0 callback URLs remain unchanged.
+
 ### Backend
 
 - Fastify (TypeScript) + REST API Architecture + Prisma Schemas; The api endpoints for all (sub)-domains are routed via _base-url_/api/v001/
@@ -148,7 +156,7 @@ Sanny/ (Root Workspace)
 
 - Language and theme settings are handled by the shared i18n and styles packages, saved in cookies and mirrored in localStorage only on user change.
   - If no cookie value is set for either language or theme the website falls back to browser preferences
-- Transient account/admin feedback and recoverable login/linking failures use shared toasts, with German and English messages under `shared.notifications`. Loading, empty states, confirmations, and terminal errors remain on their pages.
+- Transient account/admin feedback and recoverable auth/linking failures use shared toasts, with German and English messages under `shared.notifications`. Loading, empty states, confirmations, and terminal errors remain on their pages.
 - Unknown routes in the main frontend display the localized 404 page. Explicit `/error?status=...` redirects and router errors retain their corresponding error pages.
 - Auth0 authentication routed via sub-domain to the protected Fastify API
 - RBAC
@@ -267,9 +275,9 @@ They're accessible only via QR-codes and can't be reached from the main UI.
 - Spotify Integration (laid-back chill mix)
 - Personal message
 
-## Login
+## Authentication
 
-Login is hosted at https://auth.sanny64.de
+Auth is hosted at https://auth.sanny64.de and handles account-link confirmation and ownership verification. Its root shows the authentication request state and shared appearance settings; sign-in remains owned by the backend and Auth0.
 
 ## Settings
 

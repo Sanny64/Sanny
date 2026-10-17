@@ -9,7 +9,7 @@ sidebar_position: 5
 Dieses Projekt verwendet einen einfachen Release-Zug für ein Monorepo mit:
 
 - Frontend `sanny`.
-- Frontend `login`.
+- Frontend `auth`.
 - ...
 - App `docs`.
 - Fastify-Backend.
@@ -53,7 +53,7 @@ Dieses Projekt verwendet `dev -> test -> main`.
 Ein Push nach `test` stellt die im Internet erreichbare (zukünftig durch Login geschützte) Testumgebung bereit.
 
 - `sanny` -> Testseite.
-- `login` -> Testseite.
+- `auth` -> Testseite.
 - Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
 - Das Test-Deployment des Backends ist vorläufig und kann manuell oder eingeschränkt bleiben, während der Backend-Workflow fertiggestellt wird.
 
@@ -62,7 +62,7 @@ Ein Push nach `test` stellt die im Internet erreichbare (zukünftig durch Login 
 Ein Push nach `main` stellt die Produktionsumgebung bereit.
 
 - `sanny` -> Produktionsseite.
-- `login` -> Produktionsseite.
+- `auth` -> Produktionsseite.
 - `docs` -> Produktionsseite.
 - Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
 - Das Backend-Produktionsdeployment ist vorerst vorläufig. Die Test- und Deployment-Pipeline deployt derzeit nur nach manueller Auslösung.
@@ -250,7 +250,7 @@ Dies ist ein Wiederherstellungsschritt über den normalen Integrations-Branch `d
 Das Produktionsdeployment startet nach dem Squash-Merge auf `main`.
 
 - `sanny` wird aus dem Branch `main` deployed.
-- `login` wird aus dem Branch `main` deployed.
+- `auth` wird aus dem Branch `main` deployed.
 - ... wird aus dem Branch `main` deployed.
 - `docs` wird aus dem Branch `main` deployed.
 - Änderungen an gemeinsam genutzten Paketen lösen abhängig vom Branch immer auch die Frontend-Release-Pipeline aus.

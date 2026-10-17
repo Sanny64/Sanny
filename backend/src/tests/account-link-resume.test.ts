@@ -6,7 +6,7 @@ import {
   parseProofResume,
   prepareProofResume,
   proofResumeKey,
-} from "../../../login/src/utils/proof-resume.js";
+} from "../../../auth/src/utils/proof-resume.js";
 
 test("continuation uses the backend custom Auth0 domain and preserves signed parameters", () => {
   const previousDomain = process.env.AUTH0_DOMAIN;

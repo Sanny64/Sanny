@@ -21,6 +21,9 @@ import Party from "./pages/party/Party";
 import Refreshments from "./pages/party/refreshments/Refreshments";
 import Comfort from "./pages/party/comfort/Comfort";
 import { Error as ErrorPage, ToastViewport } from "@sanny/ui";
+import { restoreLogoutReturnTo } from "./utils/reauthentication";
+
+restoreLogoutReturnTo();
 
 const router = createBrowserRouter([
   {

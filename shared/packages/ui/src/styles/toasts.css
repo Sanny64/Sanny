@@ -18,17 +18,17 @@
   border-inline-start: 0.3rem solid var(--accent);
   border-radius: var(--radius-md);
   color: var(--text-h);
-  background: var(--bg);
+  background: var(--surface-raised);
   box-shadow: var(--shadow);
   text-align: start;
 }
 
 .toast--error {
-  border-inline-start-color: #c62828;
+  border-inline-start-color: var(--danger);
 }
 
 .toast--warning {
-  border-inline-start-color: #b7791f;
+  border-inline-start-color: var(--warning);
 }
 
 .toast__action,
@@ -53,6 +53,8 @@
   border: 0;
   background: transparent;
   font-size: 1.25rem;
+  min-width: 32px;
+  min-height: 32px;
 }
 
 .toast button:focus-visible {

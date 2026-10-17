@@ -61,7 +61,7 @@ Siehe auch [Auth0-Voraussetzungen zur MFA-Anpassung](https://auth0.com/docs/secu
 
 ### Passwort-Reset während des Besitznachweises
 
-- Für lokale Tests kann die Auth0-Anwendungs-Login-URI auf `https://localhost:5174/account-link-proof-resume` zeigen. In Produktion muss dort die entsprechende Route des bereitgestellten Login-Frontends eingetragen sein. Das ist nicht die OAuth-Callback-URL.
+- Für lokale Tests kann die Auth0-Anwendungs-Login-URI auf `https://localhost:5174/account-link-proof-resume` zeigen. In Produktion muss dort die entsprechende Route des bereitgestellten Auth-Frontends eingetragen sein. Das ist nicht die OAuth-Callback-URL.
 - Das Popup speichert den undurchsichtigen ausstehenden Status und Ablauf in `sessionStorage`. Nach dem Reset setzt dieselbe Popup-Instanz den Besitznachweis über die Resume-Route fort.
 - Ein Passwort-Reset allein gilt nicht als Besitznachweis. Abgelaufener Status erfordert einen Neustart der Verknüpfung; ein Reset in einem anderen Tab setzt das ursprüngliche Popup nicht automatisch fort.
 - Fortsetzungen werden mit `AUTH0_DOMAIN` erstellt. Tenant- und Custom-Domain nicht innerhalb derselben Auth0-Transaktion mischen.

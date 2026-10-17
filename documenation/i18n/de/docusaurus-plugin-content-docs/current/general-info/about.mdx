@@ -11,7 +11,7 @@ Dieses Repository betreibt meine persönliche Website sowie den dazugehörigen L
 ## Was ist in diesem Monorepo enthalten?
 
 - `sanny/` enthält die öffentliche React + Vite Website
-- `login/` enthält die auf Authentifizierung fokussierte Login-App
+- `auth/` enthält die auf Authentifizierung fokussierte Auth-App
 - `backend/` enthält die Fastify-API, die geschützte Funktionen und Einstellungen unterstützt
 - `shared/packages/i18n/` verwaltet Sprachstatus und Übersetzungen
 - `shared/packages/styles/` verwaltet Theme- und Darstellungszustand
@@ -35,7 +35,7 @@ Der Workspace folgt einigen zentralen Prinzipien:
 
 ## Gemeinsamer Fokus
 
-Die Shared-Packages sorgen dafür, dass die Frontend-Apps konsistent bleiben. Sprache, Theme, Einstellungen und gemeinsame UI sollen über die öffentliche Seite und den Login-Workspace hinweg abgestimmt sein, anstatt in jeder App neu implementiert zu werden.
+Die Shared-Packages sorgen dafür, dass die Frontend-Apps konsistent bleiben. Sprache, Theme, Einstellungen und gemeinsame UI sollen über die öffentliche Seite und den Auth-Workspace hinweg abgestimmt sein, anstatt in jeder App neu implementiert zu werden.
 
 Das erleichtert die Wartung des Repos und bündelt Änderungen wie Barrierefreiheit, Lokalisierung und Styling-Verhalten an einer zentralen Stelle.
 

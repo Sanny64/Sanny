@@ -47,7 +47,7 @@ test("settings and recoverable login failures do not duplicate toasts inline", a
     "../../../sanny/src/pages/settings/AccountSettings.tsx",
     "../../../sanny/src/pages/settings/AdminSettings.tsx",
     "../../../sanny/src/components/default/LoginButton.tsx",
-    "../../../login/src/pages/accountLinkingPage/AccountLinkingPage.tsx",
+    "../../../auth/src/pages/accountLinkingPage/AccountLinkingPage.tsx",
   ]) {
     const source = await readFile(new URL(path, import.meta.url), "utf8");
     assert.doesNotMatch(source, /setError|setMessage|setUserSyncError/);
@@ -59,9 +59,12 @@ test("settings and recoverable login failures do not duplicate toasts inline", a
       new URL(`../../../sanny/src/pages/settings/${page}.tsx`, import.meta.url),
       "utf8",
     );
+    const requestEnd = source.search(
+      /\nfunction is(?:EmailOtp|Mfa)AuthenticationRequired/,
+    );
     const request = source.slice(
       source.indexOf("async function request<T>"),
-      source.indexOf("function isMfaAuthenticationRequired"),
+      requestEnd,
     );
     assert.doesNotMatch(request, /show(?:Error)?Toast\(/);
   }

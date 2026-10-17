@@ -5,8 +5,8 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useLanguage, translations } from "@sanny/i18n";
-import { Section } from "@sanny/ui";
 import { getErrorStatus, type ErrorStatus } from "../utils/error-status";
+import "../styles/error.css";
 
 export default function ErrorPage({
   status: pageStatus,
@@ -34,13 +34,13 @@ export default function ErrorPage({
       : description || error.message;
 
   return (
-    <main className="error-page">
+    <div className="error-page">
       <h1>{t.shared.errors.title}</h1>
-      <Section className="error-section" variant="secondary">
+      <section className="error-section">
         <h2>{error.title}</h2>
-        <p>{message}</p>
+        <p>{message?.toString()}</p>
         <Link to="/">{t.shared.errors.returnHome}</Link>
-      </Section>
-    </main>
+      </section>
+    </div>
   );
 }

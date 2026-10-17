@@ -93,7 +93,7 @@ async function userRoutes(server: FastifyInstance) {
       preHandler: [
         requireSession,
         requirePermissions(["delete:me"]),
-        requireMfaAuthentication(),
+        requireEmailMfaAuthentication(),
       ],
       schema: {
         security: [{ sessionCookie: [] }],

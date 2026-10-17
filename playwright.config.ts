@@ -52,7 +52,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "npm run dev -w login -- --host 127.0.0.1 --port 5175",
+      command: "npm run dev -w auth -- --host 127.0.0.1 --port 5175",
       url: "https://127.0.0.1:5175",
       ignoreHTTPSErrors: true,
       reuseExistingServer: true,

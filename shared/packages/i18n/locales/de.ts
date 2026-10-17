@@ -45,6 +45,10 @@ export const de: Translations = {
       "Bitte verifiziere deine E-Mail-Adresse, bevor du dich anmeldest.",
   },
   shared: {
+    auth: {
+      title: "Authentifizierung",
+      noActiveRequest: "Es ist keine Authentifizierungsanfrage aktiv.",
+    },
     settings: {
       title: "Einstellungen",
       appearanceTitle: "Darstellung",
@@ -62,7 +66,7 @@ export const de: Translations = {
         nextLanguage === "en" ? "Wechselt zu Englisch" : "Wechselt zu Deutsch",
       accountTitle: "Dein Konto",
       adminTitle: "Admin-Benutzer",
-      username: "Benutzername",
+      username: "Benutzername:",
       loading: "Konto wird geladen...",
       noLocalAccount: "Es existiert noch kein lokales Konto.",
       createAccount: "Konto erstellen",

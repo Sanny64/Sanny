@@ -63,7 +63,7 @@ When ready to deploy to production:
    - Set Allowed Callback URLs to:
      ```
      https://api.example.com/api/v001/auth/callback,
-     https://login.example.com/,
+     https://auth.example.com/,
      https://app.example.com/
      ```
    - Update CORS to use production domains
@@ -71,7 +71,7 @@ When ready to deploy to production:
 2. **Update Environment Variables**:
    - Backend: Set HTTPS values for `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT`, and `PROD_AUTH0_LOGOUT_REDIRECT`.
    - Login Frontend: Update `VITE_AUTH0_DOMAIN` if using a production tenant
-   - Main Frontend: Update `VITE_LOGIN_URL` to the deployed login frontend HTTPS origin.
+   - Backend: Set `PROD_ACCOUNT_LINK_FRONTEND_URL` to the deployed Auth confirmation URL and include that origin in `PROD_CORS_ORIGINS`.
 
 3. **Database Deployment**:
    - Review the Prisma schema changes and the deployment's approved database migration procedure before deploying.
@@ -81,7 +81,7 @@ When ready to deploy to production:
 
 | Component      | Dev URL                                       | Prod URL                                       |
 | -------------- | --------------------------------------------- | ---------------------------------------------- |
-| Login          | https://localhost:5174                        | https://login.example.com                      |
+| Login          | https://localhost:5174                        | https://auth.example.com                       |
 | Main App       | https://localhost:5173                        | https://app.example.com                        |
 | Backend        | https://localhost:8443                        | https://api.example.com                        |
 | Auth0 Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |

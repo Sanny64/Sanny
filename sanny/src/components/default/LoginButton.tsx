@@ -1,7 +1,16 @@
 import { useLanguage, translations } from "@sanny/i18n";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "../../../../shared/packages/ui/src/components/Button";
-import { dismissToast, showToast } from "@sanny/ui";
+import { LogIn, LogOut } from "lucide-react";
+import { Button, dismissToast, showToast } from "@sanny/ui";
+import { authChangedEvent } from "../../utils/authEvents";
+import { isLogoutReturn, prepareLogoutUrl } from "../../utils/reauthentication";
+
+type Identity = { roles?: string[] };
+
+type LoginButtonProps = {
+  className?: string;
+  onIdentityChange?: (identity: Identity | null) => void;
+};
 
 const sessionWarningLeadMs = 15 * 60 * 1000;
 
@@ -21,11 +30,39 @@ function checkAuthentication() {
   return authCheckPromise;
 }
 
-export default function LoginButton() {
-  const t = translations[useLanguage().language];
+function authenticationUrl(reauthenticate = false) {
+  const url = new URL("/api/v001/auth", apiUrl);
+  url.searchParams.set(
+    "returnTo",
+    `${window.location.pathname}${window.location.search}${window.location.hash}`,
+  );
+  if (reauthenticate) url.searchParams.set("reauthenticate", "true");
+  return url.toString();
+}
+
+export default function LoginButton({
+  className,
+  onIdentityChange,
+}: LoginButtonProps) {
+  const { language } = useLanguage();
+  const t = translations[language];
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authVersion, setAuthVersion] = useState(0);
   const sessionWarningToastId = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    function handleAuthChanged() {
+      authCheckPromise = null;
+      setIsLoading(true);
+      setIsAuthenticated(false);
+      onIdentityChange?.(null);
+      setAuthVersion((version) => version + 1);
+    }
+    window.addEventListener(authChangedEvent, handleAuthChanged);
+    return () =>
+      window.removeEventListener(authChangedEvent, handleAuthChanged);
+  }, [onIdentityChange]);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,17 +70,27 @@ export default function LoginButton() {
 
     async function syncUser() {
       try {
+        if (isLogoutReturn()) return;
         const authResponse = await checkAuthentication();
 
-        if (authResponse.status === 401) return;
+        if (authResponse.status === 401) {
+          if (!cancelled) {
+            setIsAuthenticated(false);
+            onIdentityChange?.(null);
+          }
+          return;
+        }
         if (!authResponse.ok) {
           throw new Error(
             `Authentication check failed (${authResponse.status})`,
           );
         }
 
+        const identity = (await authResponse.clone().json()) as Identity;
+
         if (!cancelled) {
           setIsAuthenticated(true);
+          onIdentityChange?.(identity);
           const sessionExpiryHeader = authResponse.headers.get(
             "X-Session-Expires-At",
           );
@@ -60,7 +107,7 @@ export default function LoginButton() {
                   action: {
                     label: t.shared.notifications.signInAgain,
                     onClick: () => {
-                      window.location.href = `${apiUrl}/api/v001/auth?reauthenticate=true`;
+                      window.location.href = authenticationUrl(true);
                     },
                   },
                 },
@@ -101,7 +148,7 @@ export default function LoginButton() {
         sessionWarningToastId.current = undefined;
       }
     };
-  }, [t]);
+  }, [t, authVersion, onIdentityChange]);
 
   function getCsrfToken() {
     return document.cookie
@@ -147,33 +194,29 @@ export default function LoginButton() {
       showToast(t.shared.notifications.userSyncError);
       return;
     }
-    window.location.href = result.logoutUrl;
+    window.location.href = prepareLogoutUrl(result.logoutUrl);
   }
 
   return (
-    <>
-      {!isLoading && !isAuthenticated && (
-        <Button
-          className="login-button"
-          type="button"
-          variant="primary"
-          onClick={() => {
-            window.location.href = `${apiUrl}/api/v001/auth`;
-          }}
-        >
-          {t.login.loginButton}
-        </Button>
+    <Button
+      className={className}
+      type="button"
+      variant={isAuthenticated ? "secondary" : "primary"}
+      disabled={isLoading}
+      onClick={() => {
+        if (isAuthenticated) {
+          void logout();
+        } else {
+          window.location.href = authenticationUrl();
+        }
+      }}
+    >
+      {isAuthenticated ? (
+        <LogOut size={18} aria-hidden="true" />
+      ) : (
+        <LogIn size={18} aria-hidden="true" />
       )}
-      {!isLoading && isAuthenticated && (
-        <Button
-          className="logout-button"
-          type="button"
-          variant="secondary"
-          onClick={() => void logout()}
-        >
-          {t.login.logoutButton}
-        </Button>
-      )}
-    </>
+      {isAuthenticated ? t.login.logoutButton : t.login.loginButton}
+    </Button>
   );
 }

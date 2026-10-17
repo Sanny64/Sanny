@@ -4,14 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   beginReauthentication,
+  isLogoutReturn,
   takePendingActionCredentials,
   type PendingAction,
 } from "../../utils/reauthentication";
+import { notifyAuthChanged } from "../../utils/authEvents";
 import {
   Settings as AppearanceSettings,
+  ButtonGroup,
   showErrorToast,
   showToast,
 } from "@sanny/ui";
+import LoginButton from "../../components/default/LoginButton";
 
 type Identity = {
   email: string | null;
@@ -81,14 +85,6 @@ async function request<T>(path: string, init: RequestInit = {}) {
   return (await response.json()) as T;
 }
 
-function isMfaAuthenticationRequired(error: unknown) {
-  return (
-    error instanceof Error &&
-    (error as RequestError).status === 401 &&
-    error.message.includes("MFA authentication required")
-  );
-}
-
 function isEmailOtpAuthenticationRequired(error: unknown) {
   return (
     error instanceof Error &&
@@ -132,6 +128,7 @@ export default function AccountSettings() {
 
     async function loadAccount() {
       try {
+        if (isLogoutReturn()) return;
         const currentIdentity = await request<Identity>("/api/v001/auth/me");
         if (!cancelled) {
           setIdentity(currentIdentity);
@@ -147,7 +144,7 @@ export default function AccountSettings() {
           if (!cancelled) setUser(null);
         }
       } catch (loadError) {
-        if (!cancelled) {
+        if (!cancelled && (loadError as RequestError).status !== 401) {
           showErrorToast(loadError, requestFailedMessage);
         }
       } finally {
@@ -184,8 +181,10 @@ export default function AccountSettings() {
         );
         await replayRequest(action);
         if (action.method === "DELETE") {
+          setIdentity(null);
           setUser(null);
           setUsername("");
+          notifyAuthChanged();
           showToast(t.shared.notifications.accountDeleted, { kind: "info" });
         } else if (action.path.endsWith("/me/password-reset")) {
           showToast(t.shared.notifications.passwordResetRequested, {
@@ -269,13 +268,16 @@ export default function AccountSettings() {
     setIsBusy(true);
     try {
       await request<void>("/api/v001/users/me", { method: "DELETE" });
+      setIdentity(null);
       setUser(null);
+      setUsername("");
+      notifyAuthChanged();
       showToast(t.shared.notifications.accountDeleted, { kind: "info" });
     } catch (requestError) {
-      if (isMfaAuthenticationRequired(requestError)) {
+      if (isEmailOtpAuthenticationRequired(requestError)) {
         beginReauthentication(
           apiUrl,
-          "mfa",
+          "email",
           (requestError as RequestError).resumeToken,
         );
         return;
@@ -319,38 +321,44 @@ export default function AccountSettings() {
         <p>{t.shared.settings.loading}</p>
       ) : (
         <>
-          <section>
-            <h2>{t.shared.settings.testTitle}</h2>
-            <Button
-              type="button"
-              onClick={() => void testAccountEndpoints()}
-              disabled={isBusy}
-            >
-              {t.shared.settings.testAccountEndpoints}
-            </Button>
-            {canManageUsers && (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => navigate("/admin/settings")}
-                disabled={isBusy}
-              >
-                {t.shared.settings.openAdminSettings}
-              </Button>
-            )}
-          </section>
+          {canManageUsers && (
+            <section>
+              <h2>{t.shared.settings.testTitle}</h2>
+              <ButtonGroup layout="horizontal">
+                <Button
+                  type="button"
+                  onClick={() => void testAccountEndpoints()}
+                  disabled={isBusy}
+                >
+                  {t.shared.settings.testAccountEndpoints}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => navigate("/admin/settings")}
+                  disabled={isBusy}
+                >
+                  {t.shared.settings.openAdminSettings}
+                </Button>
+              </ButtonGroup>
+            </section>
+          )}
 
           {!user ? (
             <section>
               <h2>{t.shared.settings.accountTitle}</h2>
               <p>{t.shared.settings.noLocalAccount}</p>
-              <Button
-                type="button"
-                onClick={() => void createAccount()}
-                disabled={isBusy}
-              >
-                {t.shared.settings.createAccount}
-              </Button>
+              <ButtonGroup layout="horizontal">
+                <Button
+                  type="button"
+                  onClick={() => void createAccount()}
+                  disabled={isBusy}
+                >
+                  {t.shared.settings.createAccount}
+                </Button>
+                <LoginButton></LoginButton>
+              </ButtonGroup>
             </section>
           ) : (
             <section>
@@ -359,6 +367,7 @@ export default function AccountSettings() {
               <label>
                 {t.shared.settings.username}
                 <input
+                  className="account-settings__input"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   disabled={!canUpdateSelf || isBusy}
@@ -378,6 +387,7 @@ export default function AccountSettings() {
                 {canUpdateSelf && (
                   <Button
                     type="button"
+                    variant="primary"
                     onClick={() => void updateAccount()}
                     disabled={isBusy || !username.trim()}
                   >
@@ -387,7 +397,7 @@ export default function AccountSettings() {
                 {canDeleteSelf && (
                   <Button
                     type="button"
-                    variant="secondary"
+                    variant="destructive"
                     onClick={() => void deleteAccount()}
                     disabled={isBusy}
                   >

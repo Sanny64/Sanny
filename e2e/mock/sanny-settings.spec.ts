@@ -2,6 +2,60 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 
 const sannyUrl = "https://127.0.0.1:5176";
 
+for (const role of ["guest", "user", "admin"]) {
+  test(`account dropdown exposes the correct actions for ${role}`, async ({
+    page,
+  }) => {
+    await page.route("**/api/v001/auth/me", (route) =>
+      route.fulfill({
+        status: role === "guest" ? 401 : 200,
+        contentType: "application/json",
+        body: JSON.stringify({ roles: [role], permissions: [] }),
+      }),
+    );
+    await page.goto(sannyUrl);
+
+    const trigger = page.getByRole("button", { name: "Account menu" });
+    const dropdown = page.getByRole("navigation", {
+      name: "Account",
+      exact: true,
+    });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(dropdown).toHaveCount(0);
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(
+      dropdown.getByRole("button", {
+        name: role === "guest" ? "Login" : "Logout",
+        exact: true,
+      }),
+    ).toBeEnabled();
+    await expect(
+      dropdown.getByRole("link", { name: "Settings", exact: true }),
+    ).toHaveAttribute("href", "/settings");
+    await expect(
+      dropdown.getByRole("link", { name: "Admin settings", exact: true }),
+    ).toHaveCount(role === "admin" ? 1 : 0);
+    if (role === "admin") {
+      await expect(
+        dropdown.getByRole("link", { name: "Admin settings", exact: true }),
+      ).toHaveAttribute("href", "/admin/settings");
+    }
+
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Escape");
+    await expect(trigger).toBeFocused();
+    await expect(dropdown).toHaveCount(0);
+    await trigger.click();
+    await page.locator("main").click();
+    await expect(dropdown).toHaveCount(0);
+    await trigger.click();
+    await dropdown.getByRole("link", { name: "Settings", exact: true }).click();
+    await expect(page).toHaveURL(`${sannyUrl}/settings`);
+    await expect(dropdown).toHaveCount(0);
+  });
+}
+
 async function respondJson(route: Route, body: unknown, status = 200) {
   await route.fulfill({
     status,
@@ -411,6 +465,21 @@ test("denies the admin page to a non-admin without loading protected data", asyn
   expect(protectedRequests).toBe(0);
 });
 
+test("shows server failures during the initial account load", async ({
+  page,
+}) => {
+  await page.route("**/api/v001/auth/me", async (route) => {
+    await respondJson(
+      route,
+      { message: "Authentication service unavailable" },
+      500,
+    );
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expectAlert(page, "Authentication service unavailable");
+});
+
 test("switches and persists the settings page language and theme", async ({
   page,
 }) => {
@@ -427,6 +496,11 @@ test("switches and persists the settings page language and theme", async ({
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
   await expect(page.getByText("Language: en", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Account menu" }).click();
+  await expect(
+    page.getByRole("button", { name: "Login", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Switch to German" }).click();
   await expect(page.getByText("Sprache: de", { exact: true })).toBeVisible();
@@ -445,7 +519,7 @@ test("switches and persists the settings page language and theme", async ({
   ).toBeVisible();
 });
 
-test("starts MFA reauthentication when deleting an account requires it", async ({
+test("starts Email OTP reauthentication when deleting an account requires it", async ({
   page,
 }) => {
   await page.route("**/api/v001/**", async (route) => {
@@ -469,7 +543,8 @@ test("starts MFA reauthentication when deleting an account requires it", async (
       await respondJson(
         route,
         {
-          message: "MFA authentication required",
+          message: "Email OTP authentication required",
+          emailOtpRequired: true,
           resumeToken: "test-resume-token",
         },
         401,
@@ -485,26 +560,30 @@ test("starts MFA reauthentication when deleting an account requires it", async (
   await page.goto(`${sannyUrl}/settings`);
   const authRequestPromise = page.waitForRequest((request) => {
     const url = new URL(request.url());
-    return url.pathname === "/api/v001/auth" && url.searchParams.has("mfa");
+    return (
+      url.pathname === "/api/v001/auth" && url.searchParams.has("emailMfa")
+    );
   });
 
   await page.getByRole("button", { name: "Delete my account" }).click();
   const authRequest = await authRequestPromise;
   const authUrl = new URL(authRequest.url());
 
-  expect(authUrl.searchParams.get("mfa")).toBe("true");
+  expect(authUrl.searchParams.get("emailMfa")).toBe("true");
+  expect(authUrl.searchParams.has("mfa")).toBe(false);
   expect(authUrl.searchParams.get("returnTo")).toBe("/settings");
 });
 
 const resumeScenarios = [
   {
-    name: "MFA account deletion",
-    factor: "mfa",
-    authParameter: "mfa",
+    name: "Email OTP account deletion",
+    factor: "email",
+    authParameter: "emailMfa",
     actionMethod: "DELETE",
     actionPath: "/api/v001/users/me",
     initialError: {
-      message: "MFA authentication required",
+      message: "Email OTP authentication required",
+      emailOtpRequired: true,
       resumeToken: "m".repeat(32),
     },
     triggerButton: "Delete my account",

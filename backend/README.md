@@ -3,7 +3,7 @@
 ## Account linking
 
 Google/password identity conflicts require confirmation and authentication of
-the other identity through the login frontend. The OAuth callback restarts Auth0
+the other identity through the auth frontend. The OAuth callback restarts Auth0
 authorization once for an unresolved Google/password conflict, preserving the
 return destination and email-MFA requirement. It does not create a session or
 merge users before Auth0 proves the link. If the retry still returns unlinked
@@ -16,7 +16,7 @@ that are still unlinked. Proof logins (`link_proof=true`) still bypass the
 linking prompt. Configure the development Action with `NODE_ENV=development`
 and `DEV_ACCOUNT_LINK_CONFIRMATION_URL` pointing to the backend's
 `/api/v001/auth/confirm-account-linking` endpoint (not directly to the frontend).
-The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the login frontend's
+The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the auth frontend's
 `/confirm-linking` page.
 
 ## Automated testing

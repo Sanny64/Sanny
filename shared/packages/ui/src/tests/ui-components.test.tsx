@@ -1,12 +1,14 @@
 import { LanguageProvider } from "@sanny/i18n";
 import { ThemeProvider } from "@sanny/styles";
-import type { ReactNode } from "react";
+import { useContext, type ReactNode } from "react";
+import { MotionConfigContext } from "framer-motion";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import {
   Button,
+  AppShell,
   ButtonGroup,
   Checkbox,
   Error as ErrorPage,
@@ -32,6 +34,39 @@ function prepareEnglishLightPreferences() {
 }
 
 describe("shared UI controls", () => {
+  it("shares user motion preferences and transition timing through the theme provider", () => {
+    let motionPreferences;
+    function MotionProbe() {
+      motionPreferences = useContext(MotionConfigContext);
+      return null;
+    }
+
+    renderWithProviders(<MotionProbe />);
+
+    expect(motionPreferences).toMatchObject({
+      reducedMotion: "user",
+      transition: { duration: 0.18, ease: [0.2, 0.7, 0.2, 1] },
+    });
+  });
+
+  it("provides the same accessible frame for authentication routes", () => {
+    prepareEnglishLightPreferences();
+    const router = createMemoryRouter([
+      {
+        path: "/",
+        element: <AppShell variant="auth">Account verification</AppShell>,
+      },
+    ]);
+    renderWithProviders(<RouterProvider router={router} />);
+
+    expect(screen.getByRole("banner")).toHaveTextContent("Authentication");
+    expect(
+      screen.getByRole("link", { name: "Skip to main content" }),
+    ).toHaveAttribute("href", "#main-content");
+    expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
+    expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
+  });
+
   it("keeps buttons keyboard operable and respects the native disabled state", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();

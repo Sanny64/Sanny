@@ -1,191 +1,69 @@
 ---
 title: styles
-description: Information on the shared custom npm package @sanny/styles.
+description: Shared visual system, theme state, and motion for Sanny and Auth.
 sidebar_position: 1
 ---
 
 # @sanny/styles
 
-`@sanny/styles` is a shared npm package that provides the theme context, provider, hook, shared CSS entrypoints, and supporting theme types and utilities.<br/>
-It keeps the active theme in sync with `document.documentElement` and persists the selected theme in both cookies and localStorage.
+Sanny and Auth share one visual system. `@sanny/styles` owns theme state, semantic CSS tokens, bundled typography, layout rules, and Framer Motion defaults. `@sanny/ui` composes these into shared controls and `AppShell`; applications own only their content and route-specific arrangement.
 
----
+## Visual Direction
 
-## What it exports
+Neutral light/dark surfaces, green accents, locally bundled Manrope, restrained borders, and 4-8px radii create the common baseline. Blue information, amber warning, and red error tokens distinguish status from primary actions. Text size is stable across viewports; layouts adapt through wrapping, spacing, and constrained widths.
 
-The package’s public API is centered around `ThemeProvider`, `useTheme`, `ThemeContext`, and `getThemeVariant`.<br/>
-It also exports the `Theme` and `ThemeVariant` TypeScript types for safer app integration.
+## Theme and Persistence
 
-- `ThemeProvider`: wraps the app and manages theme state.
-- `useTheme()`: reads the current theme context and throws if used outside the provider.
-- `ThemeContext`: the React context used internally by the hook and provider.
-- `getThemeVariant(theme)`: maps the current theme to the shared UI variant contract.
-- `Theme` / `ThemeVariant`: shared types used by consumers and helper code.
+The public API exports `ThemeProvider`, `ThemeContext`, `useTheme`, `getThemeVariant`, and the `Theme` and `ThemeContextType` types.
 
----
+The provider resolves the `theme` cookie first, then localStorage, then the system color scheme. Manual selections are persisted for 365 days and reflected in `html[data-theme]` and the `.dark` class. A system preference is followed until a user chooses an override. The workspace rename does not change these storage keys.
 
-## Supported themes
+## Semantic Tokens
 
-The package currently supports two themes: light and dark.<br/>
-The theme value is stored as `Theme = 'light' | 'dark'` and is treated as the source of truth for all theme-aware UI.
+| Purpose               | Tokens                                                                                                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Surfaces              | `--bg`, `--surface`, `--surface-raised`, `--surface-muted`                                                   |
+| Text and borders      | `--text`, `--text-h`, `--border`, `--border-strong`                                                          |
+| Actions               | `--accent`, `--accent-hover`, `--accent-bg`, `--accent-border`, `--on-accent`                                |
+| Status                | `--info`, `--info-bg`, `--warning`, `--warning-bg`, `--danger`, `--danger-bg`                                |
+| Geometry              | `--space-1` through `--space-12` at the defined scale steps, `--radius-sm`, `--radius-md`, `--content-width` |
+| Typography and motion | `--sans`, `--heading`, `--mono`, `--motion-duration`, `--motion-ease`                                        |
 
-| Theme | Value   | Notes                                                                                              |
-| ----- | ------- | -------------------------------------------------------------------------------------------------- |
-| Light | `light` | Default visual mode when no stored preference exists and the system preference cannot be resolved. |
-| Dark  | `dark`  | Applied when selected by the user or when the system prefers a dark color scheme.                  |
+Use semantic tokens instead of hardcoded light/dark colors. Existing `--color-*` and button overrides remain compatible. Auxiliary party routes retain their scoped color overrides without changing the shared provider.
 
----
+## CSS Entrypoints
 
-## How it works
+- `globals.css`: font assets, semantic light/dark tokens, typography, form controls, focus outlines, reduced-motion and forced-color rules.
+- `main.css`: the shared frame, header, responsive content geometry, and narrower authentication layout.
+- `auxiliary.css`: independent auxiliary-route geometry and scoped background support.
 
-When the provider initializes, it checks the theme cookie first and then localStorage.<br/>
-If neither value exists, it falls back to the browser’s `prefers-color-scheme` setting.<br/>
-If no system preference is available, it resolves to light mode as the default fallback.
+Import global and main CSS once in the app's `src/main.tsx`, so error and standalone proof routes are also themed. Preserve the provider order: `ThemeProvider`, then `LanguageProvider`.
 
-When the theme changes, the provider:
+```tsx
+import "@sanny/styles/globals.css";
+import "@sanny/styles/main.css";
+import { AppShell } from "@sanny/ui";
+import { Outlet } from "react-router-dom";
 
-- Saves the value to the `theme` cookie for 365 days.
-- Mirrors the value into localStorage.
-- Updates `document.documentElement` with `data-theme="..."`.
-- Keeps the `.dark` class in sync for styles that expect a dark-mode class.
-
-The theme provider listens for system theme changes only when there is no stored preference, so the UI can follow the browser automatically in that case.
-
----
-
-## Styling system
-
-The package ships with three relevant CSS entrypoints:
-
-- `globals.css`: base visual system and theme-dependent CSS variables.
-- `main.css`: shared layout shell for pages routed through `Main.tsx`.
-- `auxiliary.css`: shared layout shell for pages routed through `Auxiliary.tsx`.
-
-`main.css` and `auxiliary.css` use the same layout baseline with the same centered geometry and sizing.<br/>
-They diverge only through route-scoped color variables, for example from `party.css`.
-
-Theme variables in `globals.css` power text colors, background colors, borders, code blocks, accents, shadows, and reusable surface tokens.
-
-Examples of shared variables include:
-
-```css
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --accent: #aa3bff;
-  --color-text: var(--text);
-  --color-primary: var(--accent);
-}
-```
-
-In dark mode, the same variables are overridden through `html[data-theme='dark']` and `html.dark`:
-
-```css
-html[data-theme="dark"],
-html.dark {
-  --text: #9ca3af;
-  --text-h: #f3f4f6;
-  --bg: #16171d;
-  --border: #2e303a;
-  --accent: #c084fc;
-  color-scheme: dark;
-}
-```
-
-The stylesheet also includes:
-
-- Base document styling for `body`, `#root`, headings, paragraphs, and code blocks.
-- Responsive typography adjustments for tablet and desktop widths.
-- Reduced-motion handling for users who prefer less animation.
-- A dark-mode fallback using `prefers-color-scheme` when no explicit theme has been stored.
-
-For all pages importing `globals.css`, `prefers-reduced-motion` is respected.
-If you route your pages through `Main.tsx` (see below), an invisible `.skip-link` is added for accessibility.
-
----
-
-## Usage
-
-In `main.tsx`, import the provider once and wrap your app with it:
-
-```typescript
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { ThemeProvider } from '@sanny/styles'
-import App from './App.tsx'
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
-  </StrictMode>,
-)
-```
-
-Then import `globals.css` and `main.css` in `Main.tsx` to enforce the shared layout baseline on all routed subpages:
-
-```typescript
-import { Outlet } from 'react-router-dom';
-import '@sanny/styles/globals.css';
-import '@sanny/styles/main.css';
-
-export default function Layout() {
+export default function Main() {
   return (
-    <div className="layout">
-      <a href="#main-content" className="skip-link">
-        Skip to main content
-      </a>
-      <main id="main-content" className="main-content">
-        <Outlet />
-      </main>
-    </div>
+    <AppShell variant="auth">
+      <Outlet />
+    </AppShell>
   );
 }
 ```
 
-In `App.tsx`, establish a routing setup like this:
+`AppShell` provides branding, a localized skip link, a focusable main landmark, and short route-entry motion keyed by pathname, not by proof/query parameters. Its optional `headerActions` slot allows app-specific actions without putting session logic in the shared package.
 
-```typescript
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import Main from './pages/Main'
-import Sample from './pages/sample/Sample'
+## Motion Policy
 
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Main />}> // has the shared globals.css and main.css import
-          <Route path="/" element={<Sample />} /> // therefore enforces the shared layout baseline on this as well
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  )
-}
+`ThemeProvider` wraps children in `MotionConfig` with `reducedMotion="user"` and a 180ms ease-out transition. The shell suppresses entry movement for reduced-motion users. Buttons use a 160ms press response without growing on hover or casting text shadows. Disabled buttons have no press transform.
 
-export default App
+CSS animations and transitions are disabled under `prefers-reduced-motion: reduce`. Text is not faded on route entry, and button backgrounds are not interpolated across theme changes, avoiding transient contrast failures. Do not add independent app-level motion configuration for the same concerns.
 
-```
+## Verification
 
-The hook is designed to be used only under the provider; otherwise it throws a clear runtime error.
+Run `npm run test:frontend` for both app lint/build gates, shared lint, and component tests. Mocked browser tests cover theme persistence, light/dark contrast, keyboard navigation, reduced motion, bundled font loading, desktop/mobile layout, and 200% text sizing. Chromium snapshots cover the shared app frame and account/admin/authentication surfaces. Automated checks do not replace manual screen-reader testing.
 
----
-
-## Auxiliary Route Color Overrides
-
-For route-specific color themes on top of the same layout baseline, see [special behavior](/docs/frontend/projects/sanny#special-behavior).
-
----
-
-## Notes for developers
-
-The provider depends on browser APIs such as `cookies`, `localStorage`, `document`, `window`, and `matchMedia`, so it is intended for client-side use.
-Theme persistence is synchronized between cookie and localStorage to keep the active mode stable across reloads and sessions.
-Because the theme is applied to the root document element, app-wide styling can react consistently without passing theme props through every component.
-Shared theme state is split across dedicated source files: `ThemeContext.tsx` for the React context, `ThemeProvider.tsx` for state and persistence, `useTheme.ts` for consumption, `theme.types.ts` for shared types, and `theme.utils.ts` for pure helpers like `getThemeVariant`.
-
----
-
-Last edit: 24.06.2026
+Last edit: 17.10.2026

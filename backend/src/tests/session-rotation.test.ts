@@ -835,6 +835,11 @@ test("Fastify requireSession replaces the rotated cookie and preserves session c
     async (_request, reply) => reply.code(204).send(),
   );
   server.post(
+    "/api/v001/users/me/password-reset",
+    { preHandler: [sessionModule.requireCsrf] },
+    async (_request, reply) => reply.code(204).send(),
+  );
+  server.post(
     "/api/v001/auth/logout",
     { preHandler: [sessionModule.requireCsrf] },
     async (_request, reply) => reply.code(204).send(),
@@ -983,6 +988,15 @@ test("Fastify requireSession replaces the rotated cookie and preserves session c
       error: "Forbidden",
       message: "Invalid CSRF token",
     });
+
+    const csrfCookieOnly = await server.inject({
+      method: "POST",
+      url: "/api/v001/users/me/password-reset",
+      headers: {
+        cookie: `${sessionCookie}; __Host-sanny_csrf=${issued.csrfToken}`,
+      },
+    });
+    assert.equal(csrfCookieOnly.statusCode, 204);
 
     const crossSiteLogout = await server.inject({
       method: "POST",

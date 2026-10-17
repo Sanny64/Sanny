@@ -76,7 +76,7 @@ Konfiguriere die Anwendung:
 
 Das Backend verwendet Authorization Code mit PKCE (`S256`) und fordert die
 Scopes `openid profile email offline_access update:me delete:me` an. Den
-OAuth-Callback verarbeitet das Backend, nicht das Login-Frontend. Füge
+OAuth-Callback verarbeitet das Backend, nicht das Auth-Frontend. Füge
 Frontend-Origins nur dann zu **Allowed Web Origins** hinzu, wenn ein
 Browserclient in deiner Bereitstellung Auth0 direkt aufruft; diese Origins sind
 keine Callback-URLs.

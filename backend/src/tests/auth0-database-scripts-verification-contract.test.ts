@@ -159,7 +159,7 @@ test("getUser.js coerces a numeric emailVerified column into a strict boolean", 
 // Auth0 does not sync our custom DB's `emailVerified` flag onto its own
 // persisted user profile automatically, and it defaults the profile's
 // display "Name" to the email when no `name` field is returned. Without
-// these fields on every login/getUser call, database-connection users are
+// these fields on every auth/getUser call, database-connection users are
 // permanently treated as unverified by Post Login Actions (role claims,
 // account-linking eligibility), even after a real verification succeeded.
 test("login.js reports name and email_verified so Auth0's profile stays in sync", async () => {

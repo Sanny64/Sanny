@@ -27,7 +27,7 @@ Keep Auth0, database, and Redis resources separate between environments. Load cr
 3. Confirm the database backup is recent and the restore path has been tested before schema or data migrations.
 4. Validate compose configuration without printing it; review and pin mutable monitoring image tags before production use.
 5. Deploy through the host's approved release procedure and confirm container health, HTTPS `/healthcheck`, security headers, database/Redis connectivity, and monitoring scrapes.
-6. Complete interactive login/logout, PKCE state replay rejection, refresh and reuse rejection, profile/mutation/deletion flows, admin authorization and pagination, rate limits, browser error handling, session-expiry warning, and proxy-header/direct-access checks.
+6. Complete interactive auth/logout, PKCE state replay rejection, refresh and reuse rejection, profile/mutation/deletion flows, admin authorization and pagination, rate limits, browser error handling, session-expiry warning, and proxy-header/direct-access checks.
 7. Review logs and alerts for secrets or personal data. Record build ID, results, residual risks, rollback steps, and sign-off in a restricted deployment record.
 8. Promote only after staging passes. Public `/nginx_status` must be unavailable while the internal exporter can scrape it.
 

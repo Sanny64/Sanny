@@ -344,7 +344,7 @@
     "message": "Documentation"
   },
   "homepage.features.documentation.description": {
-    "message": "This is the documentation site for the Sanny64 workspace and explains how the public site, login app, shared packages, and backend fit together."
+    "message": "This is the documentation site for the Sanny64 workspace and explains how the public site, auth app, shared packages, and backend fit together."
   },
   "homepage.features.docusaurus.title": {
     "message": "Docusaurus"

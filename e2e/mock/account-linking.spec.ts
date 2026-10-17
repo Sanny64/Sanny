@@ -52,7 +52,7 @@ test("rejects account-link requests with missing parameters", async ({
     page.getByText("Invalid request: missing account-linking parameters"),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Return to Login" }),
+    page.getByRole("button", { name: "Return to authentication" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Authenticate & Continue" }),

@@ -112,6 +112,13 @@ async function captureDesktopAndMobile(page: Page, name: string) {
       height: viewport.height,
     });
     await page.evaluate(async () => document.fonts.ready);
+    await expect
+      .poll(() =>
+        page
+          .locator(".app-brand img")
+          .evaluate((image: HTMLImageElement) => image.naturalWidth),
+      )
+      .toBeGreaterThan(0);
     await expect(page).toHaveScreenshot(`${name}-${viewport.name}.png`, {
       fullPage: true,
       animations: "disabled",
@@ -331,11 +338,17 @@ for (const theme of ["light", "dark"] as const) {
       await routeUnauthenticated(page);
       await page.goto(`${sannyUrl}/`);
 
-      const skipLink = page.getByRole("link", { name: "Skip to main content" });
+      const skipLink = page.getByRole("link", {
+        name: language === "en" ? "Skip to main content" : "Zum Hauptinhalt",
+      });
+      const homeLink = page.getByRole("link", { name: "Sanny64", exact: true });
+      const menuTrigger = page.getByRole("button", {
+        name: language === "en" ? "Account menu" : "Kontomenü",
+      });
       const signIn = page.getByRole("button", {
         name: language === "en" ? "Login" : "Anmelden",
       });
-      await expect(signIn).toBeVisible();
+      await expect(menuTrigger).toBeVisible();
 
       await page.keyboard.press("Tab");
       await expect(skipLink).toBeFocused();
@@ -347,11 +360,23 @@ for (const theme of ["light", "dark"] as const) {
       expect(skipLinkStyle.top).toBeGreaterThanOrEqual(0);
 
       await page.keyboard.press("Tab");
+      await expect(homeLink).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(menuTrigger).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(signIn).toBeVisible();
+      await expectAccessible(page);
+      await page.keyboard.press("Tab");
       await expect(signIn).toBeFocused();
+      await page.keyboard.press("Escape");
+      await expect(menuTrigger).toBeFocused();
+      await page.keyboard.press("Shift+Tab");
+      await expect(homeLink).toBeFocused();
       await page.keyboard.press("Shift+Tab");
       await expect(skipLink).toBeFocused();
       await page.keyboard.press("Enter");
       await expect(page).toHaveURL(/#main-content$/);
+      await expect(page.getByRole("main")).toBeFocused();
     });
 
     test(`${language} ${theme} settings and admin forms are keyboard operable`, async ({
@@ -529,7 +554,9 @@ test("Chromium visual baselines: public home desktop and mobile", async ({
   await routeUnauthenticated(page);
   await page.goto(`${sannyUrl}/`);
   await expect(page.getByText("Home", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Login" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Account menu" }),
+  ).toBeVisible();
   await captureDesktopAndMobile(page, "public-home");
 });
 

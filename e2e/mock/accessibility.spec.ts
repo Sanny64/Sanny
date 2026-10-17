@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const applications = [
   {
-    name: "Login",
+    name: "Auth",
     url: "https://127.0.0.1:5175/confirm-linking?primaryUserId=google-oauth2%7Cgoogle-user&secondaryUserId=auth0%7Cpassword-user&proofUserId=auth0%7Cpassword-user&continuationState=test-continuation-state&proofState=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&expiresAt=4102444800000",
   },
   {
@@ -37,6 +37,74 @@ async function expectAccessible(page: Page) {
 }
 
 for (const application of applications) {
+  test(`${application.name} shares theme tokens and honors reduced motion at mobile and desktop sizes`, async ({
+    page,
+  }) => {
+    await setPreferences(page, "en", "light");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.route("**/api/v001/auth/me", (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Not authenticated" }),
+      }),
+    );
+
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(application.url);
+      await page.evaluate(async () => document.fonts.ready);
+      await expect
+        .poll(() =>
+          page
+            .locator(".app-brand img")
+            .evaluate((image: HTMLImageElement) => image.naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      const presentation = await page.evaluate(() => {
+        const rootStyle = getComputedStyle(document.documentElement);
+        const content = document.querySelector(".page-content")!;
+        return {
+          accent: rootStyle.getPropertyValue("--accent").trim(),
+          duration: rootStyle.getPropertyValue("--motion-duration").trim(),
+          fontLoaded: document.fonts.check('16px "Manrope Variable"'),
+          transform: getComputedStyle(content).transform,
+          overflow: document.documentElement.scrollWidth > window.innerWidth,
+        };
+      });
+      expect(presentation.accent).toBe("#176448");
+      expect(presentation.duration).toBe("0ms");
+      expect(presentation.fontLoaded).toBe(true);
+      expect(presentation.transform).toBe("none");
+      expect(presentation.overflow).toBe(false);
+      await expectAccessible(page);
+    }
+  });
+
+  test(`${application.name} remains readable with 200% text sizing`, async ({
+    page,
+  }) => {
+    await setPreferences(page, "en", "light");
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.route("**/api/v001/auth/me", (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Not authenticated" }),
+      }),
+    );
+    await page.goto(application.url);
+    await page.addStyleTag({ content: ":root { font-size: 200%; }" });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      )
+      .toBe(true);
+    await expectAccessible(page);
+  });
+
   for (const language of ["en", "de"] as const) {
     for (const theme of ["light", "dark"] as const) {
       test(`${application.name} initializes ${language} language and ${theme} theme accessibly`, async ({

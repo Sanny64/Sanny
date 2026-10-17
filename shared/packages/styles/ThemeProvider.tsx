@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect } from "react";
+import { MotionConfig } from "framer-motion";
 import {
   resolveStoredTheme,
   resolveSystemTheme,
@@ -67,7 +68,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         setTheme: updateTheme,
       }}
     >
-      {children}
+      <MotionConfig
+        reducedMotion="user"
+        transition={{ duration: 0.18, ease: [0.2, 0.7, 0.2, 1] }}
+      >
+        {children}
+      </MotionConfig>
     </ThemeContext.Provider>
   );
 }

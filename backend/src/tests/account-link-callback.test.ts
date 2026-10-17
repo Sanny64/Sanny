@@ -269,6 +269,32 @@ test("login initiation issues PKCE state and keeps only safe redirect targets", 
   assert.equal(app.states.get("retry-state")?.returnTo, undefined);
 });
 
+test("login and reauthentication callbacks preserve paths, queries, and fragments", async () => {
+  for (const emailMfa of [false, true]) {
+    const returnTo = "/settings?tab=appearance#preferences";
+    const app = await callbackHarness({
+      createUser: true,
+      state: { codeVerifier: "verifier", returnTo, emailMfa },
+    });
+    assert.equal(await app.run(), `https://app.example.test${returnTo}`);
+    assert.equal(app.sessions, 1);
+  }
+});
+
+test("callback rejects return destinations outside the configured origin", async () => {
+  for (const returnTo of [
+    "https://attacker.example/path",
+    "//attacker.example/path",
+    "/\\attacker.example/path",
+  ]) {
+    const app = await callbackHarness({
+      createUser: true,
+      state: { codeVerifier: "verifier", returnTo },
+    });
+    assert.equal(await app.run(), "https://app.example.test/");
+  }
+});
+
 test("verified Google callback creates a local user and session", async () => {
   const app = await callbackHarness({
     sub: "google-oauth2|google-user",

@@ -501,9 +501,12 @@ async function authRoutes(server: FastifyInstance) {
       state.returnTo.startsWith("/") &&
       !state.returnTo.startsWith("//")
     ) {
-      redirectUrl.pathname = state.returnTo;
-      redirectUrl.search = "";
-      redirectUrl.hash = "";
+      const returnUrl = new URL(state.returnTo, redirectUrl.origin);
+      if (returnUrl.origin === redirectUrl.origin) {
+        redirectUrl.pathname = returnUrl.pathname;
+        redirectUrl.search = returnUrl.search;
+        redirectUrl.hash = returnUrl.hash;
+      }
     }
     return reply.redirect(redirectUrl.toString());
   });

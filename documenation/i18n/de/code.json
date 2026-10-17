@@ -344,7 +344,7 @@
     "message": "Dokumentation"
   },
   "homepage.features.documentation.description": {
-    "message": "Dies ist die Dokumentationsseite für den Sanny64‑Workspace und erklärt, wie die öffentliche Seite, Login-App, Shared Packages und das Backend zusammenpassen."
+    "message": "Dies ist die Dokumentationsseite für den Sanny64‑Workspace und erklärt, wie die öffentliche Seite, Auth-App, Shared Packages und das Backend zusammenpassen."
   },
   "homepage.features.docusaurus.title": {
     "message": "Docusaurus"

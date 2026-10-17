@@ -9,7 +9,7 @@ sidebar_position: 5
 This project uses a simple release train for a monorepo with:
 
 - `sanny` frontend.
-- `login` frontend.
+- `auth` frontend.
 - ...
 - `docs` app.
 - Fastify backend.
@@ -53,7 +53,7 @@ This project uses `dev -> test -> main`.
 A push to `test` deploys the internet-accessible (in the future login-secured) test environment.
 
 - `sanny` -> test site.
-- `login` -> test site.
+- `auth` -> test site.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
 - Backend test deployment is provisional and may stay manual or limited while the backend workflow is finalized.
 
@@ -62,7 +62,7 @@ A push to `test` deploys the internet-accessible (in the future login-secured) t
 A push to `main` deploys production.
 
 - `sanny` -> production site.
-- `login` -> production site.
+- `auth` -> production site.
 - `docs` -> production site.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
 - Backend production deployment is provisional for now. The test and deployment pipeline currently only deploys when triggered manually.
@@ -251,7 +251,7 @@ This is a recovery step using the normal `dev` integration branch. It is useful 
 Production deploy starts from `main` after the squash merge.
 
 - `sanny` production deploys from the `main` branch.
-- `login` production deploys from the `main` branch.
+- `auth` production deploys from the `main` branch.
 - ... production deploys from the `main` branch.
 - `docs` production deploys from the `main` branch.
 - Changes in shared packages always trigger the frontend release pipeline as well depending on branch.

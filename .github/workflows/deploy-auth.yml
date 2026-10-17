@@ -1,11 +1,11 @@
-name: Build and Deploy login frontend to Hetzner (prod-environment)
+name: Build and Deploy auth frontend to Hetzner (prod-environment)
 
 on:
   push:
     branches:
       - main
     paths:
-      - "login/**"
+      - "auth/**"
       - "shared/packages/**"
       - "package.json"
       - "package-lock.json"
@@ -28,20 +28,30 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Copy favicon from root
-        run: cp ./favicon.ico ./login/public/
-
       - name: Lint the projects
-        run: npm run lint:login && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
+        run: npm run lint:auth && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
 
       - name: Build the project
-        run: npm run build:login
+        run: npm run build:auth
+
+      - name: Upload auth build
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-dist
+          path: auth/dist/
+          if-no-files-found: error
 
   deploy:
     needs: lint-and-build
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download auth build
+        uses: actions/download-artifact@v4
+        with:
+          name: auth-dist
+          path: auth/dist/
+
       - name: Deploy to Hetzner via FTP
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         with:
@@ -50,5 +60,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: loose
-          local-dir: ./login/dist/
-          server-dir: /public_html/login/
+          local-dir: ./auth/dist/
+          server-dir: /public_html/auth/

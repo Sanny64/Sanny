@@ -2,7 +2,7 @@ import { useLanguage, translations } from "@sanny/i18n";
 import { Button, Checkbox, ButtonGroup } from "@sanny/ui";
 import { useEffect, useState, useRef } from "react";
 import { useBlocker } from "react-router-dom";
-import "../../styles/adminSettings.css";
+import "../../styles/pages/adminSettings.css";
 import {
   beginReauthentication,
   takePendingActionCredentials,

@@ -15,7 +15,7 @@ Installation: npm install
 _In the root directory, run one of the workspace scripts:_
 
 - npm run dev:sanny
-- npm run dev:login
+- npm run dev:auth
 - npm run dev:docs
 - npm run dev:docs-de
 - npm run start:backend (once you finished working on the backend always do: `npm run stop:backend`)
@@ -32,7 +32,7 @@ _For quality checks:_
 _For local builds:_
 
 - npm run build:sanny
-- npm run build:login
+- npm run build:auth
 - npm run build:docs
 - npm run serve:docs (builds the docs beforehand)
 - npm run build:backend -> builds and autostarts the backend in docker.desktop if NODE_ENV is set to "development". Otherwise you will at first need to setup a VPS.
@@ -72,12 +72,12 @@ Sanny/ (Root Workspace)
 │   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
 │   └── blockrunner/          # Independent game service / repository (programming challenge)
 │
-├── login/                    # Frontend: auth.sanny64.de (Vite + React + TS)
+├── auth/                    # Frontend: auth.sanny64.de (Vite + React + TS)
 │   ├── public/
 │   └── src/
 │       ├── assets/           # Frontend project specific assets
 │       ├── components/       # Custom frontend project exclusive components
-│       └── pages/            # LoginPage
+│       └── pages/            # Authentication helper routes
 │
 ├── sanny/                    # Frontend: sanny64.de (Vite + React + TS)
 │   ├── public/

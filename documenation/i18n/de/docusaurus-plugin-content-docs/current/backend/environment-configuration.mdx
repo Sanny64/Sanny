@@ -69,8 +69,8 @@ REDIS_PASSWORD=replace-with-a-production-secret
 PROD_AUTH0_CALLBACK_URL=https://api.example.com/api/v001/auth/callback
 PROD_AUTH0_SUCCESS_REDIRECT=https://app.example.com/
 PROD_AUTH0_LOGOUT_REDIRECT=https://app.example.com/
-PROD_ACCOUNT_LINK_FRONTEND_URL=https://login.example.com/confirm-linking
-PROD_CORS_ORIGINS=https://app.example.com,https://login.example.com
+PROD_ACCOUNT_LINK_FRONTEND_URL=https://auth.example.com/confirm-linking
+PROD_CORS_ORIGINS=https://app.example.com,https://auth.example.com
 PROD_TRUST_PROXY=192.0.2.10
 ENABLE_SWAGGER=false
 AUTH0_ROLE_SYNC_ENABLED=false
@@ -82,7 +82,7 @@ Das Backend erwartet, dass NGINX TLS beendet, HTTP auf HTTPS umleitet und Forwar
 
 ## Account-Verknüpfung und Rollen-Synchronisierung
 
-`DEV_ACCOUNT_LINK_FRONTEND_URL` bzw. `PROD_ACCOUNT_LINK_FRONTEND_URL` bezeichnet das Login-Frontend. Davon getrennt zeigt das Auth0-Action-Secret `DEV_ACCOUNT_LINK_CONFIRMATION_URL` bzw. `PROD_ACCOUNT_LINK_CONFIRMATION_URL` auf die Backend-Route zur Bestätigung der Verknüpfung. Die Werte müssen zur Umgebung und zum bereitgestellten Action-Code passen.
+`DEV_ACCOUNT_LINK_FRONTEND_URL` bzw. `PROD_ACCOUNT_LINK_FRONTEND_URL` bezeichnet das Auth-Frontend. Davon getrennt zeigt das Auth0-Action-Secret `DEV_ACCOUNT_LINK_CONFIRMATION_URL` bzw. `PROD_ACCOUNT_LINK_CONFIRMATION_URL` auf die Backend-Route zur Bestätigung der Verknüpfung. Die Werte müssen zur Umgebung und zum bereitgestellten Action-Code passen.
 
 Wenn `AUTH0_ROLE_SYNC_ENABLED=true` gesetzt ist, kann ein berechtigter Administrator jede in Auth0 vorhandene Rolle zuweisen; es gibt keine Allowlist. Der Endpunkt erfordert Admin-Rolle, `write:users` und kürzlich abgeschlossene MFA. Aktiviere diese Funktion nur nach expliziter Prüfung dieser Richtlinie.
 

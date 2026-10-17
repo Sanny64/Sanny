@@ -35,7 +35,7 @@ const FeatureList: FeatureItem[] = [
     description: (
       <Translate id="homepage.features.documentation.description">
         This is the documentation site for the Sanny64 workspace and explains
-        how the public site, login app, shared packages, and backend fit
+        how the public site, auth app, shared packages, and backend fit
         together.
       </Translate>
     ),

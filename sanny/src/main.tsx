@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "@sanny/styles";
 import { LanguageProvider } from "@sanny/i18n";
 import App from "./App.tsx";
+import "@sanny/styles/globals.css";
+import "@sanny/styles/main.css";
 
 createRoot(document.getElementById("root")!).render(
   <>

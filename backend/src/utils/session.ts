@@ -662,7 +662,9 @@ export async function requireCsrf(
   }
 
   const csrfToken = await validateCsrfToken(request);
-  if (!csrfToken || request.headers["x-csrf-token"] !== csrfToken) {
+  const submittedCsrfToken =
+    request.headers["x-csrf-token"] || request.cookies[CSRF_COOKIE];
+  if (!csrfToken || submittedCsrfToken !== csrfToken) {
     logSecurityEvent("csrf_rejected", {
       method,
       path,

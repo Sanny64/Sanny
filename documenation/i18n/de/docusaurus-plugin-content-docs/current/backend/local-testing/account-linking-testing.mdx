@@ -63,15 +63,15 @@ Wenn du für ein Produktionsdeployment bereit bist:
    - Setze die Allowed Callback URLs auf:
      ```
      https://api.example.com/api/v001/auth/callback,
-     https://login.example.com/,
+     https://auth.example.com/,
      https://app.example.com/
      ```
    - Aktualisiere CORS für die Produktionsdomains.
 
 2. **Umgebungsvariablen aktualisieren**:
    - Backend: Setze HTTPS-Werte für `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT` und `PROD_AUTH0_LOGOUT_REDIRECT`.
-   - Login-Frontend: Aktualisiere `VITE_AUTH0_DOMAIN`, falls ein Produktions-Tenant verwendet wird.
-   - Haupt-Frontend: Aktualisiere `VITE_LOGIN_URL` auf den HTTPS-Ursprung des deployten Login-Frontends.
+   - Auth-Frontend: Aktualisiere `VITE_AUTH0_DOMAIN`, falls ein Produktions-Tenant verwendet wird.
+   - Backend: Setze `PROD_ACCOUNT_LINK_FRONTEND_URL` auf die deployte Auth-Bestaetigungs-URL und ergaenze den Ursprung in `PROD_CORS_ORIGINS`.
 
 3. **Datenbankdeployment**:
    - Prüfe vor dem Deployment Prisma-Schemaänderungen und das freigegebene Migrationsverfahren.
@@ -81,7 +81,7 @@ Wenn du für ein Produktionsdeployment bereit bist:
 
 | Komponente     | Entwicklungs-URL                              | Produktions-URL                                |
 | -------------- | --------------------------------------------- | ---------------------------------------------- |
-| Login          | https://localhost:5174                        | https://login.example.com                      |
+| Login          | https://localhost:5174                        | https://auth.example.com                       |
 | Haupt-App      | https://localhost:5173                        | https://app.example.com                        |
 | Backend        | https://localhost:8443                        | https://api.example.com                        |
 | Auth0-Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |

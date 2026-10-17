@@ -1,4 +1,41 @@
 const pendingActionStorageKey = "sanny:pending-action";
+const logoutReturnStorageKey = "sanny:logout-return";
+let returnedFromLogout = false;
+
+export function isLogoutReturn() {
+  return returnedFromLogout;
+}
+
+export function prepareLogoutUrl(logoutUrl: string) {
+  const url = new URL(logoutUrl);
+  const state = window.crypto.randomUUID();
+  window.sessionStorage.setItem(
+    logoutReturnStorageKey,
+    JSON.stringify({ state, returnTo: window.location.href }),
+  );
+  url.searchParams.set("state", state);
+  return url.toString();
+}
+
+export function restoreLogoutReturnTo() {
+  const raw = window.sessionStorage.getItem(logoutReturnStorageKey);
+  if (!raw) return;
+  window.sessionStorage.removeItem(logoutReturnStorageKey);
+  try {
+    const saved = JSON.parse(raw) as { state?: unknown; returnTo?: unknown };
+    const state = new URL(window.location.href).searchParams.get("state");
+    if (!state || saved.state !== state || typeof saved.returnTo !== "string") {
+      return;
+    }
+    const returnTo = new URL(saved.returnTo);
+    if (returnTo.origin === window.location.origin) {
+      window.history.replaceState(null, "", returnTo);
+      returnedFromLogout = true;
+    }
+  } catch {
+    return;
+  }
+}
 
 export type AuthenticationFactor = "mfa" | "email";
 

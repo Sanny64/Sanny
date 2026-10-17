@@ -9,6 +9,10 @@ sidebar_position: 3
 `@sanny/ui` is a shared npm package that provides UI components used across all frontend projects.<br/>
 It keeps the overall component styles in sync and supports shared HTTP error and settings handling.
 
+`AppShell` is the shared application frame for Sanny and Auth. It provides branding, localized skip navigation, a focusable main landmark, optional `headerActions`, and reduced-motion-aware route entry. Use `variant="auth"` for the narrower authentication layout. Import globals and layout CSS from `@sanny/styles` in the app entrypoint; see the [shared theme and motion policy](./styles).
+
+Shared buttons, settings, and toast surfaces consume semantic light/dark tokens. Theme changes preserve the same action hierarchy; do not switch a primary action to secondary just because the theme changes.
+
 ---
 
 ## What it exports

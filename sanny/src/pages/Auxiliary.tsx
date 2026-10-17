@@ -1,9 +1,9 @@
 import { Outlet, useLocation } from "react-router-dom";
 import "@sanny/styles/globals.css";
 import "@sanny/styles/auxiliary.css";
-import "../styles/party.css";
-import "../styles/refreshments.css";
-import "../styles/comfort.css";
+import "../styles/pages/party.css";
+import "../styles/pages/refreshments.css";
+import "../styles/pages/comfort.css";
 
 export default function Layout() {
   const { pathname } = useLocation();

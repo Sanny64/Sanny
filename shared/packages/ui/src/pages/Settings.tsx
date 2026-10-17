@@ -2,6 +2,7 @@ import { useTheme } from "@sanny/styles";
 import { useLanguage, translations } from "@sanny/i18n";
 import { Button } from "../components/Button";
 import { ButtonGroup } from "../components/ButtonGroup";
+import "../styles/settings.css";
 
 export default function Settings() {
   const { theme, toggleTheme } = useTheme();
@@ -10,7 +11,10 @@ export default function Settings() {
   const t = translations[language];
 
   return (
-    <section aria-labelledby="appearance-settings-title">
+    <section
+      className="appearance-settings"
+      aria-labelledby="appearance-settings-title"
+    >
       <h2 id="appearance-settings-title">
         {t.shared.settings.appearanceTitle}
       </h2>
@@ -22,12 +26,17 @@ export default function Settings() {
       </p>
       <ButtonGroup layout="horizontal">
         <Button
+          type="button"
+          variant="secondary"
+          aria-pressed={theme === "dark"}
           aria-label={t.shared.settings.descriptionToggleThemeButton(theme)}
           onClick={toggleTheme}
         >
           {t.shared.settings.toggleThemeButton(theme)}
         </Button>
         <Button
+          type="button"
+          variant="secondary"
           aria-label={t.shared.settings.descriptionSwitchLanguageButton(
             nextLanguage,
           )}

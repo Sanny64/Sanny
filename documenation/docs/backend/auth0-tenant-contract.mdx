@@ -59,7 +59,7 @@ Source contracts and automated tests verify local OAuth and token behavior. The 
 
 ### Password Reset During Ownership Proof
 
-- Local tests may set the Auth0 Application Login URI to `https://localhost:5174/account-link-proof-resume`. Production must use the equivalent route on the deployed login frontend. This is not the OAuth callback URL.
+- Local tests may set the Auth0 Application Login URI to `https://localhost:5174/account-link-proof-resume`. Production must use the equivalent route on the deployed auth frontend. This is not the OAuth callback URL.
 - The popup stores opaque pending state and expiry in `sessionStorage`. After reset, that popup resumes ownership proof through the resume route.
 - Password reset alone is not ownership proof. Expired state requires restarting linking; a reset in another tab does not resume the original popup automatically.
 - Continuations use `AUTH0_DOMAIN`. Do not mix tenant and custom domains within one Auth0 transaction.

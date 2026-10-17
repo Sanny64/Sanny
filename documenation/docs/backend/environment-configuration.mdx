@@ -109,18 +109,16 @@ AUTH0_GLOBAL_BUDGET_PER_MIN=200
 DISCORD_WEBHOOK="your discord webhook url"
 ```
 
-## Login Frontend (`login/.env.local`)
+## Auth Frontend (`auth/.env.local`)
 
-The file is already configured for localhost. For local testing:
+Configure the frontend API origins for the selected environment. The workspace was renamed from login to auth; authentication endpoints and Auth0 callbacks are unchanged.
 
 ```
-VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
-VITE_AUTH0_CLIENT_ID=<your-client-id>
-VITE_AUTH0_AUDIENCE=https://api.example.com
 VITE_DEV_API_URL=https://localhost:8443
+VITE_PROD_API_URL=https://api.example.com
 ```
 
-All values must match backend./env
+The API origins must match the backend environment and its CORS configuration.
 
 ## Main Frontend (`sanny/.env.local`)
 
@@ -131,7 +129,6 @@ VITE_AUTH0_DOMAIN=YOUR_AUTH0_TENANT_DOMAIN
 VITE_AUTH0_CLIENT_ID=<your-client-id>
 VITE_AUTH0_AUDIENCE=https://api.example.com
 VITE_DEV_API_URL=https://localhost:8443
-VITE_LOGIN_URL=https://localhost:5174
 ```
 
 All values must match backend./env
