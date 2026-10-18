@@ -1,6 +1,6 @@
 import { useLanguage, translations } from "@sanny/i18n";
 import { Button, Checkbox, ButtonGroup } from "@sanny/ui";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useEffectEvent, useState, useRef } from "react";
 import { useBlocker } from "react-router-dom";
 import "../../styles/pages/adminSettings.css";
 import {
@@ -107,6 +107,7 @@ export default function AdminSettings() {
   const notifications = translations[language].shared.notifications;
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [isUsersOverviewOpen, setIsUsersOverviewOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userLookup, setUserLookup] = useState("");
@@ -132,6 +133,14 @@ export default function AdminSettings() {
   const canReadUsers = isAdmin && permissions.includes("read:users");
   const canWriteUsers = isAdmin && permissions.includes("write:users");
   const canDeleteUsers = isAdmin && permissions.includes("delete:users");
+
+  const reportLoadError = useEffectEvent((error: unknown) => {
+    showBackendRequestError(
+      error,
+      notifications.backendOffline,
+      notifications.requestFailed,
+    );
+  });
 
   const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
@@ -186,11 +195,7 @@ export default function AdminSettings() {
         if (!cancelled) setIdentity(currentIdentity);
       } catch (requestError) {
         if (!cancelled) {
-          showBackendRequestError(
-            requestError,
-            notifications.backendOffline,
-            notifications.requestFailed,
-          );
+          reportLoadError(requestError);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -201,7 +206,7 @@ export default function AdminSettings() {
     return () => {
       cancelled = true;
     };
-  }, [notifications.backendOffline, notifications.requestFailed]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,11 +222,7 @@ export default function AdminSettings() {
       } catch (requestError) {
         if (!cancelled) {
           console.error("Failed to load available roles", requestError);
-          showBackendRequestError(
-            requestError,
-            notifications.backendOffline,
-            notifications.requestFailed,
-          );
+          reportLoadError(requestError);
           setAvailableRoles([]);
         }
       }
@@ -234,7 +235,7 @@ export default function AdminSettings() {
     return () => {
       cancelled = true;
     };
-  }, [canReadUsers, notifications.backendOffline, notifications.requestFailed]);
+  }, [canReadUsers]);
 
   async function selectUser(user: User) {
     const currentUsername = user.username ?? "";
@@ -250,6 +251,7 @@ export default function AdminSettings() {
       const roles = data?.roles ?? [];
       setSelectedRoles(roles);
       setInitialUserData({ username: currentUsername.trim(), roles });
+      setIsUsersOverviewOpen(false);
       return true;
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return false;
@@ -300,6 +302,7 @@ export default function AdminSettings() {
       }
 
       setUsers(allUsers);
+      setIsUsersOverviewOpen(true);
       setCurrentPage(1);
       setSelectedUser(null);
       setInitialUserData(null);
@@ -471,6 +474,7 @@ export default function AdminSettings() {
           showToast(notifications.userDeleted, { kind: "info" });
         } else if (action.method === "GET" && action.path.endsWith("/list")) {
           setUsers(result as User[]);
+          setIsUsersOverviewOpen(true);
           setCurrentPage(1);
           showToast(notifications.usersLoaded, { kind: "info" });
         } else {
@@ -553,6 +557,8 @@ export default function AdminSettings() {
           <label className="admin-settings__field">
             <span>{t.userLookup}</span>
             <input
+              className="admin-settings__input"
+              aria-label={t.userLookup}
               value={userLookup}
               onChange={(event) => setUserLookup(event.target.value)}
               disabled={!canReadUsers || isBusy}
@@ -578,7 +584,7 @@ export default function AdminSettings() {
             </ButtonGroup>
           </div>
         </div>
-        {users.length > 0 && (
+        {isUsersOverviewOpen && users.length > 0 && (
           <>
             <ul className="admin-settings__users">
               {paginatedUsers.map((user) => (
@@ -664,9 +670,11 @@ export default function AdminSettings() {
                     )}
                 </div>
                 <input
+                  className="admin-settings__input"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   disabled={!canWriteUsers || isBusy || !initialUserData}
+                  aria-label="Username input field"
                 />
               </label>
 
@@ -743,6 +751,8 @@ export default function AdminSettings() {
                         }}
                       >
                         <Checkbox
+                          className="admin-settings"
+                          aria-label={`Role: ${role}`}
                           label={role}
                           checked={isCurrentlyChecked}
                           onChange={(e) => {

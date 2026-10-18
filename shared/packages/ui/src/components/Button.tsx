@@ -1,44 +1,63 @@
 import { motion, useReducedMotion, type HTMLMotionProps } from "framer-motion";
+import { Link, type LinkProps } from "react-router-dom";
 import "../styles/button.css";
 
 type Variant = "primary" | "secondary" | "destructive";
 
-type ButtonProps = HTMLMotionProps<"button"> & {
+type NativeButtonProps = HTMLMotionProps<"button"> & {
   variant?: Variant;
+  to?: never;
 };
 
-export function Button({
-  children,
-  className = "",
-  variant = "primary",
-  ...props
-}: ButtonProps) {
-  const reducedMotion = useReducedMotion();
+type RouterLinkButtonProps = Omit<HTMLMotionProps<"a">, "href"> &
+  LinkProps & {
+    variant?: Variant;
+  };
 
+type ButtonProps = NativeButtonProps | RouterLinkButtonProps;
+
+const MotionLink = motion.create(Link);
+
+export function Button(props: ButtonProps) {
+  const reducedMotion = useReducedMotion();
+  const isDisabled = "disabled" in props && props.disabled;
+  const motionProps = {
+    whileTap:
+      reducedMotion || isDisabled
+        ? undefined
+        : {
+            scale: 0.98,
+          },
+    whileHover:
+      reducedMotion || isDisabled
+        ? undefined
+        : {
+            scale: 1.05,
+            transition: {
+              duration: 0.16,
+              ease: "easeOut" as const,
+            },
+          },
+  };
+
+  if (props.to !== undefined) {
+    const { to, variant = "primary", className = "", ...linkProps } = props;
+    return (
+      <MotionLink
+        className={`btn btn--${variant} ${className}`}
+        to={to}
+        {...motionProps}
+        {...linkProps}
+      />
+    );
+  }
+
+  const { variant = "primary", className = "", ...buttonProps } = props;
   return (
     <motion.button
       className={`btn btn--${variant} ${className}`}
-      whileTap={
-        reducedMotion || props.disabled
-          ? undefined
-          : {
-              scale: 0.98,
-            }
-      }
-      whileHover={
-        reducedMotion || props.disabled
-          ? undefined
-          : {
-              scale: 1.05,
-              transition: {
-                duration: 0.16,
-                ease: "easeOut",
-              },
-            }
-      }
-      {...props}
-    >
-      {children}
-    </motion.button>
+      {...motionProps}
+      {...buttonProps}
+    />
   );
 }

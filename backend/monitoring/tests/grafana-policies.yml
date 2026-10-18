@@ -4,3 +4,5 @@ policies:
   - orgId: 1
     receiver: monitoring-test
     group_by: ["alertname"]
+    group_wait: 1s
+    group_interval: 1s

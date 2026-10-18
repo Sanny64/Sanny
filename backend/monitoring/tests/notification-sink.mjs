@@ -41,3 +41,13 @@ const server = createServer((request, response) => {
 });
 
 server.listen(9000, "0.0.0.0");
+
+function stopServer() {
+  server.close(() => {
+    process.exitCode = 0;
+  });
+  server.closeAllConnections();
+}
+
+process.once("SIGINT", stopServer);
+process.once("SIGTERM", stopServer);

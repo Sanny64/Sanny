@@ -23,9 +23,7 @@ services:
       - ../monitoring/tests/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ../monitoring/tests/grafana-contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
       - ../monitoring/tests/grafana-policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
-      - ../monitoring/alerting/rules/429-spikes.yml:/etc/grafana/provisioning/alerting/429-spikes.yml:ro
-      - ../monitoring/alerting/rules/auth-abuse.yml:/etc/grafana/provisioning/alerting/auth-abuse.yml:ro
-      - ../monitoring/alerting/rules/callback-flood.yml:/etc/grafana/provisioning/alerting/callback-flood.yml:ro
+      - ../monitoring/tests/grafana-test-rules.yml:/etc/grafana/provisioning/alerting/test-rules.yml:ro
     depends_on:
       - loki
       - notification-sink

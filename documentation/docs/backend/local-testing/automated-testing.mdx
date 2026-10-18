@@ -16,17 +16,37 @@ Run commands from the repository root.
 
 Backend unit tests live in `backend/src/tests/`; monitoring integration tests live in `backend/monitoring/tests/`. These checks exercise backend behavior and do not run browser UI or accessibility tests.
 
-The Redis check uses Docker and the backend's configured test stack. The root gate also requires installed Playwright browsers and a reachable development API/Auth0 tenant for live integration tests. Keep dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials for that integration suite; never use personal accounts.
+The Redis check starts a disposable Docker Compose project using
+`backend/docker/docker-compose.redis-test.yml`. Its app and Redis services inherit
+the real Compose definitions, including the backend environment and TLS settings.
+Redis must pass an authenticated TLS health check before tests start. The project
+uses its own network and data/log volumes, publishes no ports, and removes its
+containers and volumes afterward, including on failure. No running development
+stack is required. Redis readiness is limited to ten health-check attempts, and
+the test file has a 120-second timeout. `REDIS_CONNECT_TIMEOUT_MS` bounds initial
+session-store connections (default 10000 milliseconds).
+
+The root gate also requires installed Playwright browsers and a reachable development API/Auth0 tenant for live integration tests. Keep dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials for that integration suite; never use personal accounts.
+
+## Latest Full Suite Run
+
+- Completed: 2026-10-18 22:38:36 UTC (`npm run test`, isolated `cmd`).
+- Total runtime: 14:23; exit code: 0.
+- Formatting, backend type/unit/monitoring checks, and Redis integration passed (155 backend unit tests passed, 1 skipped; monitoring integration: 1 passed).
+- Frontend lint/build, shared lint, component tests (11 passed), and mocked browser tests passed (Chromium: 218; Firefox and Edge: 213 each, with 5 visual-baseline skips in each browser).
+- Live Auth0 password-user login/logout passed in Chromium, Firefox, and Edge (1 passed and 1 intentionally skipped in each browser; Google automation is skipped).
 
 ---
 
 ## Test Boundaries
 
-- **Backend:** `npm run test:backend` and `npm run test:backend:redis` cover type checks, backend unit/monitoring tests, and Redis-backed session behavior.
-- **Frontend:** `npm run test:frontend` covers app lint/build, shared UI components, mocked browser behavior, and accessibility. See [Frontend Automated Testing](../../frontend/local-testing/automated-testing.mdx).
-- **Cross-system integration:** `npm run test:integration` runs live Auth0/browser flows. It exercises the connected apps and API, so it is not a backend-only or frontend-only test gate.
+- **Backend:** `npm run test:backend` checks backend types and runs unit/monitoring tests; `npm run test:backend:redis` exercises session behavior against disposable real Redis services.
+- **Frontend:** `npm run test:frontend` runs app lint/build, shared UI component tests, and mocked browser/accessibility checks. See [Frontend Automated Testing](../../frontend/local-testing/automated-testing.mdx).
+- **Cross-system integration:** `npm run test:integration` exercises the connected apps, API, and live Auth0 password flow in the configured browsers. It is not a backend-only or frontend-only gate; Google automation is intentionally skipped.
 
-Mocked browser checks prove frontend behavior and request/response contracts only; they do not prove backend persistence. Live integration checks do not cover every provider or account lifecycle. Google automation is explicitly skipped because the provider can block controlled browsers; keep manual provider verification separate.
+A green `npm run test` shows that these configured checks passed for the current checkout and local test environment. The live flow covers the configured test identity and selected login/session/logout paths, not every provider, identity, account lifecycle, or deployment configuration. Mocked frontend checks verify UI behavior and request/response contracts only; they do not exercise backend persistence. Passing unit, monitoring, and Redis tests does not prove every branch, production workload, or failure mode.
+
+The root gate does not build the documentation site or verify staging/production deployments. It also does not replace manual verification with the hosted Auth0 tenant, other identity providers, screen readers, complete keyboard-only workflows, or other assistive technology.
 
 ---
 

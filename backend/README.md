@@ -23,6 +23,8 @@ The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the auth frontend's
 
 Run `npm run test:backend` from the repository root for the backend type-check and unit suite. Run `npm run test:backend:redis` for the Redis-backed session integration test; Docker must be available.
 
+The Redis runner starts a disposable Compose project inheriting the real app and Redis settings, including TLS and environment configuration. Redis must pass its health check before the tests start. Its network and data/log volumes are isolated from the development stack and removed afterward, including on test failure. The test has a 120-second timeout; initial Redis connections use `REDIS_CONNECT_TIMEOUT_MS` (default 10000 milliseconds).
+
 The root `npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend lint/build and shared component tests, mocked Playwright tests, and the live password-user Auth0 flow in headed Chromium, Firefox, and Edge. Docs build remains separate. Mocked UI tests verify frontend behavior and API contracts, not the deployed backend. The live flow needs a reachable development API/Auth0 tenant and dedicated test credentials. Google automation is explicitly skipped, and Cloudflare challenges may skip password login; see the [backend automated testing guide](../documentation/docs/backend/local-testing/automated-testing.mdx) for backend coverage and the [frontend automated testing guide](../documentation/docs/frontend/local-testing/automated-testing.mdx) for frontend-owned coverage.
 
 ## Rate limiting and proxy trust

@@ -66,7 +66,7 @@
       createAccount: "Create account",
       updateAccount: "Save username",
       deleteAccount: "Delete my account",
-      loadUsers: "Load allusers",
+      loadUsers: "Load all users",
       deleteUser: "Delete user",
       confirmDeleteAccount: "Delete your account permanently?",
       confirmDeleteUser: "Delete this user permanently?",

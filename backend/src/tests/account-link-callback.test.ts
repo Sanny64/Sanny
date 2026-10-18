@@ -238,6 +238,7 @@ test("login initiation issues PKCE state and keeps only safe redirect targets", 
       mfa: "true",
       emailMfa: "true",
       reauthenticate: "true",
+      screen_hint: "signup",
     }),
   );
 
@@ -254,6 +255,7 @@ test("login initiation issues PKCE state and keeps only safe redirect targets", 
   );
   assert.equal(redirect.searchParams.get("prompt"), "login");
   assert.equal(redirect.searchParams.get("max_age"), "0");
+  assert.equal(redirect.searchParams.get("screen_hint"), "signup");
   assert.match(redirect.searchParams.get("acr_values") ?? "", /multi-factor/);
   assert.match(redirect.searchParams.get("acr_values") ?? "", /email-otp/);
   assert.equal(app.states.get("retry-state")?.returnTo, "/settings");
@@ -263,9 +265,13 @@ test("login initiation issues PKCE state and keeps only safe redirect targets", 
   );
 
   const unsafeRedirect = new URL(
-    await app.startAuthorization({ returnTo: "//attacker.example/path" }),
+    await app.startAuthorization({
+      returnTo: "//attacker.example/path",
+      screen_hint: "not-signup",
+    }),
   );
   assert.equal(unsafeRedirect.searchParams.has("returnTo"), false);
+  assert.equal(unsafeRedirect.searchParams.has("screen_hint"), false);
   assert.equal(app.states.get("retry-state")?.returnTo, undefined);
 });
 

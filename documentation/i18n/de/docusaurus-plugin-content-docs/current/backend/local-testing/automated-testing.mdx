@@ -15,15 +15,39 @@ Alle Befehle im Repository-Stammverzeichnis ausführen.
 
 Backend-Unit-Tests liegen in `backend/src/tests/`; Monitoring-Integrationstests liegen in `backend/monitoring/tests/`. Diese Prüfungen testen Backend-Verhalten und führen keine Browser-UI- oder Accessibility-Tests aus.
 
-Der Redis-Test verwendet Docker und den konfigurierten Backend-Test-Stack. Das Root-Gate benötigt außerdem installierte Playwright-Browser und eine erreichbare Entwicklungs-API/Auth0-Umgebung für Live-Integrationstests. Verwende dafür dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`, niemals persönliche Konten.
+Der Redis-Test startet ein isoliertes Docker-Compose-Projekt mit
+`backend/docker/docker-compose.redis-test.yml`. Die Dienste `app` und `redis`
+übernehmen die Konfiguration aus den regulären Compose-Definitionen, einschließlich
+Backend-Umgebung und TLS-Einstellungen. Redis muss vor Testbeginn einen
+authentifizierten TLS-Healthcheck bestehen. Das Projekt verwendet ein eigenes
+Netzwerk und eigene Daten- und Log-Volumes, veröffentlicht keine Ports und entfernt
+Container sowie Volumes auch bei einem Fehler. Ein laufender Entwicklungs-Stack ist
+nicht erforderlich. Die Redis-Bereitschaft wird höchstens zehnmal geprüft; für die
+Testdatei gilt ein Timeout von 120 Sekunden. `REDIS_CONNECT_TIMEOUT_MS` begrenzt
+Verbindungen des Sitzungs-Stores beim Start (Standardwert: 10000 Millisekunden).
+
+Das Root-Gate benötigt außerdem installierte Playwright-Browser und eine erreichbare
+Entwicklungs-API sowie einen Auth0-Tenant für Live-Integrationstests. Verwende dafür
+dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`, niemals persönliche
+Konten.
+
+## Letzter vollständiger Testlauf
+
+- Beendet: 2026-10-18 22:38:36 UTC (`npm run test`, isoliertes `cmd`).
+- Gesamtlaufzeit: 14:23; Exit-Code: 0.
+- Formatierung, Backend-Typ-/Unit-/Monitoring-Tests und Redis-Integration waren erfolgreich (155 Backend-Unit-Tests bestanden, 1 übersprungen; Monitoring-Integration: 1 bestanden).
+- Frontend-Lint/Build, Shared-Lint, Komponententests (11 bestanden) und gemockte Browsertests waren erfolgreich (Chromium: 218; Firefox und Edge: jeweils 213 bestanden und 5 Visual-Baseline-Tests übersprungen).
+- Der Live-Auth0-Login und Logout mit Passwort waren in Chromium, Firefox und Edge erfolgreich (jeweils 1 bestanden, 1 absichtlich übersprungen; Google-Automatisierung wird übersprungen).
 
 ## Testgrenzen
 
-- **Backend:** `npm run test:backend` und `npm run test:backend:redis` prüfen Typen, Backend-Unit-/Monitoring-Tests und Redis-basierte Sitzungsabläufe.
-- **Frontend:** `npm run test:frontend` prüft App-Lint/Build, gemeinsame UI-Komponenten sowie gemocktes Browserverhalten und Barrierefreiheit. Siehe [Automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx).
-- **Systemübergreifende Integration:** `npm run test:integration` führt Live-Auth0-/Browser-Abläufe aus. Dabei werden verbundene Apps und API getestet; dies ist kein Backend- oder Frontend-only-Gate.
+- **Backend:** `npm run test:backend` prüft Backend-Typen und führt Unit-/Monitoring-Tests aus; `npm run test:backend:redis` testet Sitzungsabläufe mit isolierten, echten Redis-Diensten.
+- **Frontend:** `npm run test:frontend` führt App-Lint/Build, gemeinsame UI-Komponententests sowie gemockte Browser- und Accessibility-Prüfungen aus. Siehe [Automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx).
+- **Systemübergreifende Integration:** `npm run test:integration` prüft verbundene Apps, API und den Live-Auth0-Passwort-Flow in den konfigurierten Browsern. Dies ist kein reines Backend- oder Frontend-Gate; Google-Automatisierung wird absichtlich übersprungen.
 
-Gemockte Browsertests belegen nur Frontend-Verhalten und Request-/Response-Verträge, nicht die Backend-Persistenz. Live-Integrationstests decken nicht jeden Anbieter oder Kontenablauf ab. Google-Automatisierung wird übersprungen, weil der Anbieter kontrollierte Browser blockieren kann; Provider-Flows müssen manuell geprüft werden.
+Ein erfolgreiches `npm run test` zeigt, dass diese konfigurierten Prüfungen für den aktuellen Checkout und die lokale Testumgebung bestanden wurden. Der Live-Flow prüft die konfigurierte Testidentität und ausgewählte Login-/Sitzungs-/Logout-Abläufe, nicht jeden Anbieter, jede Identität, jeden Kontenlebenszyklus oder jede Deployment-Konfiguration. Gemockte Frontend-Browsertests prüfen nur UI-Verhalten und Request-/Response-Verträge; sie greifen nicht auf die Backend-Persistenz zu. Erfolgreiche Unit-, Monitoring- und Redis-Tests belegen nicht jeden Codepfad, Produktionslastfall oder Fehlerzustand.
+
+Das Root-Gate baut weder die Dokumentationswebsite noch verifiziert es Staging-/Produktionsdeployments. Es ersetzt auch keine manuelle Prüfung mit dem gehosteten Auth0-Tenant, anderen Identitätsanbietern, Screenreadern, vollständigen Tastaturabläufen oder weiterer assistiver Technologie.
 
 ## Weiter
 

@@ -47,6 +47,12 @@ For quality checks, use scripts defined by the root `package.json`:
 
 Run each app you need in its own terminal. Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and the English docs at `http://localhost:3000` (`npm run dev:docs-de` serves German docs at port `3001`). Frontend development servers use a local HTTPS certificate and reload when source changes.
 
+`npm run test:backend:redis` starts a disposable Compose project that inherits the
+real app and Redis environment, TLS configuration, and service definitions. It
+waits for Redis health, uses separate networking and data volumes, limits the
+test run to 120 seconds, and removes its containers and volumes afterward. The
+development stack does not need to be running.
+
 ### Deployment
 
 Every push to `main` runs the production docs workflow. Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. All sites are built for the subdomain root (`/`).

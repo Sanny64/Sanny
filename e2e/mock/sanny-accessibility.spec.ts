@@ -28,15 +28,9 @@ const publicRoutes = [
   { path: "/projects/sm.now", content: { en: "SMNow", de: "SMNow" } },
   { path: "/blog", content: { en: "Blog", de: "Blog" } },
   { path: "/games", content: { en: "Games", de: "Spiele" } },
-  { path: "/party", content: { en: "Party", de: "Party" } },
-  {
-    path: "/party/refreshments",
-    content: { en: "Refreshments Kit", de: "Refreshments Kit" },
-  },
-  {
-    path: "/party/comfort",
-    content: { en: "Period Comfort Kit", de: "Period Comfort Kit" },
-  },
+  { path: "/party", placeholder: true },
+  { path: "/party/refreshments", placeholder: true },
+  { path: "/party/comfort", placeholder: true },
   {
     path: "/error",
     error: {
@@ -240,6 +234,10 @@ for (const theme of ["light", "dark"] as const) {
           await expect(
             page.getByText(route.content[language], { exact: true }),
           ).toBeVisible();
+        } else if ("placeholder" in route) {
+          const contentSurface = page.locator(".auxiliary-layout");
+          await expect(contentSurface).toBeVisible();
+          await expect(contentSurface).toBeEmpty();
         } else {
           await expect(
             page.getByRole("heading", {
@@ -294,13 +292,13 @@ for (const theme of ["light", "dark"] as const) {
         roles: ["user"],
         permissions: [],
       });
-      await page.goto(`${sannyUrl}/admin/settings`);
+      await page.goto(`${sannyUrl}/settings/admin`);
       await expect(
         page.getByRole("heading", {
           name:
             language === "en"
               ? "Administrator access is required for this page."
-              : "Fuer diese Seite sind Administratorrechte erforderlich.",
+              : "Für diese Seite sind Administratorrechte erforderlich.",
         }),
       ).toBeVisible();
       await expectAccessible(page);
@@ -317,7 +315,7 @@ for (const theme of ["light", "dark"] as const) {
         permissions: ["read:users", "write:users", "delete:users"],
       });
 
-      await page.goto(`${sannyUrl}/admin/settings`);
+      await page.goto(`${sannyUrl}/settings/admin`);
       await expect(
         page.getByRole("heading", {
           name: language === "en" ? "Admin settings" : "Admin-Einstellungen",
@@ -365,6 +363,10 @@ for (const theme of ["light", "dark"] as const) {
       await expect(menuTrigger).toBeFocused();
       await page.keyboard.press("Enter");
       await expect(signIn).toBeVisible();
+      await expect(page.locator(".account-menu__dropdown")).toHaveCSS(
+        "opacity",
+        "1",
+      );
       await expectAccessible(page);
       await page.keyboard.press("Tab");
       await expect(signIn).toBeFocused();
@@ -419,7 +421,7 @@ for (const theme of ["light", "dark"] as const) {
         roles: ["admin"],
         permissions: ["read:users", "write:users", "delete:users"],
       });
-      await page.goto(`${sannyUrl}/admin/settings`);
+      await page.goto(`${sannyUrl}/settings/admin`);
       const userLookup = page.getByLabel(
         language === "en" ? "User ID or email" : "Benutzer-ID oder E-Mail",
       );
@@ -479,7 +481,7 @@ test("settings and denied admin states pass the WCAG 2.2 AA axe audit", async ({
       }),
     }),
   );
-  await page.goto(`${sannyUrl}/admin/settings`);
+  await page.goto(`${sannyUrl}/settings/admin`);
   await expect(
     page.getByRole("heading", {
       name: "Administrator access is required for this page.",
@@ -583,9 +585,6 @@ test("Chromium visual baselines: account settings desktop and mobile", async ({
     page.getByRole("button", { name: "Switch to German" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Test account endpoints" }),
-  ).toBeVisible();
-  await expect(
     page.getByRole("button", { name: "Save username" }),
   ).toBeVisible();
   await captureDesktopAndMobile(page, "account-settings");
@@ -600,7 +599,7 @@ test("Chromium visual baselines: populated admin desktop and mobile", async ({
   );
   await setVisualPreferences(page);
   await routeAdminVisualState(page);
-  await page.goto(`${sannyUrl}/admin/settings`);
+  await page.goto(`${sannyUrl}/settings/admin`);
   await expect(
     page.getByRole("heading", { name: "Admin settings" }),
   ).toBeVisible();

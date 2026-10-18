@@ -163,11 +163,11 @@ test("synthetic Loki entries trigger all configured log-based Grafana rules", as
     "Loki rejected synthetic test entries",
   );
 
-  const deadline = Date.now() + 5 * 60_000;
+  const deadline = Date.now() + 60_000;
   let firing = new Set<string>();
   let delivered = new Set<string>();
   while (Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
     [firing, delivered] = await Promise.all([
       getFiringAlertNames(authorization),
       getDeliveredAlertNames(),

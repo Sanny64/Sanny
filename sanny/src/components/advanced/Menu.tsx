@@ -3,12 +3,10 @@ import { Button } from "@sanny/ui";
 import { motion, useReducedMotion } from "framer-motion";
 import { Menu as MenuIcon, Settings, Shield, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import LoginButton from "../default/LoginButton";
 import "../../styles/components/accountMenu.css";
 
 export default function Menu() {
-  const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language];
   const reducedMotion = useReducedMotion();
@@ -103,9 +101,7 @@ export default function Menu() {
         <Button
           className="account-menu__item__settings-redirect"
           variant="secondary"
-          onClick={() => {
-            navigate("/settings");
-          }}
+          to="/settings"
         >
           <Settings size={18} aria-hidden="true" />
           {t.shared.settings.title}
@@ -114,9 +110,7 @@ export default function Menu() {
           <Button
             className="account-menu__item__admin-redirect"
             variant="secondary"
-            onClick={() => {
-              navigate("/settings/admin");
-            }}
+            to="/settings/admin"
           >
             <Shield size={18} aria-hidden="true" />
             {t.shared.settings.adminSettingsTitle}

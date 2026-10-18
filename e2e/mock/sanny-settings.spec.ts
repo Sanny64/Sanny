@@ -110,7 +110,7 @@ for (const role of ["guest", "user", "admin"]) {
     if (role === "admin") {
       await expect(
         dropdown.getByRole("link", { name: "Admin settings", exact: true }),
-      ).toHaveAttribute("href", "/admin/settings");
+      ).toHaveAttribute("href", "/settings/admin");
     }
 
     await page.keyboard.press("Tab");
@@ -215,6 +215,43 @@ test("updates, resets, and deletes a mocked own account", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("starts Auth0 signup when creating an account without a session", async ({
+  page,
+}) => {
+  let signupUrl: URL | undefined;
+  let createRequests = 0;
+
+  await page.route("**/api/v001/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === "/api/v001/auth" && request.method() === "GET") {
+      signupUrl = new URL(request.url());
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "",
+      });
+    } else if (path === "/api/v001/auth/me") {
+      await respondJson(route, { error: "Unauthorized" }, 401);
+    } else if (path === "/api/v001/users/me" && request.method() === "POST") {
+      createRequests += 1;
+      await respondJson(route, { error: "Unauthorized" }, 401);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect
+    .poll(() => signupUrl?.searchParams.get("screen_hint"))
+    .toBe("signup");
+  expect(signupUrl?.searchParams.get("returnTo")).toBe("/settings");
+  expect(createRequests).toBe(0);
+});
+
 test("creates a local account when none exists", async ({ page }) => {
   let createBody: unknown;
 
@@ -311,8 +348,8 @@ test("shows API failures for create, update, password reset, and delete", async 
       await respondJson(route, {
         email: "account@example.com",
         name: "Account Test",
-        roles: ["user"],
-        permissions: ["update:me", "delete:me"],
+        roles: ["admin"],
+        permissions: ["read:users", "update:me", "delete:me"],
       });
     } else if (path === "/api/v001/users/me" && request.method() === "GET") {
       if (!accountExists) {
@@ -374,6 +411,7 @@ test("loads an admin user, updates roles, resets, and deletes that mocked user",
 }) => {
   let usernameBody: { username?: string } | undefined;
   let rolesBody: { roles?: string[] } | undefined;
+  let roleRequests = 0;
   let resetRequests = 0;
   let deleteRequests = 0;
 
@@ -398,7 +436,12 @@ test("loads an admin user, updates roles, resets, and deletes that mocked user",
       path === "/api/v001/users/42/roles" &&
       request.method() === "GET"
     ) {
-      await respondJson(route, { roles: ["user"] });
+      roleRequests += 1;
+      if (roleRequests === 1) {
+        await respondJson(route, { message: "Could not load user roles" }, 500);
+      } else {
+        await respondJson(route, { roles: ["user"] });
+      }
     } else if (path === "/api/v001/users/42" && request.method() === "PATCH") {
       usernameBody = request.postDataJSON() as { username?: string };
       await respondJson(route, {
@@ -424,17 +467,30 @@ test("loads an admin user, updates roles, resets, and deletes that mocked user",
   });
 
   page.on("dialog", (dialog) => dialog.accept());
-  await page.goto(`${sannyUrl}/admin/settings`);
+  await page.goto(`${sannyUrl}/settings/admin`);
   await expect(
     page.getByRole("heading", { name: "Admin settings" }),
   ).toBeVisible();
 
-  await page.getByRole("button", { name: "Load allusers" }).click();
+  await page.getByRole("button", { name: "Load all users" }).click();
+  await page.getByRole("button", { name: "Select user" }).first().click();
+  await expectAlert(page, "Could not load user roles");
+  await expect(page.locator(".admin-settings__users")).toBeVisible();
   await page.getByRole("button", { name: "Select user" }).first().click();
   await expect(page.getByLabel("Username")).toHaveValue("Managed User");
+  await expect(
+    page.getByRole("checkbox", { name: "Role: user", exact: true }),
+  ).toBeChecked();
+  await expect(page.locator(".admin-settings__users")).toHaveCount(0);
+  await expect(page.locator(".admin-settings__pagination")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Load all users" }).click();
+  await expect(page.locator(".admin-settings__users")).toBeVisible();
+  await page.getByRole("button", { name: "Select user" }).first().click();
+  await expect(page.locator(".admin-settings__users")).toHaveCount(0);
 
   await page.getByLabel("Username").fill("Updated Managed User");
-  await page.getByRole("checkbox", { name: "moderator" }).check();
+  await page.getByRole("checkbox", { name: "Role: moderator" }).check();
   await page.getByRole("button", { name: "Save user" }).click();
 
   await expect
@@ -493,10 +549,10 @@ test("allows an admin to update their own roles", async ({ page }) => {
     }
   });
 
-  await page.goto(`${sannyUrl}/admin/settings`);
-  await page.getByRole("button", { name: "Load allusers" }).click();
+  await page.goto(`${sannyUrl}/settings/admin`);
+  await page.getByRole("button", { name: "Load all users" }).click();
   await page.getByRole("button", { name: "Select user" }).first().click();
-  await page.getByRole("checkbox", { name: "moderator" }).check();
+  await page.getByRole("checkbox", { name: "Role: moderator" }).check();
   await page.getByRole("button", { name: "Save user" }).click();
 
   await expect
@@ -526,7 +582,7 @@ test("denies the admin page to a non-admin without loading protected data", asyn
     }
   });
 
-  await page.goto(`${sannyUrl}/admin/settings`);
+  await page.goto(`${sannyUrl}/settings/admin`);
 
   await expect(
     page.getByRole("heading", {
@@ -578,12 +634,14 @@ test("shows one backend-offline alert when multiple startup requests fail", asyn
 test("switches and persists the settings page language and theme", async ({
   page,
 }) => {
+  let authMeRequests = 0;
   await page.addInitScript(() => {
     if (!localStorage.getItem("language")) {
       localStorage.setItem("language", "en");
     }
   });
   await page.route("**/api/v001/auth/me", async (route) => {
+    authMeRequests += 1;
     await respondJson(route, { message: "Not authenticated" }, 401);
   });
 
@@ -591,14 +649,21 @@ test("switches and persists the settings page language and theme", async ({
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Appearance" })).toBeVisible();
   await expect(page.getByText("Language: en", { exact: true })).toBeVisible();
+  await expect.poll(() => authMeRequests).toBeGreaterThan(0);
+  await page.waitForLoadState("networkidle");
+  const authMeRequestsBeforeLanguageChange = authMeRequests;
   await page.getByRole("button", { name: "Account menu" }).click();
   await expect(
-    page.getByRole("button", { name: "Login", exact: true }),
+    page
+      .getByRole("navigation", { name: "Account", exact: true })
+      .getByRole("button", { name: "Login", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("alert")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Switch to German" }).click();
   await expect(page.getByText("Sprache: de", { exact: true })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  expect(authMeRequests).toBe(authMeRequestsBeforeLanguageChange);
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Einstellungen" }),
@@ -714,9 +779,11 @@ for (const scenario of resumeScenarios) {
         await respondJson(route, {
           email: "account@example.com",
           name: "Account Test",
-          roles: ["user"],
-          permissions: ["update:me", "delete:me"],
+          roles: ["admin"],
+          permissions: ["read:users", "update:me", "delete:me"],
         });
+      } else if (path === "/api/v001/users/roles/available") {
+        await respondJson(route, { roles: ["admin", "user"] });
       } else if (path === "/api/v001/users/me" && request.method() === "GET") {
         await respondJson(route, {
           id: 7,
@@ -778,6 +845,77 @@ for (const scenario of resumeScenarios) {
       .toBeNull();
   });
 }
+
+test("resumes loading all admin users after MFA without a second click", async ({
+  page,
+}) => {
+  let authUrl: URL | undefined;
+  let resumeActionBody: unknown;
+  let listRequests = 0;
+  const resumeToken = "a".repeat(32);
+
+  await page.route("**/api/v001/**", async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === "/api/v001/auth/me") {
+      await respondJson(route, {
+        roles: ["admin"],
+        permissions: ["read:users"],
+      });
+    } else if (path === "/api/v001/users/roles/available") {
+      await respondJson(route, { roles: ["admin", "user"] });
+    } else if (path === "/api/v001/users/list") {
+      listRequests += 1;
+      if (listRequests === 1) {
+        await respondJson(
+          route,
+          { message: "MFA authentication required", resumeToken },
+          401,
+        );
+      } else {
+        await respondJson(route, [
+          { id: 42, email: "managed@example.com", username: "Managed User" },
+        ]);
+      }
+    } else if (path === "/api/v001/auth") {
+      authUrl = new URL(request.url());
+      await route.fulfill({
+        status: 302,
+        headers: { location: `${sannyUrl}/settings/admin` },
+      });
+    } else if (path === "/api/v001/auth/resume-action") {
+      resumeActionBody = request.postDataJSON();
+      await respondJson(route, {
+        method: "GET",
+        path: "/api/v001/users/list",
+        body: null,
+      });
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings/admin`);
+  await page.getByRole("button", { name: "Load all users" }).click();
+
+  await expect.poll(() => authUrl?.searchParams.get("mfa")).toBe("true");
+  expect(authUrl?.searchParams.get("returnTo")).toBe("/settings/admin");
+  await expect
+    .poll(() => resumeActionBody)
+    .toEqual({ resumeToken, factor: "mfa" });
+  await expect.poll(() => listRequests).toBe(2);
+  await expect(page.locator(".admin-settings__users")).toBeVisible();
+  await expect(page.locator(".admin-settings__users")).toContainText(
+    "managed@example.com",
+  );
+  await expect(page.getByRole("button", { name: "Select user" })).toBeEnabled();
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem("sanny:pending-action")),
+    )
+    .toBeNull();
+});
 
 test("discards invalid pending-action credentials without replay", async ({
   page,

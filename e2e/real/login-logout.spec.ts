@@ -11,12 +11,19 @@ async function beginSignIn(
   await page.goto(appUrl);
   const appHost = new URL(appUrl).host;
   const apiHost = new URL(apiUrl).host;
+  const accountMenu = page.getByRole("button", { name: "Account menu" });
   await Promise.all([
     page.waitForURL((url) => url.host !== appHost && url.host !== apiHost, {
       waitUntil: "commit",
       timeout: 90_000,
     }),
-    page.locator("button.login-button").click(),
+    (async () => {
+      await accountMenu.click();
+      await page
+        .getByRole("navigation", { name: "Account", exact: true })
+        .getByRole("button", { name: "Login", exact: true })
+        .click();
+    })(),
   ]);
 }
 
@@ -35,15 +42,19 @@ async function submitCredentialsAndWaitForCallback(
     const response = await callbackResponse;
     const location = response.headers().location;
     if (location) {
-      const redirectPath = new URL(location, response.url()).pathname;
+      const redirectUrl = new URL(location, response.url());
+      const redirectPath = redirectUrl.pathname;
       if (redirectPath.endsWith("/authorize")) {
         throw new Error(
           "Auth0 requested another login; account linking or reauthentication is required.",
         );
       }
       if (redirectPath === "/error") {
+        const authError = redirectUrl.searchParams.get("authError");
+        const errorStatus = redirectUrl.searchParams.get("status");
+        const rateLimit = response.headers()["x-ratelimit-limit"];
         throw new Error(
-          "The backend rejected the Auth0 callback and redirected to its error page.",
+          `The backend rejected the Auth0 callback and redirected to its error page${authError ? ` (${authError})` : errorStatus ? ` (HTTP ${errorStatus}${rateLimit ? `, rate-limit ${rateLimit}` : ""})` : ""}.`,
         );
       }
     }
@@ -80,6 +91,27 @@ async function expectAuthenticatedUser(
   };
   expect(user.email.toLowerCase()).toBe(email.toLowerCase());
   expect(user.username).toBeTruthy();
+}
+
+async function dismissGoogleOneTapPrompt(
+  page: import("@playwright/test").Page,
+) {
+  const promptFrame = page.locator('iframe[src*="accounts.google.com/gsi/"]');
+  try {
+    await promptFrame.waitFor({ state: "attached", timeout: 1_500 });
+  } catch {
+    return;
+  }
+
+  const dismissButton = page
+    .frameLocator('iframe[src*="accounts.google.com/gsi/"]')
+    .getByRole("button", { name: /close|schließen|dismiss/i });
+  try {
+    await dismissButton.waitFor({ state: "visible", timeout: 1_500 });
+  } catch {
+    return;
+  }
+  await dismissButton.click();
 }
 
 test("creates or loads a Google social user through live Auth0 @real", async ({
@@ -175,7 +207,14 @@ test("creates or loads a password user through live Auth0 @real", async ({
   });
 
   await beginSignIn(page, appUrl, apiUrl);
+  await dismissGoogleOneTapPrompt(page);
   await page.getByLabel(/email address/i).fill(email!);
+  const usernameInput = page.getByLabel("Username", { exact: true });
+  if (await usernameInput.isVisible().catch(() => false)) {
+    const emailPrefix = email!.split("@")[0] ?? "test-user";
+    const username = `sanny-e2e-${emailPrefix.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40)}`;
+    await usernameInput.fill(username);
+  }
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   const passwordInput = page.locator('input[type="password"]:visible');
   try {
@@ -293,7 +332,13 @@ test("creates or loads a password user through live Auth0 @real", async ({
       "x-csrf-token": csrfCookie!.value,
     },
   });
-  expect(logout.status()).toBe(200);
+  const logoutStatus = logout.status();
+  if (logoutStatus !== 200) {
+    const headers = logout.headers();
+    throw new Error(
+      `Logout failed with HTTP ${logoutStatus}; rate-limit=${headers["x-ratelimit-limit"] ?? "none"}; retry-after=${headers["retry-after"] ?? "none"}; response=${await logout.text()}`,
+    );
+  }
   expect(new URL((await logout.json()).logoutUrl).pathname).toBe(
     "/oidc/logout",
   );

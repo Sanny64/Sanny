@@ -31,15 +31,9 @@ const routes = [
   { path: "/projects/sm.now", content: { en: "SMNow", de: "SMNow" } },
   { path: "/blog", content: { en: "Blog", de: "Blog" } },
   { path: "/games", content: { en: "Games", de: "Spiele" } },
-  { path: "/party", content: { en: "Party", de: "Party" } },
-  {
-    path: "/party/refreshments",
-    content: { en: "Refreshments Kit", de: "Refreshments Kit" },
-  },
-  {
-    path: "/party/comfort",
-    content: { en: "Period Comfort Kit", de: "Period Comfort Kit" },
-  },
+  { path: "/party", placeholder: true },
+  { path: "/party/refreshments", placeholder: true },
+  { path: "/party/comfort", placeholder: true },
   {
     path: "/error",
     error: {
@@ -85,6 +79,12 @@ for (const route of routes) {
         await expect(
           page.getByRole("heading", { name: errorPageTitle[language] }),
         ).toHaveCount(0);
+      } else if ("placeholder" in route) {
+        await expect(page.locator(".auxiliary-layout")).toBeVisible();
+        await expect(page.locator(".auxiliary-layout")).toBeEmpty();
+        await expect(
+          page.getByRole("heading", { name: errorPageTitle[language] }),
+        ).toHaveCount(0);
       } else {
         await expect(
           page.getByRole("heading", { name: errorPageTitle[language] }),
@@ -98,7 +98,7 @@ for (const route of routes) {
     expect(pageErrors).toEqual([]);
   });
 
-  if ("content" in route) {
+  if ("content" in route || "placeholder" in route) {
     for (const language of ["en", "de"] as const) {
       test(`${language} ${route.path} remains a content-only placeholder`, async ({
         page,
@@ -113,7 +113,11 @@ for (const route of routes) {
         const contentSurface = route.path.startsWith("/party")
           ? page.locator(".auxiliary-layout")
           : page.locator("main .content");
-        await expect(contentSurface).toContainText(route.content[language]);
+        if ("content" in route) {
+          await expect(contentSurface).toContainText(route.content[language]);
+        } else {
+          await expect(contentSurface).toBeEmpty();
+        }
         await expect(contentSurface.getByRole("link")).toHaveCount(0);
         await expect(contentSurface.getByRole("button")).toHaveCount(0);
         await expect(

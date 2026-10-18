@@ -203,6 +203,79 @@ test("sessions are rotated once they are half-way through the idle window", () =
   );
 });
 
+test("Redis startup validates its deadline, destroys stalled clients, and permits retry", async () => {
+  const source = await readFile(
+    new URL("../utils/session.ts", import.meta.url),
+    "utf8",
+  );
+  const environment = { REDIS_CONNECT_TIMEOUT_MS: "0" };
+  let connect = () => new Promise<void>(() => undefined);
+  let destroyed = 0;
+  let clientCount = 0;
+  const client = {
+    isOpen: true,
+    on: () => undefined,
+    connect: () => connect(),
+    destroy: () => {
+      destroyed += 1;
+      client.isOpen = false;
+    },
+    quit: async () => undefined,
+  };
+  const module = { exports: {} as Record<string, unknown> };
+  const modules: Record<string, object> = {
+    redis: {
+      createClient: (options: { socket: { connectTimeout: number } }) => {
+        clientCount += 1;
+        assert.equal(options.socket.connectTimeout, 20);
+        return client;
+      },
+    },
+    "node:process": { env: environment },
+    "node:fs": { readFileSync: () => Buffer.from("test-ca") },
+    "./config.js": { requiredEnv: () => "test-password" },
+    "./access-token.js": {},
+    "./refresh-token.js": {},
+    "../utils/security-audit.js": {},
+    "./metrics.js": {},
+    "./logger.js": { appLogger: { error: () => undefined } },
+    "./session-rotation.js": sessionRotation,
+  };
+  vm.runInNewContext(
+    ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.CommonJS },
+    }).outputText,
+    {
+      exports: module.exports,
+      require: (name: string) => modules[name] ?? require(name),
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  const sessionModule = module.exports as unknown as SessionModule;
+  for (const invalid of ["0", "-1", "invalid", "1.5", "2147483648"]) {
+    environment.REDIS_CONNECT_TIMEOUT_MS = invalid;
+    await assert.rejects(
+      sessionModule.initializeSessionStore(),
+      /REDIS_CONNECT_TIMEOUT_MS must be a positive 32-bit integer/,
+    );
+  }
+  assert.equal(clientCount, 0);
+  environment.REDIS_CONNECT_TIMEOUT_MS = "20";
+  await assert.rejects(
+    sessionModule.initializeSessionStore(),
+    /Redis session store unavailable after 20 ms; ensure Redis is running/,
+  );
+  assert.equal(destroyed, 1);
+  connect = async () => undefined;
+  client.isOpen = true;
+  await sessionModule.initializeSessionStore();
+  assert.equal(clientCount, 2);
+  await sessionModule.initializeSessionStore();
+  assert.equal(clientCount, 2);
+  await sessionModule.closeSessionStore();
+});
+
 test(
   "real Redis atomically rotates sessions and consumes state across processes",
   { skip: env.RUN_REAL_REDIS_TESTS !== "true" },
@@ -996,7 +1069,11 @@ test("Fastify requireSession replaces the rotated cookie and preserves session c
         cookie: `${sessionCookie}; __Host-sanny_csrf=${issued.csrfToken}`,
       },
     });
-    assert.equal(csrfCookieOnly.statusCode, 204);
+    assert.equal(csrfCookieOnly.statusCode, 403);
+    assert.deepEqual(csrfCookieOnly.json(), {
+      error: "Forbidden",
+      message: "Invalid CSRF token",
+    });
 
     const crossSiteLogout = await server.inject({
       method: "POST",

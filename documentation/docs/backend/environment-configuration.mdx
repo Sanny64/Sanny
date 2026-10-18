@@ -37,9 +37,12 @@ NODE_ENV="development" # Changing this value requires also changing it
                        # for all auth0 applications, actions and database connections.
                        # Must be exactly `development` or `production`.
 
-# Database and session store
+# Database connection
 DATABASE_URL="mysql://username:password@server/database"
+
+# Redis session store
 REDIS_PASSWORD="some random string without special characters"
+REDIS_CONNECT_TIMEOUT_MS=10000
 
 # Grafana
 GRAFANA_ADMIN_USER="your grafana admin username"
@@ -112,6 +115,11 @@ DISCORD_WEBHOOK="your discord webhook url"
 ```
 
 ---
+
+`REDIS_CONNECT_TIMEOUT_MS` bounds the entire initial Redis connection attempt,
+including retries. It defaults to 10000 milliseconds and must be an integer from
+1 to 2147483647. Startup fails and closes the client when this limit is reached;
+automatic reconnection after a successful startup is unchanged.
 
 ## Auth Frontend (`auth/.env.local`)
 

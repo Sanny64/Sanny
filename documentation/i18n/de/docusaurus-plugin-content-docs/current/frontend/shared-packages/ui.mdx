@@ -97,7 +97,7 @@ Grundsätzlich ist das Auslagern von Funktionen jedoch besser für Konsistenz un
 
 ## Hinweise für Entwickler:innen
 
-Achte darauf, Buttons ohne ausreichend sichtbaren Kontext immer mit einem `aria-label` zu versehen, da sie häufig von Screenreadern verwendet werden.
+Bevorzuge sichtbaren Button-Text und zugeordnete Formularlabels; sie stellen bereits den barrierefreien Namen bereit. Verwende ein lokalisiertes `aria-label`, wenn ein Steuerelement keinen ausreichenden sichtbaren Text hat, zum Beispiel bei einem Button, der nur ein Symbol zeigt. Verwende kein `aria-label`, das sichtbarem Text oder einem zugeordneten Label widerspricht, da es den von assistiven Technologien angesagten Namen überschreibt.
 
 Gemeinsame UI-Komponenten müssen routenspezifische Farbabweichungen unterstützen, ohne dabei das Layout-Verhalten zu verändern:
 

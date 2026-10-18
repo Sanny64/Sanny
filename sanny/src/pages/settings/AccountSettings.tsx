@@ -1,6 +1,6 @@
 import { useLanguage, translations } from "@sanny/i18n";
 import { Button } from "../../../../shared/packages/ui/src/components/Button";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   beginReauthentication,
@@ -124,6 +124,10 @@ export default function AccountSettings() {
   const canManageUsers =
     roles.includes("admin") && permissions.includes("read:users");
 
+  const reportLoadError = useEffectEvent((error: unknown) => {
+    showBackendRequestError(error, backendOfflineMessage, requestFailedMessage);
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -146,11 +150,7 @@ export default function AccountSettings() {
         }
       } catch (loadError) {
         if (!cancelled && (loadError as RequestError).status !== 401) {
-          showBackendRequestError(
-            loadError,
-            backendOfflineMessage,
-            requestFailedMessage,
-          );
+          reportLoadError(loadError);
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -161,7 +161,7 @@ export default function AccountSettings() {
     return () => {
       cancelled = true;
     };
-  }, [backendOfflineMessage, requestFailedMessage]);
+  }, []);
 
   useEffect(() => {
     if (resumeStartedRef.current) return;
@@ -242,6 +242,14 @@ export default function AccountSettings() {
   }
 
   async function createAccount() {
+    if (!identity) {
+      const signupUrl = new URL("/api/v001/auth", apiUrl);
+      signupUrl.searchParams.set("returnTo", "/settings");
+      signupUrl.searchParams.set("screen_hint", "signup");
+      window.location.assign(signupUrl.toString());
+      return;
+    }
+
     setIsBusy(true);
     try {
       const createdUser = await request<User>("/api/v001/users/me", {
@@ -378,7 +386,6 @@ export default function AccountSettings() {
           {!user ? (
             <section>
               <h2>{t.shared.settings.accountTitle}</h2>
-              <p>{t.shared.settings.noLocalAccount}</p>
               <ButtonGroup layout="horizontal">
                 <Button
                   type="button"
@@ -389,6 +396,7 @@ export default function AccountSettings() {
                 </Button>
                 <LoginButton></LoginButton>
               </ButtonGroup>
+              {identity && <p>{t.shared.settings.noLocalAccount}</p>}
             </section>
           ) : (
             <section>

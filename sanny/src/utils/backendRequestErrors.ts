@@ -1,6 +1,6 @@
 import { retriggerToast, showErrorToast, showToast } from "@sanny/ui";
 
-const backendOfflineToastDurationMs = 6_000;
+const backendOfflineToastDurationMs = 4_000;
 let backendOfflineToastTimeout: ReturnType<typeof setTimeout> | undefined;
 let backendOfflineToastId: number | undefined;
 

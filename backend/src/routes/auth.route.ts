@@ -64,6 +64,7 @@ async function startAuthorization(
     mfa?: boolean;
     reauthenticate?: boolean;
     accountLinkRetry?: boolean;
+    signup?: boolean;
     loginHint?: string;
     outstandingStates?: string[];
   },
@@ -101,6 +102,7 @@ async function startAuthorization(
     params.set("acr_values", `${mfaAcr} ${emailMfaAcr}`);
   }
   if (options.loginHint) params.set("login_hint", options.loginHint);
+  if (options.signup) params.set("screen_hint", "signup");
   return reply.redirect(
     `https://${requiredEnv("AUTH0_DOMAIN")}/authorize?${params}`,
   );
@@ -326,6 +328,7 @@ async function authRoutes(server: FastifyInstance) {
       mfa?: string;
       emailMfa?: string;
       returnTo?: string;
+      screen_hint?: string;
     };
   }>("/", async (request, reply) => {
     const returnTo = request.query.returnTo;
@@ -338,6 +341,7 @@ async function authRoutes(server: FastifyInstance) {
       emailMfa: request.query.emailMfa === "true",
       mfa: request.query.mfa === "true",
       reauthenticate: request.query.reauthenticate === "true",
+      signup: request.query.screen_hint === "signup",
     });
   });
 

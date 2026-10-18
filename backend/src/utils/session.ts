@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { env } from "node:process";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { createClient, type RedisClientType } from "redis";
 import type { AccessTokenIdentity } from "./access-token.js";
@@ -82,19 +83,49 @@ export async function getSessionSubject(sessionId: string) {
 
 export async function initializeSessionStore() {
   if (redis) return;
+  const timeoutMs = Number(env.REDIS_CONNECT_TIMEOUT_MS ?? 10_000);
+  if (
+    !Number.isInteger(timeoutMs) ||
+    timeoutMs <= 0 ||
+    timeoutMs > 2_147_483_647
+  ) {
+    throw new Error(
+      "REDIS_CONNECT_TIMEOUT_MS must be a positive 32-bit integer",
+    );
+  }
   const client = createClient({
     url: "rediss://redis:6379",
     password: requiredEnv("REDIS_PASSWORD"),
     socket: {
       tls: true,
       ca: readFileSync("/app/redis-ca.crt"),
+      connectTimeout: Math.min(timeoutMs, 5000),
     },
   });
   client.on("error", (error: Error) =>
     appLogger.error({ errorType: error.name }, "Redis session store error"),
   );
-  await client.connect();
-  redis = client;
+  let startupTimeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      client.connect(),
+      new Promise<never>((_resolve, reject) => {
+        startupTimeout = setTimeout(() => {
+          reject(
+            new Error(
+              `Redis session store unavailable after ${timeoutMs} ms; ensure Redis is running`,
+            ),
+          );
+        }, timeoutMs);
+      }),
+    ]);
+    redis = client;
+  } catch (error) {
+    if (client.isOpen) client.destroy();
+    throw error;
+  } finally {
+    clearTimeout(startupTimeout);
+  }
 }
 
 export async function closeSessionStore() {
@@ -662,8 +693,7 @@ export async function requireCsrf(
   }
 
   const csrfToken = await validateCsrfToken(request);
-  const submittedCsrfToken =
-    request.headers["x-csrf-token"] || request.cookies[CSRF_COOKIE];
+  const submittedCsrfToken = request.headers["x-csrf-token"];
   if (!csrfToken || submittedCsrfToken !== csrfToken) {
     logSecurityEvent("csrf_rejected", {
       method,

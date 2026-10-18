@@ -3,6 +3,10 @@ title: Automatisierte Frontend-Tests
 description: Gemeinsame UI-Komponenten-, Frontend-Lint/Build- und Browser-Tests ausführen.
 ---
 
+:::warning[Warnung vor flackernden visuellen Inhalten]
+Live-E2E-Tests öffnen sichtbare Browserfenster (`--headed`) und können flackernde oder schnell wechselnde visuelle Inhalte anzeigen. Personen mit photosensibler Epilepsie oder Empfindlichkeit gegenüber Lichtblitzen sollten während der Tests nicht auf die Browserfenster schauen.
+:::
+
 ## Befehle
 
 Alle Befehle im Repository-Stammverzeichnis ausführen.
@@ -28,15 +32,37 @@ Alle Befehle im Repository-Stammverzeichnis ausführen.
 
 Das Workspace-`test`-Skript jeder App führt deren Lint aus. `npm run test:frontend` enthält alle Frontend-Prüfungen, einschließlich gemockter UI- und Accessibility-Browsertests. Die Tests mocken API-Antworten und prüfen keine Backend-Persistenz. Backend-Tests sind separat unter [Backend Local Testing](../../backend/local-testing/automated-testing.mdx) dokumentiert. Live-Auth0-/Browser-Flows sind systemübergreifende Integrationstests und laufen mit `npm run test:integration`. Das Root-`npm run test` setzt Backend-, Frontend- und Integrations-Gates zusammen; der Docs-Build bleibt separat.
 
+---
+
+## Letzter vollständiger Testlauf
+
+- Beendet: 2026-10-18 22:38:36 UTC (`npm run test`, isoliertes `cmd`).
+- Gesamtlaufzeit: 14:23; Exit-Code: 0.
+- Frontend-App-Lint/Build, Shared-Lint, Komponententests (11 bestanden) und gemockte Browsertests waren erfolgreich (Chromium: 218; Firefox und Edge: jeweils 213 bestanden und 5 Visual-Baseline-Tests übersprungen).
+- Formatierung, Backend-Typ-/Unit-/Monitoring-Tests und Redis-Integration waren erfolgreich (155 Backend-Unit-Tests bestanden, 1 übersprungen; Monitoring-Integration: 1 bestanden).
+- Der Live-Auth0-Login und Logout mit Passwort waren in Chromium, Firefox und Edge erfolgreich (jeweils 1 bestanden, 1 absichtlich übersprungen; Google-Automatisierung wird übersprungen).
+
 ## Komponentenabdeckung
 
 `shared/packages/ui/src/tests/ui-components.test.tsx` prüft Tastaturbedienung und Deaktivierung von Buttons, Checkbox-Beschriftungen und Feedback, Toast-Status-/Fehlermeldungen und Aktionen, Theme-/Sprachpersistenz sowie Fehlerseiteninhalt. Nicht jede Prop- oder Zustandskombination ist abgedeckt.
+
+---
 
 ## Browserabdeckung
 
 Gemockte Playwright-Tests liegen in `e2e/mock/`. Die Accessibility-Tests sind auf `auth-accessibility.spec.ts` und `sanny-accessibility.spec.ts` verteilt und mit den app-spezifischen Befehlen oben einzeln ausführbar. Weitere Specs prüfen Routen/Lokalisierung, Login/Logout, Settings/Admin und Account-Linking. Öffentliche Inhaltsseiten zeigen derzeit übersetzte Platzhalter ohne interaktive Steuerelemente; die eigenständigen Spiele Guess-the-Number und Blockrunner sind von den Interaktionstests dieses Projekts ausgenommen. Gemockte API-Antworten belegen nur Frontend-Verhalten und API-Verträge, nicht Backend-Persistenz oder Live-Auth0-Verhalten.
 
 Axe prüft mit WCAG-2.2-AA-Tags alle registrierten öffentlichen Sanny-Routen und die getesteten Settings-/Admin-Zustände sowie die Auth-Hilfsrouten. Die app-eigenen Accessibility-Specs decken englische/deutsche Spracheinstellungen und helle/dunkle Themes in Chromium, Firefox und Edge ab. `accessibility.spec.ts` prüft zusätzlich die Initialisierung von Sprache und Theme in beiden Apps sowie System-Theme-Wechsel mit gespeicherter manueller Auswahl in den Sanny-Settings. Diese automatisierten Prüfungen ersetzen weder Screenreader-Prüfungen noch Tests bei 200% Zoom.
+
+## Aussagekraft eines erfolgreichen Testlaufs
+
+- Frontend-Lint/Build prüft den aktuellen App- und Shared-Package-Quellcode mit den konfigurierten Werkzeugen. Komponenten- und gemockte Browsertests prüfen die erfassten UI-Zustände sowie Request-/Response-Verträge in den konfigurierten Browsern.
+- Axe prüft automatisierte WCAG-2.2-AA-Regeln nur für die in der Suite enthaltenen Routen, Zustände, Sprachen und Themes. Bestimmte Tastaturabläufe sind abgedeckt, jedoch kein vollständiges Tastatur-Audit.
+- `npm run test` führt zusätzlich einen Live-Auth0-Passwort-Flow mit der konfigurierten Testidentität gegen die lokale/Entwicklungs-API und den Tenant aus. Das belegt diesen konkreten Pfad, nicht jeden Identitätsanbieter oder Kontenlebenszyklus.
+
+Gemockte Frontend-Tests prüfen weder Backend-Persistenz noch Live-Auth0. Ein erfolgreicher Testlauf belegt nicht das Verhalten auf jedem Browser/Gerät, die Erfüllung aller WCAG-Erfolgskriterien, Screenreader-Kompatibilität, Staging-/Produktionskonfiguration oder alle möglichen Eingaben und Zustände. Visuelle Baselines werden nur in Chromium erstellt; das Root-Gate baut die Dokumentationswebsite nicht. Für die verbleibende Sicherheit sind manuelle und gehostete Umgebungsprüfungen nötig; siehe [Backend Local Testing](../../backend/local-testing/automated-testing.mdx) zu Backend- und Integrationsgrenzen.
+
+---
 
 ## Offene Prüfungen
 

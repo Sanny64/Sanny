@@ -52,7 +52,6 @@ export default function Hello() {
       // Standard button
       <Button
         className="say-hello-button"
-        aria-label="Click to say hello as an alert" // aria-label
         variant={themeVariant} // could be 'primary' or 'secondary'; 'ghost' can be used to hide the button.
         onClick={sayHello}
       >
@@ -99,7 +98,7 @@ In general, externalizing functions is better for consistency and maintainabilit
 
 ## Notes for developers
 
-Make sure to always add an `aria-label` to buttons without sufficient visible context, as they are commonly used by screen readers.
+Prefer visible button text and associated form labels: they already provide the accessible name. Add a localized `aria-label` when a control has no sufficient visible text, such as an icon-only button. Do not use an `aria-label` that conflicts with visible text or an associated label, because it overrides the name assistive technology announces.
 
 Shared UI components must include route-scoped color divergence without changing layout behavior:
 

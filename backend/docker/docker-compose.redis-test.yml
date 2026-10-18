@@ -1,0 +1,39 @@
+services:
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+    restart: "no"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli --tls --cacert /etc/redis/certs/ca.crt -h redis ping | grep -qx PONG
+      interval: 1s
+      timeout: 3s
+      retries: 10
+
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+    restart: "no"
+    environment:
+      RUN_REAL_REDIS_TESTS: "true"
+      REDIS_CONNECT_TIMEOUT_MS: ${REDIS_CONNECT_TIMEOUT_MS:-10000}
+    command:
+      - node
+      - --import=tsx
+      - --test
+      - --test-timeout=120000
+      - src/tests/session-rotation.test.ts
+    depends_on:
+      redis:
+        condition: service_healthy
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  application-logs:
