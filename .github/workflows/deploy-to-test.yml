@@ -115,11 +115,11 @@ jobs:
       matrix:
         include:
           - site: sanny
-            server-dir: ${{ vars.TEST_SANNY_SERVER_DIR || '/public_html/testing/' }}
+            server-dir: '/public_html/testing/'
           - site: auth
-            server-dir: ${{ vars.TEST_AUTH_SERVER_DIR || '/public_html/testing/auth/' }}
+            server-dir: '/public_html/testing/auth/'
           - site: docs
-            server-dir: ${{ vars.TEST_DOCS_SERVER_DIR || '/public_html/testing/docs/' }}
+            server-dir: '/public_html/testing/docs/'
 
     steps:
       - name: Download frontend builds
