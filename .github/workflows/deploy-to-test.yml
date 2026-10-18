@@ -112,14 +112,15 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         include:
           - site: sanny
-            server-dir: '/public_html/testing/'
+            server-dir: "/public_html/testing/"
           - site: auth
-            server-dir: '/public_html/testing/auth/'
+            server-dir: "/public_html/testing/auth/"
           - site: docs
-            server-dir: '/public_html/testing/docs/'
+            server-dir: "/public_html/testing/docs/"
 
     steps:
       - name: Download frontend builds

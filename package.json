@@ -50,6 +50,7 @@
     "lint:auth": "npm run lint -w auth",
     "lint:sanny": "npm run lint -w sanny",
     "lint:docs": "npm run typecheck -w documentation",
+    "lint:shared": "npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui",
     "lint:backend": "npm run type-check -w backend",
     "test:frontend:auth": "npm run test -w auth && npm run build:auth",
     "test:frontend:sanny": "npm run test -w sanny && npm run build:sanny",
