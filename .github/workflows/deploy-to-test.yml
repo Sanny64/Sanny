@@ -129,6 +129,21 @@ jobs:
           name: testing-site
           path: testing-site/
 
+      - name: Check FTPS data connection
+        shell: bash
+        run: |
+          curl --disable --silent --show-error --fail \
+            --ssl-reqd --insecure --ftp-pasv \
+            --connect-timeout 15 --max-time 60 \
+            --user "$FTP_USERNAME:$FTP_PASSWORD" \
+            --list-only --output /dev/null \
+            --url "ftp://${FTP_SERVER}${FTP_SERVER_DIR}"
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_SERVER_DIR: ${{ matrix.server-dir }}
+
       - name: Deploy to Hetzner via FTP
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         with:
