@@ -1,122 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
+import AccountSettings from "./pages/settings/AccountSettings";
+import AdminSettings from "./pages/settings/AdminSettings";
+import Main from "./pages/Main";
+import Home from "./pages/home/Home";
+import Portfolio from "./pages/portfolio/Portfolio";
+import Projects from "./pages/projects/Projects";
+import Haptigation from "./pages/projects/haptigation/Haptigation";
+import Proscrum from "./pages/projects/proscrum/Proscrum";
+import SAU from "./pages/projects/sau/SAU";
+import SEO from "./pages/projects/seos/SEOS";
+import SMNow from "./pages/projects/smnow/SMNow";
+import Blog from "./pages/blog/Blog";
+import Games from "./pages/games/Games";
+import Auxiliary from "./pages/Auxiliary";
+import Party from "./pages/party/Party";
+import Refreshments from "./pages/party/refreshments/Refreshments";
+import Comfort from "./pages/party/comfort/Comfort";
+import { Error as ErrorPage, ToastViewport } from "@sanny/ui";
+import { restoreLogoutReturnTo } from "./utils/reauthentication";
+
+restoreLogoutReturnTo();
+
+const router = createBrowserRouter(
+  [
+    {
+      // Main routes using the <Main /> Layout
+      element: <Main />,
+      errorElement: <ErrorPage />,
+      children: [
+        { path: "/", element: <Home /> },
+        { path: "/home", element: <Navigate to="/" replace /> },
+        { path: "/portfolio", element: <Portfolio /> },
+        { path: "/projects", element: <Projects /> },
+        { path: "/projects/haptigation", element: <Haptigation /> },
+        { path: "/projects/proscrum", element: <Proscrum /> },
+        { path: "/projects/sau", element: <SAU /> },
+        { path: "/projects/seo", element: <SEO /> },
+        { path: "/projects/sm.now", element: <SMNow /> },
+        { path: "/blog", element: <Blog /> },
+        { path: "/games", element: <Games /> },
+        { path: "/settings", element: <AccountSettings /> },
+        { path: "/settings/admin", element: <AdminSettings /> },
+        { path: "/error", element: <ErrorPage /> },
+        { path: "*", element: <ErrorPage status={404} /> },
+      ],
+    },
+    {
+      // Auxiliary routes using the <Auxiliary /> Layout
+      element: <Auxiliary />,
+      errorElement: <ErrorPage />,
+      children: [
+        { path: "/party", element: <Party /> },
+        { path: "/party/refreshments", element: <Refreshments /> },
+        { path: "/party/comfort", element: <Comfort /> },
+      ],
+    },
+  ],
+  { basename: import.meta.env.BASE_URL },
+);
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <RouterProvider router={router} />
+      <ToastViewport />
     </>
-  )
+  );
 }
 
-export default App
+export default App;

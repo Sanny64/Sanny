@@ -1,0 +1,10 @@
+apiVersion: 1
+
+policies:
+  - orgId: 1
+    receiver: discord-alerts
+    group_by: ["alertname"]
+    routes:
+      - receiver: email-alerts
+        matchers:
+          - severity = critical

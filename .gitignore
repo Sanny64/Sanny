@@ -7,10 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node modules and build output
 node_modules
 dist
 dist-ssr
 *.local
+playwright-report
+test-results
 
 # Editor directories and files
 .vscode/*
@@ -22,9 +25,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.agents
+.claude
+.windsurf
+.secret
 
 # Additional files to ignore
 AGENTS.md
 
-# Additonal directories to ignore
+# Additional folders to ignore
 games
+
+# Include the following folders
+!sanny/src/pages/games

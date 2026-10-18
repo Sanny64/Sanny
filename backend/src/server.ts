@@ -1,0 +1,262 @@
+import "dotenv/config";
+import Fastify, { type FastifyRequest } from "fastify";
+import userRoutes from "./routes/user.route.js";
+import prisma from "./utils/prisma.js";
+import fastifyAuth0Api from "@auth0/auth0-fastify-api";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  jsonSchemaTransform,
+} from "fastify-type-provider-zod";
+import swagger from "@fastify/swagger";
+import swaggerUI from "@fastify/swagger-ui";
+import cors from "@fastify/cors";
+import cookie from "@fastify/cookie";
+import helmet from "@fastify/helmet";
+import {
+  closeSessionStore,
+  getSessionStoreClient,
+  initializeSessionStore,
+  requireCsrf,
+} from "./utils/session.js";
+import packageJson from "../package.json" with { type: "json" };
+import authRoutes from "./routes/auth.route.js";
+import internalRoutes from "./routes/internal.route.js";
+import {
+  getCorsOrigins,
+  getSuccessRedirectUrl,
+  getTrustProxy,
+  isSwaggerEnabled,
+  validateProductionConfig,
+} from "./utils/config.js";
+import { applyRateLimit } from "./utils/rate-limit.js";
+import {
+  applySecurityHeaders,
+  getHstsPolicy,
+} from "./utils/security-headers.js";
+import { startPendingAccountLinkCleanup } from "./utils/account-link-cleanup.js";
+import { startOrphanedSocialUserCleanup } from "./utils/orphaned-social-user-cleanup.js";
+import { createSafeErrorResponse } from "./utils/safe-error.js";
+import { getHtmlErrorRedirectUrl } from "./utils/error-response.js";
+import {
+  metricsRegistry,
+  recordHttpResponse,
+  updateDependencyMetrics,
+} from "./utils/metrics.js";
+import { appLogger } from "./utils/logger.js";
+
+const version = packageJson.version;
+
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable must be set`);
+  }
+  return value;
+}
+
+const auth0Config: { domain: string; audience: string } = {
+  domain: getRequiredEnv("AUTH0_DOMAIN"),
+  audience: getRequiredEnv("AUTH0_AUDIENCE"),
+};
+
+validateProductionConfig();
+const corsOrigins = getCorsOrigins();
+
+// server
+export const server = Fastify({
+  loggerInstance: appLogger,
+  requestIdHeader: false,
+  trustProxy: getTrustProxy(),
+});
+const requestStartTimes = new WeakMap<FastifyRequest, number>();
+
+server.setErrorHandler((error, request, reply) => {
+  const rawStatus =
+    typeof error === "object" && error !== null && "statusCode" in error
+      ? error.statusCode
+      : undefined;
+  const status =
+    typeof rawStatus === "number" &&
+    Number.isInteger(rawStatus) &&
+    rawStatus >= 400 &&
+    rawStatus <= 599
+      ? rawStatus
+      : 500;
+  const safe = createSafeErrorResponse(error, status);
+  if (status >= 500) {
+    request.log.error({ status }, "Request failed");
+  }
+  return reply
+    .code(safe.status)
+    .send({ error: safe.error, message: safe.message });
+});
+
+server.setNotFoundHandler((request, reply) => {
+  const safe = createSafeErrorResponse(new Error("Not found"), 404);
+  return reply
+    .code(safe.status)
+    .send({ error: safe.error, message: safe.message });
+});
+
+server.addHook("onRequest", async (request) => {
+  requestStartTimes.set(request, performance.now());
+});
+
+server.addHook("onResponse", async (request, reply) => {
+  const startedAt = requestStartTimes.get(request) ?? performance.now();
+  recordHttpResponse(
+    request.routeOptions.url,
+    request.method,
+    reply.statusCode,
+    (performance.now() - startedAt) / 1000,
+  );
+});
+
+// create a type provider for Zod
+server.setValidatorCompiler(validatorCompiler);
+server.setSerializerCompiler(serializerCompiler);
+
+// healthcheck
+server.get("/healthcheck", async function () {
+  return { status: "OK" };
+});
+
+server.get("/metrics", async (_request, reply) => {
+  await updateDependencyMetrics({
+    database: () => prisma.$queryRawUnsafe("SELECT 1"),
+    redis: () => getSessionStoreClient().ping(),
+  });
+  reply.type(metricsRegistry.contentType);
+  return metricsRegistry.metrics();
+});
+
+async function main() {
+  await server.register(cors, {
+    origin: corsOrigins,
+    credentials: true,
+    methods: ["GET", "HEAD", "POST", "PATCH", "DELETE", "OPTIONS"],
+    exposedHeaders: ["Retry-After", "X-Session-Expires-At"],
+  });
+  await server.register(cookie);
+  await server.register(helmet, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        formAction: ["'self'"],
+        imgSrc: ["'self'", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", "https://*.auth0.com"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    frameguard: { action: "deny" },
+    hsts: getHstsPolicy(),
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  });
+  server.addHook("onSend", async (request, reply) => {
+    const errorPageUrl =
+      reply.statusCode >= 400
+        ? getHtmlErrorRedirectUrl(
+            request,
+            reply.statusCode,
+            getSuccessRedirectUrl(),
+          )
+        : null;
+    if (errorPageUrl) {
+      reply
+        .code(303)
+        .header("Location", errorPageUrl)
+        .type("text/plain; charset=utf-8");
+      applySecurityHeaders(request, reply);
+      return "";
+    }
+    applySecurityHeaders(request, reply);
+  });
+  server.addHook("onRequest", async (request, reply) => {
+    const rateLimitDecision = await applyRateLimit(request, reply);
+    if (!rateLimitDecision.allowed) {
+      const safe = createSafeErrorResponse(
+        new Error("Rate limit exceeded"),
+        429,
+      );
+      return reply
+        .code(safe.status)
+        .send({ error: safe.error, message: safe.message });
+    }
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(request.method))
+      return requireCsrf(request, reply);
+  });
+
+  await server.register(internalRoutes);
+
+  // swagger registration
+  await server.register(swagger, {
+    openapi: {
+      info: {
+        title: "Sanny API",
+        description: "Sanny API Swagger documentation",
+        version: version,
+      },
+      components: {
+        securitySchemes: {
+          sessionCookie: {
+            type: "apiKey",
+            in: "cookie",
+            name: "__Secure-sanny_session",
+          },
+        },
+      },
+    },
+    transform: jsonSchemaTransform,
+  });
+
+  if (isSwaggerEnabled()) {
+    await server.register(swaggerUI, {
+      routePrefix: "/api/v001/swagger",
+    });
+  }
+
+  // auth0 api registration
+  await server.register(fastifyAuth0Api, {
+    domain: auth0Config.domain,
+    audience: auth0Config.audience,
+  });
+
+  // api routes
+  await server.register(userRoutes, { prefix: "/api/v001/users" });
+  await server.register(authRoutes, { prefix: "/api/v001/auth" });
+
+  let stopPendingAccountLinkCleanup: (() => void) | null = null;
+  let stopOrphanedSocialUserCleanup: (() => void) | null = null;
+
+  // disconnect from the database when the server is closed
+  server.addHook("onClose", async () => {
+    stopPendingAccountLinkCleanup?.();
+    stopOrphanedSocialUserCleanup?.();
+    await closeSessionStore();
+    await prisma.$disconnect();
+  });
+
+  // start the server
+  try {
+    await initializeSessionStore();
+    stopPendingAccountLinkCleanup = startPendingAccountLinkCleanup();
+    stopOrphanedSocialUserCleanup = startOrphanedSocialUserCleanup();
+    await prisma.$connect();
+    await prisma.$queryRawUnsafe("SELECT 1");
+    await server.listen({ port: 3000, host: "0.0.0.0" });
+  } catch (err) {
+    server.log.error(
+      { errorType: err instanceof Error ? err.name : "unknown" },
+      "Backend startup failed",
+    );
+    process.exit(1);
+  }
+}
+
+main();

@@ -1,0 +1,8 @@
+{
+  "label": "Generelle Informationen",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Die folgenden Seiten enthalten architektonische Entscheidungen, Code- und Deployment-Richtlinien sowie allgemeine Informationen zu Sanny64.de."
+  }
+}

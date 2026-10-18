@@ -1,0 +1,29 @@
+---
+title: Manuelle Frontend-Tests
+description: Frontend-Verhalten und Barrierefreiheit über automatisierte Browsertests hinaus prüfen.
+---
+
+## Umfang
+
+Manuelle Frontend-Prüfungen ergänzen das automatisierte Gate unter [Automatisierte Frontend-Tests](./automated-testing.mdx). Verwende für Authentifizierungsabläufe dedizierte Testkonten. API-Verhalten und Persistenz gehören zu Backend- oder Live-Integrationstests, nicht zu gemockten UI-Tests.
+
+## Barrierefreiheit und Interaktion
+
+- [ ] Zentrale Auth- und Sanny-Abläufe auf Deutsch und Englisch ausschließlich per Tastatur durchlaufen. Sichtbaren Fokus, logische Reihenfolge, Skip-Navigation, Dialoge sowie Status- und Fehlermeldungen prüfen.
+- [ ] Login, Account-Link-Bestätigung, Settings und erlaubte/abgelehnte Admin-Zustände mit einem Screenreader in einem unterstützten Browser testen.
+- [ ] Bei 200% Browser-Zoom sicherstellen, dass Inhalte und Bedienelemente ohne abgeschnittenen Text oder überlagerte Aktionen verfügbar bleiben.
+- [ ] Die Betriebssystemeinstellung für reduzierte Bewegung aktivieren und prüfen, ob Übergänge und andere Animationen reduziert werden.
+- [ ] Helle/dunkle Themes und Spracheinstellungen prüfen, einschließlich System-Theme-Wechsel und gespeicherter manueller Auswahl.
+- [ ] Festlegen, ob Forced Colors/hoher Kontrast unterstützt wird, und gegebenenfalls testen.
+- [ ] Chromium-Desktop-/Mobil-Baselines nach beabsichtigten visuellen Änderungen prüfen. Sie belegen keine visuelle Parität mit Firefox/Edge.
+
+## Produktabläufe
+
+- [ ] Ausgelieferte öffentliche Interaktionen über das Laden der Route hinaus testen, darunter Navigation, Projekt-/Blog-Links, Spiele und Party-Seiten. Bewusst statische Seiten dokumentieren.
+- [ ] UI-Zustand und Rückmeldungen für Login/Sitzung, Settings, Account-Link-Bestätigung/-Abbruch sowie erlaubte/abgelehnte Admin-Zustände prüfen.
+
+Gemockte Browsertests belegen nur Frontend-Verhalten und Request-/Response-Verträge. Erfolgreiche Backend-Mutationen, Live-Auth0-Verhalten und gehostete Sicherheitskontrollen anhand der [Backend- und Integrations-Checklisten](../../backend/local-testing/manual-testing.mdx) verifizieren.
+
+---
+
+Last edit: 18.10.2026

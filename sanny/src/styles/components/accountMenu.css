@@ -1,0 +1,59 @@
+.account-menu {
+  position: relative;
+}
+
+.account-menu__trigger {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.account-menu__icon {
+  display: flex;
+}
+
+.account-menu__dropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  min-width: 200px;
+  max-width: calc(100vw - 32px);
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+}
+
+.account-menu__item__login-redirect,
+.account-menu__item__settings-redirect,
+.account-menu__item__admin-redirect {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.4;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.account-menu__item svg {
+  flex-shrink: 0;
+}
+
+.account-menu__item:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}

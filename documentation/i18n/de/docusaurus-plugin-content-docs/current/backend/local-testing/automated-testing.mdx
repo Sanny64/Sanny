@@ -1,0 +1,34 @@
+---
+title: Automatisierte Backend-Tests
+description: Backend-Typ-, Unit-, Monitoring- und Redis-Integrationstests lokal ausführen.
+---
+
+## Befehle
+
+Alle Befehle im Repository-Stammverzeichnis ausführen.
+
+| Befehl                       | Zweck                                                                  |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `npm run test:backend`       | Backend-Typprüfung sowie Backend-Unit- und Monitoring-Tests ausführen. |
+| `npm run test:backend:redis` | Redis-Session-Integration ausführen; Docker ist erforderlich.          |
+| `npm run test`               | Vollständiges Root-Gate für Backend, Frontend und Integration starten. |
+
+Backend-Unit-Tests liegen in `backend/src/tests/`; Monitoring-Integrationstests liegen in `backend/monitoring/tests/`. Diese Prüfungen testen Backend-Verhalten und führen keine Browser-UI- oder Accessibility-Tests aus.
+
+Der Redis-Test verwendet Docker und den konfigurierten Backend-Test-Stack. Das Root-Gate benötigt außerdem installierte Playwright-Browser und eine erreichbare Entwicklungs-API/Auth0-Umgebung für Live-Integrationstests. Verwende dafür dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`, niemals persönliche Konten.
+
+## Testgrenzen
+
+- **Backend:** `npm run test:backend` und `npm run test:backend:redis` prüfen Typen, Backend-Unit-/Monitoring-Tests und Redis-basierte Sitzungsabläufe.
+- **Frontend:** `npm run test:frontend` prüft App-Lint/Build, gemeinsame UI-Komponenten sowie gemocktes Browserverhalten und Barrierefreiheit. Siehe [Automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx).
+- **Systemübergreifende Integration:** `npm run test:integration` führt Live-Auth0-/Browser-Abläufe aus. Dabei werden verbundene Apps und API getestet; dies ist kein Backend- oder Frontend-only-Gate.
+
+Gemockte Browsertests belegen nur Frontend-Verhalten und Request-/Response-Verträge, nicht die Backend-Persistenz. Live-Integrationstests decken nicht jeden Anbieter oder Kontenablauf ab. Google-Automatisierung wird übersprungen, weil der Anbieter kontrollierte Browser blockieren kann; Provider-Flows müssen manuell geprüft werden.
+
+## Weiter
+
+Nutze [Manuelle Backend-Tests](./manual-testing.mdx) für Backend- und gehostete Umgebungsprüfungen. Tastatur-, Screenreader-, Zoom- und weitere Frontend-Prüfungen stehen unter [Manuelle Frontend-Tests](../../frontend/local-testing/manual-testing.mdx). Nachweise für gehostete Verifikation gehören zu [Monitoring and Verification](../monitoring.mdx); lokale Tests sind keine Staging-Freigabe.
+
+---
+
+Last edit: 18.10.2026

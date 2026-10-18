@@ -1,0 +1,64 @@
+---
+title: Einrichtung
+description: Einführung in die Dokumentation
+sidebar_position: 1
+---
+
+Klone dieses Repository, um Zugriff auf alle Anwendungen in diesem Workspace zu erhalten.<br/>Du benötigst Node.js und Git auf deinem Rechner.
+
+---
+
+### Installations- und Setup-Anweisungen
+
+Installiere die Abhängigkeiten im Repository-Stammverzeichnis:
+
+```sh
+npm ci
+```
+
+_Führe im Root-Verzeichnis eines der Workspace-Skripte aus:_
+
+- npm run dev:sanny
+- npm run dev:auth
+- npm run dev:docs
+- npm run dev:docs-de
+- npm run start:backend
+
+Starte jede benötigte App in einem eigenen Terminal. Sanny läuft unter `https://localhost:5173`, Auth unter `https://localhost:5174` und die englische Dokumentation unter `http://localhost:3000`. Das deutsche Docs-Skript verwendet Port `3001`. Die Frontend-Dev-Server verwenden ein lokales HTTPS-Zertifikat und laden bei Quellcodeänderungen neu. Beende den Backend-Stack nach der Arbeit mit `npm run stop:backend`.
+
+_Für Qualitätsprüfungen:_
+
+- npm run format:check
+- npm run lint:backend
+- npm run lint:auth
+- npm run lint:sanny
+- npm run lint:docs
+- npm run test:backend
+- npm run test:frontend
+- npm run test
+
+_Für lokale Builds:_
+
+- npm run build:sanny
+- npm run build:auth
+- npm run build:docs
+- npm run serve:docs (baut die Docs vorher)
+- npm run build:backend -> baut und startet den lokalen Docker-Compose-Backend-Stack
+- npm run restart:backend -> erstellt den Backend-App-Container neu
+
+Das Backend benötigt vor dem Start eine lokale Umgebungskonfiguration und Zertifikate; siehe [Backend-Setup](../backend/backend-setup.mdx).
+
+---
+
+### Workspace-Übersicht
+
+- `sanny/`: öffentliche React-/Vite-Website und ihre gerouteten Seiten.
+- `auth/`: Authentifizierungs-UI für Bestätigung und Eigentumsnachweis.
+- `backend/`: Fastify-API, Auth0-Skripte, Prisma-Schema, Docker Compose und Monitoring-Konfiguration.
+- `shared/packages/`: die Pakete `@sanny/i18n`, `@sanny/styles` und `@sanny/ui`.
+- `documentation/`: Docusaurus-Quellen auf Englisch und Deutsch.
+- `games/`: eigenständige Spieleprojekte.
+
+---
+
+Last edit: 18.10.2026

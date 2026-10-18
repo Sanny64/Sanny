@@ -1,0 +1,8 @@
+{
+  "label": "Projekte",
+  "position": 1,
+  "link": {
+    "type": "generated-index",
+    "description": "Hier findest du die Dokumentation zu allen Frontend-Projekten."
+  }
+}

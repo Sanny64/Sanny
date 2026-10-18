@@ -1,0 +1,8 @@
+{
+  "label": "Local testing",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Here you can find all documentation related to testing our local backend."
+  }
+}

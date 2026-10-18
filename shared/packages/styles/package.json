@@ -1,0 +1,42 @@
+{
+  "name": "@sanny/styles",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "*.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./globals.css": "./globals.css",
+    "./main.css": "./main.css",
+    "./auxiliary.css": "./auxiliary.css",
+    "./party.css": "./party.css"
+  },
+  "files": [
+    "dist",
+    "globals.css",
+    "main.css",
+    "auxiliary.css",
+    "party.css"
+  ],
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.2.8",
+    "@sanny/i18n": "*",
+    "framer-motion": "^12.43.0",
+    "js-cookie": "^3.0.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/js-cookie": "^3.0.6"
+  },
+  "scripts": {
+    "lint": "eslint --config ../../eslint.shared.config.js .",
+    "build": "tsc -p tsconfig.json"
+  }
+}

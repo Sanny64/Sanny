@@ -1,0 +1,34 @@
+{
+  "link.title.Docs": {
+    "message": "Doku",
+    "description": "Der Titel der Footer-Linkspalte mit title=Docs im Footer"
+  },
+  "link.title.Docusaurus": {
+    "message": "Docusaurus",
+    "description": "Der Titel der Footer-Linkspalte mit title=Docusaurus im Footer"
+  },
+  "link.title.Sanny64": {
+    "message": "Sanny64",
+    "description": "Der Titel der Footer-Linkspalte mit title=Sanny64 im Footer"
+  },
+  "link.item.label.Documentation": {
+    "message": "Dokumentation",
+    "description": "Die Bezeichnung des Footer-Links mit label=Documentation, der auf /docs/start verweist"
+  },
+  "link.item.label.Stack Overflow": {
+    "message": "Stack Overflow",
+    "description": "Die Bezeichnung des Footer-Links mit label=Stack Overflow, der auf https://stackoverflow.com/questions/tagged/docusaurus verweist"
+  },
+  "link.item.label.Discord": {
+    "message": "Discord",
+    "description": "Die Bezeichnung des Footer-Links mit label=Discord, der auf https://discordapp.com/invite/docusaurus verweist"
+  },
+  "link.item.label.Website": {
+    "message": "Webseite",
+    "description": "Die Bezeichnung des Footer-Links mit label=Website, der auf https://sanny64.de verweist"
+  },
+  "link.item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Die Bezeichnung des Footer-Links mit label=GitHub, der auf https://github.com/Sanny64/Sanny verweist"
+  }
+}

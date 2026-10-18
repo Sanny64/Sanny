@@ -1,0 +1,174 @@
+import AxeBuilder from "@axe-core/playwright";
+import { expect, test, type Page } from "@playwright/test";
+
+const applications = [
+  {
+    name: "Auth",
+    url: "https://127.0.0.1:5175/confirm-linking?primaryUserId=google-oauth2%7Cgoogle-user&secondaryUserId=auth0%7Cpassword-user&proofUserId=auth0%7Cpassword-user&continuationState=test-continuation-state&proofState=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&expiresAt=4102444800000",
+  },
+  {
+    name: "Sanny",
+    url: "https://127.0.0.1:5176/",
+  },
+] as const;
+
+async function setPreferences(
+  page: Page,
+  language: "en" | "de",
+  theme: "light" | "dark",
+) {
+  await page.addInitScript(
+    ({ selectedLanguage, selectedTheme }) => {
+      localStorage.setItem("language", selectedLanguage);
+      document.cookie = `language=${selectedLanguage}; path=/`;
+      localStorage.setItem("theme", selectedTheme);
+      document.cookie = `theme=${selectedTheme}; path=/`;
+    },
+    { selectedLanguage: language, selectedTheme: theme },
+  );
+}
+
+async function expectAccessible(page: Page) {
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .analyze();
+
+  expect(results.violations).toEqual([]);
+}
+
+for (const application of applications) {
+  test(`${application.name} shares theme tokens and honors reduced motion at mobile and desktop sizes`, async ({
+    page,
+  }) => {
+    await setPreferences(page, "en", "light");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.route("**/api/v001/auth/me", (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Not authenticated" }),
+      }),
+    );
+
+    for (const width of [320, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(application.url);
+      await page.evaluate(async () => document.fonts.ready);
+      await expect
+        .poll(() =>
+          page
+            .locator(".app-brand img")
+            .evaluate((image: HTMLImageElement) => image.naturalWidth),
+        )
+        .toBeGreaterThan(0);
+      const presentation = await page.evaluate(() => {
+        const rootStyle = getComputedStyle(document.documentElement);
+        const content = document.querySelector(".page-content")!;
+        return {
+          accent: rootStyle.getPropertyValue("--accent").trim(),
+          duration: rootStyle.getPropertyValue("--motion-duration").trim(),
+          fontLoaded: document.fonts.check('16px "Manrope Variable"'),
+          transform: getComputedStyle(content).transform,
+          overflow: document.documentElement.scrollWidth > window.innerWidth,
+        };
+      });
+      expect(presentation.accent).toBe("#176448");
+      expect(presentation.duration).toBe("0ms");
+      expect(presentation.fontLoaded).toBe(true);
+      expect(presentation.transform).toBe("none");
+      expect(presentation.overflow).toBe(false);
+      await expectAccessible(page);
+    }
+  });
+
+  test(`${application.name} remains readable with 200% text sizing`, async ({
+    page,
+  }) => {
+    await setPreferences(page, "en", "light");
+    await page.setViewportSize({ width: 640, height: 900 });
+    await page.route("**/api/v001/auth/me", (route) =>
+      route.fulfill({
+        status: 401,
+        contentType: "application/json",
+        body: JSON.stringify({ message: "Not authenticated" }),
+      }),
+    );
+    await page.goto(application.url);
+    await page.addStyleTag({ content: ":root { font-size: 200%; }" });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      )
+      .toBe(true);
+    await expectAccessible(page);
+  });
+
+  for (const language of ["en", "de"] as const) {
+    for (const theme of ["light", "dark"] as const) {
+      test(`${application.name} initializes ${language} language and ${theme} theme accessibly`, async ({
+        page,
+      }) => {
+        await setPreferences(page, language, theme);
+        if (application.name === "Sanny") {
+          await page.route("**/api/v001/auth/me", (route) =>
+            route.fulfill({
+              status: 401,
+              contentType: "application/json",
+              body: JSON.stringify({ message: "Not authenticated" }),
+            }),
+          );
+        }
+
+        await page.goto(application.url);
+        await expect(page.locator("html")).toHaveAttribute("lang", language);
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        if (application.name === "Sanny") {
+          await expect(
+            page.getByText(language === "en" ? "Home" : "Startseite", {
+              exact: true,
+            }),
+          ).toBeVisible();
+        }
+        await expectAccessible(page);
+      });
+    }
+  }
+}
+
+test("Sanny follows system color scheme until a user theme override is selected", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => {
+    localStorage.removeItem("theme");
+    document.cookie = "theme=; Max-Age=0; path=/";
+    localStorage.setItem("language", "en");
+    document.cookie = "language=en; path=/";
+  });
+  await page.route("**/api/v001/auth/me", (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ message: "Not authenticated" }),
+    }),
+  );
+  await page.goto("https://127.0.0.1:5176/settings");
+
+  const documentElement = page.locator("html");
+  await expect(documentElement).toHaveAttribute("data-theme", "dark");
+  await expectAccessible(page);
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(documentElement).toHaveAttribute("data-theme", "light");
+  await expectAccessible(page);
+
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(documentElement).toHaveAttribute("data-theme", "dark");
+  await expectAccessible(page);
+
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(documentElement).toHaveAttribute("data-theme", "dark");
+  await expectAccessible(page);
+});

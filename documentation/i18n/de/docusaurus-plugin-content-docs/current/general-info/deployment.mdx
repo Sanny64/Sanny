@@ -1,0 +1,279 @@
+---
+title: Bereitstellung
+description: Bereitstellungs-/Release-Ablauf und Git-Anleitung
+sidebar_position: 5
+---
+
+# Bereitstellung
+
+Dieses Projekt verwendet einen einfachen Release-Zug für ein Monorepo mit:
+
+- Frontend `sanny`.
+- Frontend `auth`.
+- Docusaurus-Dokumentationsseite.
+- Fastify-Backend.
+- Gemeinsam genutzten Paketen unter `shared/packages/**`.
+
+Ziel ist es, `main` übersichtlich zu halten, eine echte Web-Testumgebung zu unterstützen und den Ablauf für eine einzelne entwickelnde Person einfach ausführbar zu machen.
+
+---
+
+## Branch-Modell
+
+Dieses Projekt verwendet `dev -> test -> main`.
+
+Dies ist die dokumentierte Release-Konvention des Repositorys, keine von GitHub Actions erzwungene Branch-Protection-Regel. Die Workflows erzwingen ihre konfigurierten Branch-/Pfad-Trigger, aber weder Pull-Requests noch Squash-Merges.
+
+### `dev`
+
+- Täglicher Entwicklungs-Branch.
+- Feature-Arbeit landet zuerst hier.
+- Die Commit-Historie kann unaufgeräumt sein.
+- Änderungen auf `dev` gelten erst dann als releasebereit, wenn sie nach `test` übernommen wurden.
+
+### `test`
+
+- Branch für Release-Kandidaten.
+- Stellt die öffentliche Testumgebung bereit.
+- Dient dazu, das konkrete Release vor der Produktion im Web zu prüfen.
+- Fehlerbehebungen für den Release-Kandidaten landen zuerst hier.
+
+### `main`
+
+- Ausschließlich für Produktion.
+- Wird sauber und übersichtlich gehalten.
+- Wird nur durch Squash-Merges von `test` nach `main` aktualisiert.
+- Jedes Release sollte einen einzelnen kleinen Squash-Commit auf `main` erzeugen.
+
+---
+
+## Zuordnung der Deployments
+
+### Testumgebung
+
+Ein Push nach `test` stellt die im Internet erreichbare Testumgebung mit HTTP Basic Auth für Website-Besucher bereit.
+
+- `sanny` -> `/public_html/testing/`, erreichbar unter `https://test.sanny64.de/`.
+- `auth` -> `/public_html/testing/auth/`, erreichbar unter `https://test.auth.sanny64.de/`.
+- `docs` -> `/public_html/testing/docs/`, erreichbar unter `https://test.docs.sanny64.de/`, einschließlich beider Sprachen.
+- `.github/workflows/deploy-to-test.yml` baut alle drei Frontends und lädt jede Website mit einer eigenen FTP-Synchronisationsdatei und den vorhandenen FTP-Secrets hoch. Manuelle Starts über `workflow_dispatch` sind auf `test` beschränkt.
+- Die verschachtelten Verzeichnisse sind Dokumentenwurzeln beim Hoster, keine URL-Präfixe; alle Builds verwenden `/`. Subdomains und HTTPS müssen bei Hetzner eingerichtet werden. Vorhandene Repository-Variablen `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR` oder `TEST_DOCS_SERVER_DIR` überschreiben diese Verzeichnisse.
+- `TEST_BASIC_AUTH_ENTRY` enthält eine Zeile `benutzername:passwort-hash`. `TEST_BASIC_AUTH_FILE_PATH` enthält den absoluten Server-Dateisystempfad zur Datei `/public_html/testing/.htpasswd`, nicht den FTP-sichtbaren Pfad. Alle drei Websites müssen diese gemeinsame Passwortdatei lesen dürfen.
+  Test-Builds setzen Asset- und Router-Basispfade, ohne die Produktions-Defaults zu ändern. Apache-Rewrite-Regeln unterstützen das Neuladen verschachtelter React-Routen.
+  Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
+
+### Produktion
+
+Ein Push nach `main` stellt die Produktionsumgebung bereit.
+
+- `sanny` -> Produktionsseite.
+- `auth` -> Produktionsseite.
+- `docs` -> Produktionsseite.
+- Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
+- Ein Push nach `main` führt Backend-Prüfungen aus und baut/veröffentlicht das Backend-Image. Der VPS-Deployment-Job wird nur durch einen manuellen Start von `deploy-backend.yml` über `workflow_dispatch` ausgeführt.
+- Der separate Workflow `deploy-images.yml` baut bei Pushes nach `dev` und bei Versionstags ein Docker-Hub-Image; er deployed nicht auf den VPS.
+
+---
+
+## Regel für gemeinsam genutzte Pakete
+
+Änderungen an `shared/packages/**` wirken sich immer auf Frontend-Builds aus.
+
+Das bedeutet:
+
+- Jede relevante Änderung in `shared/packages/**` muss die Frontend-Pipeline auslösen.
+- Gemeinsam genutzte Pakete werden nicht eigenständig manuell deployed.
+- Ändert sich ein gemeinsam genutztes Paket, müssen die davon abhängigen Frontends in Test- und Produktionsumgebung neu gebaut werden.
+
+So bleibt gemeinsam genutzter Code mit den Apps synchron, die ihn verwenden.
+
+---
+
+## Release-Ablauf
+
+### 1. Arbeit auf `dev`
+
+- Erstelle einen Feature-Branch aus `dev`.
+  - `feat/<name>`
+- Nimm deine Änderungen vor.
+- Führe den Feature-Branch wieder mit `dev` zusammen.
+
+### 2. `dev` nach `test` übernehmen
+
+- Wenn du einen Release-Kandidaten erstellen möchtest, merge `dev` nach `test`.
+- Push nach `test`.
+- Die Testumgebung wird automatisch deployed.
+
+### 3. Im Web testen
+
+- Öffne die Testumgebung in einem Browser.
+- Prüfe UI, Integration, Deployment-Verhalten und alle vom Backend abhängigen Abläufe.
+- Behebe Fehler, indem du von `test` aus einen Branch erstellst.
+
+### 4. Release-Probleme auf `test` beheben
+
+- Erstelle einen Fix-Branch aus `test`.
+  - `fix/<name>`
+- Nimm die Fehlerbehebung vor.
+- Merge den Fix zurück nach `test`.
+- Push erneut nach `test`, um die Testumgebung neu zu deployen.
+- Sobald der Fix geprüft ist, überführe `test` nach `main` und merge `test` zurück nach `dev`.
+
+### 5. `test` nach `main` übernehmen
+
+- Sobald die Testumgebung freigegeben ist und wieder zurück in `dev` gemerged wurde, öffne einen Pull Request von `test` nach `main`.
+- Verwende Squash-Merge.
+- Dadurch entsteht ein einzelner sauberer Release-Commit auf `main`.
+
+### 6. Produktionsdeployment
+
+- Nach dem Squash-Merge wird die Produktion von `main` aus deployed.
+- Frontends und Docs werden automatisch deployed.
+- Das Backend-Deployment muss im GitHub-Actions-Menü manuell über `workflow_dispatch` ausgelöst werden.
+  <br />
+  <br />
+  <center>
+    <img
+      src="/img/release_flow.drawio.svg"
+      alt="Release-Ablauf: Feature-Branches werden nach dev und anschließend nach test gemergt; Fixes durchlaufen eine Schleife, bevor ein Pull Request nach main und die manuelle Auslösung in GitHub Actions das Deployment starten."
+      description="Release-Ablaufdiagramm mit Feature-Branches, dev, test, Fehlerbehebung und dem finalen Deployment über einen Pull Request nach main sowie manueller Auslösung in GitHub Actions."
+    />
+  </center>
+
+---
+
+## Schritt-für-Schritt-Git-Anleitung
+
+### An einem Feature arbeiten
+
+Erstelle einen Feature-Branch auf Basis des Dev-Branches:
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feat/<name>
+```
+
+Committe deine Arbeit und pushe den Branch:
+
+```bash
+git add .
+git commit -m "Describe the change"
+git push -u origin feat/<name>
+```
+
+Wenn du fertig bist, merge den Branch zurück nach `dev`:
+
+```bash
+git checkout dev
+git pull origin dev
+git merge feat/<name>
+git push origin dev
+```
+
+### Einen Release-Kandidaten starten
+
+Wenn `dev` releasebereit ist:
+
+```bash
+git checkout test
+git pull origin test
+git merge dev
+git push origin test
+```
+
+Dadurch wird die Testumgebung deployed.
+
+### Das Release testen
+
+Prüfe auf der öffentlichen Testseite:
+
+- Layout und UI.
+- Routing.
+- API-Verhalten.
+- Änderungen an gemeinsam genutzten Paketen.
+- Deployment-spezifische Probleme.
+
+Wenn alles funktioniert, fahre mit der Produktion fort. Andernfalls behebe den Fehler auf `test`.
+
+### Ein auf `test` gefundenes Problem beheben
+
+Erstelle einen Bugfix-Branch auf Basis von `test`:
+
+```bash
+git checkout test
+git pull origin test
+git checkout -b fix/<name>
+```
+
+Nimm die Fehlerbehebung vor und merge sie anschließend zurück nach `test`:
+
+```bash
+git add .
+git commit -m "Fix release issue"
+git checkout test
+git pull origin test
+git merge fix/<name>
+git push origin test
+```
+
+Wiederhole dies für alle Fehler. Nachdem jeder Fix auf `test` geprüft wurde und das Release vollständig stabil ist, merge `test` nach `dev`:
+
+```bash
+git checkout dev
+git pull origin dev
+git merge test
+git push origin dev
+```
+
+### Für die Produktion freigeben
+
+Wenn `test` freigegeben ist:
+
+1. Öffne einen Pull Request von `test` nach `main`.
+2. Lass CI durchlaufen.
+3. Verwende Squash-Merge.
+
+So bleibt `main` übersichtlich und erhält eine kompakte Release-Historie.
+
+---
+
+## Feature-Branches synchronisieren
+
+Wenn Feature-Branches auseinanderlaufen und wieder denselben Arbeitsstand verwenden sollen, nutze `dev` als Integrationspunkt.
+
+1. Merge alle Feature-Branches lokal nach `dev` (in Abhängigkeitsreihenfolge, um Konflikte zu vermeiden).
+2. Pushe `dev`.
+3. Hole auf jedem Feature-Branch die Änderungen aus `dev` oder merge `dev`, um ihn zu synchronisieren.
+4. Pushe die aktualisierten Feature-Branches.
+
+Dies ist ein Wiederherstellungsschritt über den normalen Integrations-Branch `dev`. Er ist hilfreich, wenn mehrere Branches von denselben Änderungen an gemeinsam genutzten Paketen oder Workspaces abhängen und lokale Entwicklungsserver deshalb wieder konsistent laufen müssen.
+
+---
+
+## Verhalten des Produktionsdeployments
+
+Das Produktionsdeployment startet nach dem Squash-Merge auf `main`.
+
+- `sanny`, `auth` und die Dokumentationsseite werden von `main` deployed, wenn ihre Workflow-Pfadfilter zutreffen.
+- Änderungen an gemeinsam genutzten Paketen lösen die Frontend-Workflows aus, die diese Pfade enthalten.
+- Ein Push nach `main` baut und veröffentlicht das Backend-Image; für das VPS-Deployment ist ein manueller Start per `workflow_dispatch` erforderlich.
+
+Damit bleibt `main` die maßgebliche Quelle für Produktion und die eigentliche Release-Historie dennoch klein.
+
+---
+
+## Hinweis zum Backend
+
+Das Backend-Deployment ist vom Frontend-Release-Ablauf getrennt.
+
+Das bedeutet:
+
+- Der Test-Workflow für `test` deployed das Backend nicht.
+- Ein Push nach `main` baut und veröffentlicht das Backend-Image, deployed es aber nicht auf den VPS.
+- Ein manueller Start von `deploy-backend.yml` über `workflow_dispatch` führt das VPS-Deployment aus und benötigt konfigurierte Secrets sowie einen eingerichteten Host.
+- Frontend- und Docs-Releases sollten unabhängig vom Backend-Status weiterhin dem normalen Ablauf `dev -> test -> main` folgen.
+
+---
+
+Last edit: 17.10.2026

@@ -1,0 +1,211 @@
+@import "@fontsource-variable/manrope";
+
+:root {
+  --bg: #f5f7f6;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-muted: #edf1ef;
+  --text: #4c5853;
+  --text-h: #18251f;
+  --border: #cdd6d0;
+  --border-strong: #728078;
+  --accent: #176448;
+  --accent-hover: #104e37;
+  --accent-bg: #e3f1e9;
+  --accent-border: #8db7a1;
+  --on-accent: #ffffff;
+  --danger: #af2637;
+  --danger-bg: #fff0f1;
+  --warning: #76530c;
+  --warning-bg: #fff7db;
+  --info: #235fa4;
+  --info-bg: #eaf2fc;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --content-width: 1126px;
+  --shadow: 0 8px 28px rgb(24 37 31 / 7%);
+  --sans: "Manrope Variable", sans-serif;
+  --heading: var(--sans);
+  --mono: ui-monospace, Consolas, monospace;
+  --motion-duration: 160ms;
+  --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --color-text: var(--text);
+  --color-primary: var(--accent);
+  --color-secondary: var(--surface-muted);
+  --color-surface-2: var(--surface-muted);
+  --color-btn-primary: var(--accent);
+  --color-btn-secondary: var(--surface-muted);
+  --color-btn-destructive: var(--danger);
+  --btn-primary-text: var(--on-accent);
+  --btn-secondary-text: var(--text-h);
+  --btn-destructive-text: #ffffff;
+  --social-bg: var(--surface-muted);
+  --code-bg: var(--surface-muted);
+  font: 16px/1.6 var(--sans);
+  letter-spacing: 0;
+  color-scheme: light;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-theme="dark"],
+html.dark {
+  --bg: #151917;
+  --surface: #1d2420;
+  --surface-raised: #252e28;
+  --surface-muted: #2a342e;
+  --text: #bbc8bf;
+  --text-h: #f0f5f1;
+  --border: #414e45;
+  --border-strong: #899b8f;
+  --accent: #8dd8b0;
+  --accent-hover: #b1e8cb;
+  --accent-bg: #223c2e;
+  --accent-border: #507b60;
+  --on-accent: #12271c;
+  --danger: #ffabb3;
+  --danger-bg: #3b2329;
+  --warning: #e8ce88;
+  --warning-bg: #352e1e;
+  --info: #a6ccff;
+  --info-bg: #213046;
+  --color-btn-destructive: #a72033;
+  --shadow: 0 8px 28px rgb(0 0 0 / 18%);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--heading);
+  font-weight: 650;
+  color: var(--text-h);
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: 2rem;
+  margin: 0 0 var(--space-6);
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 0 0 var(--space-3);
+}
+
+p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  max-width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+::selection {
+  color: var(--on-accent);
+  background: var(--accent);
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  border-radius: var(--radius-sm);
+  color: var(--text-h);
+  background: var(--code-bg);
+  padding: var(--space-1) var(--space-2);
+}
+
+.skip-link {
+  position: fixed;
+  inset-block-start: var(--space-4);
+  inset-inline-start: var(--space-4);
+  z-index: 1000;
+  padding: var(--space-2) var(--space-4);
+  border: 2px solid var(--text-h);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-h);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  button,
+  input,
+  select,
+  textarea {
+    border: 1px solid ButtonText;
+  }
+}

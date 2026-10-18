@@ -1,5 +1,7 @@
 name: Deploy backend
 
+permissions: {}
+
 on:
   workflow_dispatch:
   push:
@@ -7,6 +9,7 @@ on:
       - main
     paths:
       - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
 
 jobs:
   test:
@@ -16,14 +19,20 @@ jobs:
       run:
         working-directory: ./backend
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -36,26 +45,37 @@ jobs:
       - name: Test
         run: npm test --if-present
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/docker/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/backend:latest
+            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
 
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - name: Deploy backend to VPS
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -e
-            cd /var/www/sanny
-            git fetch origin
-            git reset --hard origin/main
-
-            cd backend
-            npm ci --omit=dev
-
-            sudo systemctl restart sanny-backend
-            sudo systemctl status sanny-backend --no-pager
+            cd /var/www/sanny/backend/docker
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker image prune -f

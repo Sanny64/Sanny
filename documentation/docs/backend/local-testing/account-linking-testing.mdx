@@ -1,0 +1,108 @@
+---
+title: Account Linking
+description: Manually verify the live Auth0 account-linking flow with isolated test identities.
+sidebar_position: 4
+---
+
+# Account Linking Local Development Setup
+
+This guide explains how to test the account linking flow locally with localhost URLs.
+
+## Prerequisites
+
+- Use an isolated development Auth0 tenant, database, and dedicated test identities. Do not use personal accounts.
+- Both identities must have the same verified email address and be enabled for the application.
+- Verify the current Login Action and backend configuration using [Auth0 Tenant Contract](../auth0-tenant-contract). Repository copies of Auth0 Actions are not deployed automatically with the backend.
+- Keep access tokens, ID tokens, refresh tokens, cookies, and authorization codes out of browser consoles, online tools, tickets, and chat.
+
+---
+
+## Verify Both Directions
+
+Use separate dedicated test identities for each direction, with the same verified email for the Google and password identities within each test. The entry flow depends on which identity already exists.
+
+### Existing Password User Adds Google
+
+1. Create and verify a password account, then sign out.
+2. Start login from the application and choose Google with the same verified email address.
+3. Confirm the normal account-linking flow starts and Auth0 routes to `https://localhost:5174/confirm-linking`, where the page identifies both accounts.
+4. Choose **Authenticate & Continue** and confirm the popup requires reauthentication with the existing password account to prove ownership. It must not use Google for this proof step.
+5. Complete the shared linking checks below.
+
+### Existing Google User Adds a Password
+
+1. Sign in with Google first to establish the account, then sign out.
+2. Open the password login form and choose **Forgot password** for the Google account's email address. This recovery flow is required to set a password for the first time; do not use normal signup/account linking to add the password.
+3. Complete password recovery using the emailed reset link and set the first password. Password recovery alone must not link the accounts.
+4. Return to the application and attempt the first password login using the same email address and the newly set password.
+5. Confirm this login starts the account-linking flow and Auth0 routes to `https://localhost:5174/confirm-linking`, where the page identifies both accounts.
+6. Choose **Authenticate & Continue** and confirm the popup requires signing in with the existing Google account again to prove ownership. It must not use the newly set password for this proof step.
+7. Complete the shared linking checks below.
+
+### Shared Linking Checks
+
+For both directions, after reaching the confirmation page:
+
+1. Confirm linking has not completed before ownership proof and explicit confirmation.
+2. Confirm Google is shown as the canonical primary identity. The ownership-proof provider is determined by the existing account, not by which identity becomes canonical: password for password-first users, Google for Google-first users.
+3. Complete the proof login and confirm the link. Verify the popup closes, the application returns to an authenticated state, and login does not loop back to the linking prompt.
+4. In Auth0 User Management, verify one user record remains with both identities linked and Google as the canonical `user_id`.
+5. With an approved read-only database client, select only non-secret fields and verify one local user row remains with the canonical Auth0 subject. Never query or display the password column.
+
+```sql
+SELECT id, email, auth0Sub, emailVerified
+FROM User
+WHERE email = 'dedicated-test-address@example.test';
+```
+
+For cancellation, restart the flow, choose **Return to login**, and verify that the identities were not linked and no authenticated session was established. Verify any temporary-user cleanup against the configured expiry/cleanup behavior; do not assume a fixed 60-minute delay. Record the environment, browser, direction, result, and cleanup without recording personal data or secrets.
+
+---
+
+After a successful link, Auth0 has one Google-primary user with the database identity in its linked identities. The backend reconciles the local user's `auth0Sub` to that canonical subject during the OAuth callback. Verify one local user row using the non-secret query above; do not expect an `account_linking_completed` metadata flag or inspect the password hash.
+
+---
+
+## Transitioning to Production
+
+When ready to deploy to production:
+
+1. **Update Auth0 Configuration**:
+   - Replace localhost URLs with production domains
+   - Set Allowed Callback URLs to:
+     ```
+     https://api.example.com/api/v001/auth/callback,
+     https://auth.example.com/,
+     https://app.example.com/
+     ```
+   - Update CORS to use production domains
+
+2. **Update Environment Variables**:
+   - Backend: Set HTTPS values for `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT`, and `PROD_AUTH0_LOGOUT_REDIRECT`.
+   - Frontends: Set `VITE_PROD_API_URL` to the production API origin. The browser apps do not configure Auth0 client credentials.
+   - Backend: Set `PROD_ACCOUNT_LINK_FRONTEND_URL` to the deployed Auth confirmation URL and include that origin in `PROD_CORS_ORIGINS`.
+
+3. **Database Deployment**:
+   - Review the Prisma schema changes and the deployment's approved database migration procedure before deploying.
+   - Verify custom database connection scripts are active in the intended Auth0 tenant.
+
+---
+
+## Key URLs for Testing
+
+| Component      | Dev URL                                       | Prod URL                                       |
+| -------------- | --------------------------------------------- | ---------------------------------------------- |
+| Login          | https://localhost:5174                        | https://auth.example.com                       |
+| Main App       | https://localhost:5173                        | https://app.example.com                        |
+| Backend        | https://localhost:8443                        | https://api.example.com                        |
+| Auth0 Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |
+
+## Reference Documentation
+
+- [Auth0 Account Linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking)
+- [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
+- [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)
+
+---
+
+Last edit: 18.10.2026

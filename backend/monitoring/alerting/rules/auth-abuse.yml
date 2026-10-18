@@ -1,0 +1,76 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: Auth Abuse Rule
+    folder: Security
+    interval: 1m
+    rules:
+      - uid: auth-abuse
+        title: "Auth Endpoint Abuse"
+        condition: C
+
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              refId: A
+              expr: 'sum(count_over_time({job="nginx"} |= "/api/v001/auth " [5m]))'
+              queryType: range
+
+          - refId: B
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings:
+                mode: ""
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - type: query
+                  evaluator:
+                    type: gt
+                    params:
+                      - 50
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+
+        labels:
+          severity: warning
+
+        annotations:
+          summary: "Mehr als 50 Auth-Requests innerhalb von fünf Minuten"
+          description: "Der Auth-Endpunkt erhielt über fünf Minuten hinweg mehr als 50 Requests. Prüfe mögliche Brute-Force-, Bot- oder Flooding-Aktivität."

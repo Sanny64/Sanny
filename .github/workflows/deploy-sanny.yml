@@ -1,39 +1,56 @@
-name: Build and Deploy sanny frontend to Hetzner 
+name: Build and Deploy sanny frontend to Hetzner (prod-environment)
+
+permissions: {}
 
 on:
   push:
     branches:
-      - main  
+      - main
     paths:
-      - 'sanny/**'
+      - "sanny/**"
+      - "shared/packages/**"
+      - "package.json"
+      - "package-lock.json"
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "24"
 
       - name: Install dependencies
-        run: npm i
-        working-directory: ./sanny
+        run: npm ci
 
-      - name: Lint the project
-        run: npm run lint
-        working-directory: ./sanny
+      - name: Copy favicon from root
+        run: cp ./favicon.ico ./sanny/public/
+
+      - name: Lint the projects
+        run: npm run lint:sanny && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
 
       - name: Build the project
-        run: npm run build
-        working-directory: ./sanny
+        run: |
+          if [ -z "$VITE_PROD_API_URL" ]; then
+            echo "Set the VITE_PROD_API_URL repository variable before deploying production."
+            exit 1
+          fi
+          npm run build:sanny
+        env:
+          VITE_PROD_API_URL: ${{ vars.VITE_PROD_API_URL }}
 
       - name: Deploy to Hetzner via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
@@ -41,4 +58,4 @@ jobs:
           protocol: ftps
           security: loose
           local-dir: ./sanny/dist/
-          server-dir: /public_html/
+          server-dir: /public_html/sanny/

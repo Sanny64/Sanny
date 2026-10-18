@@ -1,0 +1,31 @@
+---
+title: Frontend Manual Testing
+description: Manually verify frontend behavior and accessibility beyond automated browser checks.
+---
+
+## Scope
+
+Frontend manual checks complement the automated frontend gate in [Automated Frontend Testing](./automated-testing.mdx). Use dedicated test identities for authentication flows. API behavior and persistence belong to backend or live integration verification, not mocked UI tests.
+
+## Accessibility and Interaction
+
+- [ ] Complete primary Auth and Sanny workflows using keyboard only in English and German. Check visible focus, logical order, skip navigation, dialogs, and error/status announcements.
+- [ ] Test login, account-link confirmation, settings, and admin allowed/denied states with a screen reader on a supported browser.
+- [ ] At 200% browser zoom, verify content and controls remain available without clipped text or overlapping actions.
+- [ ] Enable the operating system's reduced-motion preference and verify transitions and other motion are reduced.
+- [ ] Verify light/dark themes and language preferences, including system theme changes and persisted user overrides.
+- [ ] Decide whether forced-colors/high-contrast mode is supported and verify it if in scope.
+- [ ] Review Chromium desktop/mobile visual baselines after intentional visual changes. These baselines do not establish Firefox/Edge visual parity.
+
+---
+
+## Product Flows
+
+- [ ] Exercise shipped public interactions beyond route loading, including navigation, project/blog links, games, and party pages. Record intentionally static pages.
+- [ ] Verify UI state and feedback for sign-in/session controls, settings, account-linking confirmation/cancellation, and admin allowed/denied states.
+
+Mocked browser checks verify frontend behavior and request/response contracts only. Verify successful backend mutations, live Auth0 behavior, and hosted security controls with the [backend and integration checklists](../../backend/local-testing/manual-testing.mdx).
+
+---
+
+Last edit: 18.10.2026
