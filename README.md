@@ -283,14 +283,18 @@ Auth is hosted at https://auth.sanny64.de and handles account-link confirmation 
 
 ## Settings
 
+### Default
 The settings can be accessed with /settings across all subdomains
 
 - Dark/Light mode
 - English/German
-- Accessibility settings
-- User profiles will be
+- Accessibility settings (coming soon)
+- Self user actions (change password, username)
+
+### Admin 
+The admin settings allow user account changes (roles, username, etc.) for different user accounts if an admin user logs in. 
+They are restricted for any non admin users.
 
 ## Error-Handling
 
 - Visual HTTP Error handling is done via npm package @sanny/ui
-- Excepetions are caught via
