@@ -69,15 +69,22 @@ jobs:
           cp -a sanny/dist/. testing-site/sanny/
           cp -a auth/dist/. testing-site/auth/
           cp -a documentation/build/. testing-site/docs/
-          if [[ "$TEST_BASIC_AUTH_ENTRY" == *$'\n'* || "$TEST_BASIC_AUTH_ENTRY" == *$'\r'* || ! "$TEST_BASIC_AUTH_ENTRY" =~ ^[^:]+:[^:]+$ ]]; then
-            echo "TEST_BASIC_AUTH_ENTRY must contain one username:hashed-password line."
+          if [[ -z "$TEST_BASIC_AUTH_ENTRY" || "$TEST_BASIC_AUTH_ENTRY" == *$'\r'* ]]; then
+            echo "TEST_BASIC_AUTH_ENTRY must contain one or more username:hashed-password lines."
             exit 1
           fi
+          basic_auth_entries="${TEST_BASIC_AUTH_ENTRY%$'\n'}"
+          while IFS= read -r entry; do
+            if [[ ! "$entry" =~ ^[^:]+:[^:]+$ ]]; then
+              echo "Each TEST_BASIC_AUTH_ENTRY line must contain one username:hashed-password entry, with no blank lines."
+              exit 1
+            fi
+          done <<< "$basic_auth_entries"
           if [[ ! "$TEST_BASIC_AUTH_FILE_PATH" =~ ^/[A-Za-z0-9_./-]+$ ]]; then
             echo "TEST_BASIC_AUTH_FILE_PATH must be an absolute server path using only letters, numbers, '.', '_', '/', or '-'."
             exit 1
           fi
-          printf '%s\n' "$TEST_BASIC_AUTH_ENTRY" > testing-site/sanny/.htpasswd
+          printf '%s\n' "$basic_auth_entries" > testing-site/sanny/.htpasswd
           printf '%s\n' \
             'DirectoryIndex index.html' \
             'AuthType Basic' \
