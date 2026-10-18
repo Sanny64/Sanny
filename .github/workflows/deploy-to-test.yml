@@ -152,7 +152,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: loose
-          log-level: verbose
           local-dir: ./testing-site/${{ matrix.site }}/
           server-dir: ${{ matrix.server-dir }}
           state-name: .ftp-deploy-sync-state-${{ matrix.site }}.json
