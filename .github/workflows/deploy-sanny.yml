@@ -1,5 +1,7 @@
 name: Build and Deploy sanny frontend to Hetzner (prod-environment)
 
+permissions: {}
+
 on:
   push:
     branches:
@@ -13,6 +15,9 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code

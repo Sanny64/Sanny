@@ -128,6 +128,7 @@
       accountDeleted: "Account deleted",
       userDeleted: "User deleted",
       requestFailed: "The account request failed.",
+      backendOffline: "The backend is offline. Please try again later.",
       usersLoaded: "Users loaded",
       userLoaded: "User loaded",
       userUpdated: "User updated",

@@ -43,7 +43,7 @@ const router = createBrowserRouter([
       { path: "/blog", element: <Blog /> },
       { path: "/games", element: <Games /> },
       { path: "/settings", element: <AccountSettings /> },
-      { path: "/admin/settings", element: <AdminSettings /> },
+      { path: "/settings/admin", element: <AdminSettings /> },
       { path: "/error", element: <ErrorPage /> },
       { path: "*", element: <ErrorPage status={404} /> },
     ],

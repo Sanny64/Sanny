@@ -3,12 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { LogIn, LogOut } from "lucide-react";
 import { Button, dismissToast, showToast } from "@sanny/ui";
 import { authChangedEvent } from "../../utils/authEvents";
+import { showBackendRequestError } from "../../utils/backendRequestErrors";
 import { isLogoutReturn, prepareLogoutUrl } from "../../utils/reauthentication";
 
 type Identity = { roles?: string[] };
 
 type LoginButtonProps = {
   className?: string;
+  autoVariant?: boolean;
   onIdentityChange?: (identity: Identity | null) => void;
 };
 
@@ -42,6 +44,7 @@ function authenticationUrl(reauthenticate = false) {
 
 export default function LoginButton({
   className,
+  autoVariant = true,
   onIdentityChange,
 }: LoginButtonProps) {
   const { language } = useLanguage();
@@ -125,11 +128,11 @@ export default function LoginButton({
         }
       } catch (syncError) {
         if (!cancelled) {
-          const message =
-            syncError instanceof Error
-              ? syncError.message
-              : t.shared.notifications.userSyncError;
-          showToast(message);
+          showBackendRequestError(
+            syncError,
+            t.shared.notifications.backendOffline,
+            t.shared.notifications.userSyncError,
+          );
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -169,9 +172,11 @@ export default function LoginButton({
         },
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Logout request failed";
-      showToast(message);
+      showBackendRequestError(
+        error,
+        t.shared.notifications.backendOffline,
+        "Logout request failed",
+      );
       return;
     }
     if (!response.ok) {
@@ -201,7 +206,7 @@ export default function LoginButton({
     <Button
       className={className}
       type="button"
-      variant={isAuthenticated ? "secondary" : "primary"}
+      variant={autoVariant && !isAuthenticated ? "primary" : "secondary"}
       disabled={isLoading}
       onClick={() => {
         if (isAuthenticated) {

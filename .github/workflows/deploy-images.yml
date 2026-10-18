@@ -2,6 +2,8 @@
 # and pushes it to Docker Hub upon pushes to the dev branch or version tags.
 name: Simple Docker Build
 
+permissions: {}
+
 on:
   # This will run the workflow on pushes to dev and version tags.
   # Adjust to match your branching and tagging strategy.
@@ -26,6 +28,9 @@ env:
 jobs:
   autobuilds:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Set up paths

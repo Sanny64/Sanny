@@ -8,7 +8,8 @@ import {
   takePendingActionCredentials,
   type PendingAction,
 } from "../../utils/reauthentication";
-import { showErrorToast, showToast } from "@sanny/ui";
+import { showToast } from "@sanny/ui";
+import { showBackendRequestError } from "../../utils/backendRequestErrors";
 
 type Identity = {
   roles: string[];
@@ -185,7 +186,11 @@ export default function AdminSettings() {
         if (!cancelled) setIdentity(currentIdentity);
       } catch (requestError) {
         if (!cancelled) {
-          showErrorToast(requestError, notifications.requestFailed);
+          showBackendRequestError(
+            requestError,
+            notifications.backendOffline,
+            notifications.requestFailed,
+          );
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -196,7 +201,7 @@ export default function AdminSettings() {
     return () => {
       cancelled = true;
     };
-  }, [notifications.requestFailed]);
+  }, [notifications.backendOffline, notifications.requestFailed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,7 +217,11 @@ export default function AdminSettings() {
       } catch (requestError) {
         if (!cancelled) {
           console.error("Failed to load available roles", requestError);
-          showErrorToast(requestError, notifications.requestFailed);
+          showBackendRequestError(
+            requestError,
+            notifications.backendOffline,
+            notifications.requestFailed,
+          );
           setAvailableRoles([]);
         }
       }
@@ -225,7 +234,7 @@ export default function AdminSettings() {
     return () => {
       cancelled = true;
     };
-  }, [canReadUsers, notifications.requestFailed]);
+  }, [canReadUsers, notifications.backendOffline, notifications.requestFailed]);
 
   async function selectUser(user: User) {
     const currentUsername = user.username ?? "";
@@ -244,7 +253,11 @@ export default function AdminSettings() {
       return true;
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return false;
-      showErrorToast(requestError, notifications.requestFailed);
+      showBackendRequestError(
+        requestError,
+        notifications.backendOffline,
+        notifications.requestFailed,
+      );
       return false;
     } finally {
       setIsBusy(false);
@@ -293,7 +306,11 @@ export default function AdminSettings() {
       showToast(notifications.usersLoaded, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      showErrorToast(requestError, notifications.requestFailed);
+      showBackendRequestError(
+        requestError,
+        notifications.backendOffline,
+        notifications.requestFailed,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -313,7 +330,11 @@ export default function AdminSettings() {
       }
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      showErrorToast(requestError, notifications.requestFailed);
+      showBackendRequestError(
+        requestError,
+        notifications.backendOffline,
+        notifications.requestFailed,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -354,7 +375,11 @@ export default function AdminSettings() {
       showToast(notifications.userUpdated, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      showErrorToast(requestError, notifications.requestFailed);
+      showBackendRequestError(
+        requestError,
+        notifications.backendOffline,
+        notifications.requestFailed,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -384,7 +409,11 @@ export default function AdminSettings() {
       showToast(notifications.userDeleted, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      showErrorToast(requestError, notifications.requestFailed);
+      showBackendRequestError(
+        requestError,
+        notifications.backendOffline,
+        notifications.requestFailed,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -400,7 +429,11 @@ export default function AdminSettings() {
       showToast(notifications.passwordResetRequested, { kind: "info" });
     } catch (requestError) {
       if (beginMfaIfRequired(requestError)) return;
-      showErrorToast(requestError, notifications.requestFailed);
+      showBackendRequestError(
+        requestError,
+        notifications.backendOffline,
+        notifications.requestFailed,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -481,7 +514,11 @@ export default function AdminSettings() {
         }
       } catch (resumeError) {
         if (beginMfaIfRequired(resumeError)) return;
-        showErrorToast(resumeError, notifications.requestFailed);
+        showBackendRequestError(
+          resumeError,
+          notifications.backendOffline,
+          notifications.requestFailed,
+        );
       } finally {
         setIsBusy(false);
       }
@@ -490,6 +527,7 @@ export default function AdminSettings() {
     void resumePendingAction();
   }, [
     notifications.passwordResetRequested,
+    notifications.backendOffline,
     notifications.requestFailed,
     notifications.userDeleted,
     notifications.userLoaded,

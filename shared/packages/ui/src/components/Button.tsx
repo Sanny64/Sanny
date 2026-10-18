@@ -30,8 +30,6 @@ export function Button({
           ? undefined
           : {
               scale: 1.05,
-              textShadow: "0px 0px 8px rgb(39, 66, 39)",
-              boxShadow: "0px 0px 8px rgb(225, 255, 255)",
               transition: {
                 duration: 0.16,
                 ease: "easeOut",

@@ -4,7 +4,6 @@
 
 later:
 
-2. add content to the frontend pages
-3. finish the backend
-4. setup docker
-5. setup vps and deploy backend
+2. add content to the frontend
+3. finish backend
+4. setup vps and deploy backend

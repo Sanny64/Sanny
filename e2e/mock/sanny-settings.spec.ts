@@ -2,6 +2,77 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 
 const sannyUrl = "https://127.0.0.1:5176";
 
+for (const appUrl of [sannyUrl, "https://127.0.0.1:5175"]) {
+  for (const preference of [
+    "cookie",
+    "localStorage",
+    "system",
+    "light",
+    "invalid",
+    "blocked",
+  ] as const) {
+    test(`initial theme survives hard refresh before React loads: ${appUrl} / ${preference}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({
+        colorScheme: preference === "cookie" ? "light" : "dark",
+      });
+      await page.addInitScript((source) => {
+        localStorage.clear();
+        document.cookie = "theme=; Max-Age=0; path=/";
+        if (source === "cookie") {
+          document.cookie = "theme=dark; path=/";
+          localStorage.setItem("theme", "light");
+        } else if (source === "localStorage" || source === "light") {
+          localStorage.setItem("theme", source === "light" ? "light" : "dark");
+        } else if (source === "invalid") {
+          document.cookie = "theme=invalid; path=/";
+          localStorage.setItem("theme", "invalid");
+        } else if (source === "blocked") {
+          Object.defineProperty(window, "localStorage", {
+            get() {
+              throw new DOMException("Storage unavailable", "SecurityError");
+            },
+          });
+        }
+      }, preference);
+      await page.route("**/*", (route) => {
+        const type = route.request().resourceType();
+        return type === "script" || type === "stylesheet"
+          ? route.abort()
+          : route.continue();
+      });
+      const expectedTheme = preference === "light" ? "light" : "dark";
+      const expectedBackground =
+        preference === "light" ? "rgb(245, 247, 246)" : "rgb(21, 25, 23)";
+
+      await page.goto(appUrl);
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        expectedTheme,
+      );
+      await expect(page.locator("html")).toHaveCSS(
+        "background-color",
+        expectedBackground,
+      );
+      await expect(page.locator("html")).toHaveCSS(
+        "color-scheme",
+        expectedTheme,
+      );
+      await page.reload();
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        expectedTheme,
+      );
+      await expect(page.locator("html")).toHaveCSS(
+        "background-color",
+        expectedBackground,
+      );
+      await expect(page.locator("#root")).toBeEmpty();
+    });
+  }
+}
+
 for (const role of ["guest", "user", "admin"]) {
   test(`account dropdown exposes the correct actions for ${role}`, async ({
     page,
@@ -478,6 +549,30 @@ test("shows server failures during the initial account load", async ({
 
   await page.goto(`${sannyUrl}/settings`);
   await expectAlert(page, "Authentication service unavailable");
+});
+
+test("shows one backend-offline alert when multiple startup requests fail", async ({
+  page,
+}) => {
+  let failedApiRequests = 0;
+
+  await page.addInitScript(() => {
+    localStorage.setItem("language", "en");
+    document.cookie = "language=en; path=/";
+  });
+  page.on("requestfailed", (request) => {
+    if (new URL(request.url()).pathname.startsWith("/api/v001/")) {
+      failedApiRequests += 1;
+    }
+  });
+  await page.route("**/api/v001/**", (route) => route.abort());
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect.poll(() => failedApiRequests).toBeGreaterThanOrEqual(2);
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.getByRole("alert")).toHaveCount(1);
+  await expectAlert(page, "The backend is offline. Please try again later.");
 });
 
 test("switches and persists the settings page language and theme", async ({

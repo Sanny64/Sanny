@@ -3,11 +3,12 @@ import { Button } from "@sanny/ui";
 import { motion, useReducedMotion } from "framer-motion";
 import { Menu as MenuIcon, Settings, Shield, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import LoginButton from "../default/LoginButton";
 import "../../styles/components/accountMenu.css";
 
 export default function Menu() {
+  const navigate = useNavigate();
   const { language } = useLanguage();
   const t = translations[language];
   const reducedMotion = useReducedMotion();
@@ -95,18 +96,31 @@ export default function Menu() {
         }}
       >
         <LoginButton
-          className="account-menu__item"
+          className="account-menu__item__login-redirect"
+          autoVariant={false}
           onIdentityChange={setIdentity}
         />
-        <Link className="account-menu__item" to="/settings">
+        <Button
+          className="account-menu__item__settings-redirect"
+          variant="secondary"
+          onClick={() => {
+            navigate("/settings");
+          }}
+        >
           <Settings size={18} aria-hidden="true" />
           {t.shared.settings.title}
-        </Link>
+        </Button>
         {isAdmin && (
-          <Link className="account-menu__item" to="/admin/settings">
+          <Button
+            className="account-menu__item__admin-redirect"
+            variant="secondary"
+            onClick={() => {
+              navigate("/settings/admin");
+            }}
+          >
             <Shield size={18} aria-hidden="true" />
             {t.shared.settings.adminSettingsTitle}
-          </Link>
+          </Button>
         )}
       </motion.nav>
     </div>

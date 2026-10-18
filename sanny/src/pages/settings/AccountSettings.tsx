@@ -12,10 +12,10 @@ import { notifyAuthChanged } from "../../utils/authEvents";
 import {
   Settings as AppearanceSettings,
   ButtonGroup,
-  showErrorToast,
   showToast,
 } from "@sanny/ui";
 import LoginButton from "../../components/default/LoginButton";
+import { showBackendRequestError } from "../../utils/backendRequestErrors";
 
 type Identity = {
   email: string | null;
@@ -109,6 +109,7 @@ export default function AccountSettings() {
   const t = translations[useLanguage().language];
   const navigate = useNavigate();
   const requestFailedMessage = t.shared.notifications.requestFailed;
+  const backendOfflineMessage = t.shared.notifications.backendOffline;
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState("");
@@ -145,7 +146,11 @@ export default function AccountSettings() {
         }
       } catch (loadError) {
         if (!cancelled && (loadError as RequestError).status !== 401) {
-          showErrorToast(loadError, requestFailedMessage);
+          showBackendRequestError(
+            loadError,
+            backendOfflineMessage,
+            requestFailedMessage,
+          );
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -156,7 +161,7 @@ export default function AccountSettings() {
     return () => {
       cancelled = true;
     };
-  }, [requestFailedMessage]);
+  }, [backendOfflineMessage, requestFailedMessage]);
 
   useEffect(() => {
     if (resumeStartedRef.current) return;
@@ -192,7 +197,11 @@ export default function AccountSettings() {
           });
         }
       } catch (resumeError) {
-        showErrorToast(resumeError, requestFailedMessage);
+        showBackendRequestError(
+          resumeError,
+          backendOfflineMessage,
+          requestFailedMessage,
+        );
       } finally {
         setIsBusy(false);
       }
@@ -200,6 +209,7 @@ export default function AccountSettings() {
 
     void resumePendingAction();
   }, [
+    backendOfflineMessage,
     requestFailedMessage,
     t.shared.notifications.accountDeleted,
     t.shared.notifications.passwordResetRequested,
@@ -221,7 +231,11 @@ export default function AccountSettings() {
       }
       showToast(t.shared.notifications.accountTested, { kind: "info" });
     } catch (requestError) {
-      showErrorToast(requestError, requestFailedMessage);
+      showBackendRequestError(
+        requestError,
+        backendOfflineMessage,
+        requestFailedMessage,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -239,7 +253,11 @@ export default function AccountSettings() {
       setUsername(createdUser.username ?? "");
       showToast(t.shared.notifications.accountCreated, { kind: "info" });
     } catch (requestError) {
-      showErrorToast(requestError, requestFailedMessage);
+      showBackendRequestError(
+        requestError,
+        backendOfflineMessage,
+        requestFailedMessage,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -257,7 +275,11 @@ export default function AccountSettings() {
       setUsername(updatedUser.username ?? "");
       showToast(t.shared.notifications.accountUpdated, { kind: "info" });
     } catch (requestError) {
-      showErrorToast(requestError, requestFailedMessage);
+      showBackendRequestError(
+        requestError,
+        backendOfflineMessage,
+        requestFailedMessage,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -282,7 +304,11 @@ export default function AccountSettings() {
         );
         return;
       }
-      showErrorToast(requestError, requestFailedMessage);
+      showBackendRequestError(
+        requestError,
+        backendOfflineMessage,
+        requestFailedMessage,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -306,7 +332,11 @@ export default function AccountSettings() {
         );
         return;
       }
-      showErrorToast(requestError, requestFailedMessage);
+      showBackendRequestError(
+        requestError,
+        backendOfflineMessage,
+        requestFailedMessage,
+      );
     } finally {
       setIsBusy(false);
     }
@@ -336,7 +366,7 @@ export default function AccountSettings() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => navigate("/admin/settings")}
+                  onClick={() => navigate("/settings/admin")}
                   disabled={isBusy}
                 >
                   {t.shared.settings.openAdminSettings}

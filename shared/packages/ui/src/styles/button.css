@@ -24,7 +24,6 @@
 .btn--secondary {
   background: var(--btn-secondary-bg, var(--color-btn-secondary));
   color: var(--btn-secondary-text);
-  border-color: var(--border);
 }
 
 .btn--destructive {

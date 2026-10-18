@@ -16,6 +16,7 @@ import {
   ToastViewport,
   showErrorToast,
   showToast,
+  retriggerToast,
 } from "../index";
 
 function renderWithProviders(ui: ReactNode) {
@@ -66,6 +67,39 @@ describe("shared UI controls", () => {
     expect(screen.getByRole("main")).toHaveAttribute("id", "main-content");
     expect(screen.getByRole("main")).toHaveAttribute("tabindex", "-1");
   });
+
+  it.each(["public", "auth"] as const)(
+    "navigates home through the router without resetting dark mode in the %s shell",
+    async (variant) => {
+      const user = userEvent.setup();
+      prepareEnglishLightPreferences();
+      localStorage.setItem("theme", "dark");
+      document.cookie = "theme=dark; path=/";
+      const router = createMemoryRouter(
+        [
+          { path: "/", element: <AppShell variant={variant}>Home</AppShell> },
+          {
+            path: "/settings",
+            element: <AppShell variant={variant}>Settings</AppShell>,
+          },
+        ],
+        { initialEntries: ["/settings"] },
+      );
+      const navigate = vi.spyOn(router, "navigate");
+      renderWithProviders(<RouterProvider router={router} />);
+
+      const homeLink = screen.getByRole("link", { name: "Sanny64" });
+      expect(homeLink).toHaveAttribute("href", "/");
+      await user.click(homeLink);
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(router.state.location.pathname).toBe("/");
+      expect(screen.getByRole("main")).toHaveTextContent("Home");
+
+      await user.click(homeLink);
+      expect(navigate).toHaveBeenCalledTimes(2);
+      expect(document.documentElement).toHaveAttribute("data-theme", "dark");
+    },
+  );
 
   it("keeps buttons keyboard operable and respects the native disabled state", async () => {
     const user = userEvent.setup();
@@ -122,6 +156,27 @@ describe("shared UI feedback", () => {
       within(alert).getByRole("button", { name: "Dismiss notification" }),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("replays the toast motion without adding another alert", () => {
+    prepareEnglishLightPreferences();
+    renderWithProviders(<ToastViewport />);
+
+    let toastId = 0;
+    act(() => {
+      toastId = showToast("Backend offline", { durationMs: 0 });
+    });
+    const alert = screen.getByRole("alert");
+    const originalToast = alert.querySelector(".toast");
+
+    act(() => {
+      expect(retriggerToast(toastId)).toBe(true);
+    });
+
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("alert").querySelector(".toast")).not.toBe(
+      originalToast,
+    );
   });
 
   it("announces status feedback and invokes its accessible action", async () => {

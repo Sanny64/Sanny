@@ -29,7 +29,9 @@
   box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
 }
 
-.account-menu__item {
+.account-menu__item__login-redirect,
+.account-menu__item__settings-redirect,
+.account-menu__item__admin-redirect {
   display: flex;
   align-items: center;
   justify-content: flex-start;

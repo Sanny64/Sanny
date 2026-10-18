@@ -79,9 +79,9 @@ export const de: Translations = {
       adminSettingsTitle: "Admin-Einstellungen",
       adminUsersTitle: "Benutzerverwaltung",
       adminAccessDenied:
-        "Fuer diese Seite sind Administratorrechte erforderlich.",
-      selectUser: "Benutzer auswaehlen",
-      selectedUserTitle: "Ausgewaehlter Benutzer",
+        "Für diese Seite sind Administratorrechte erforderlich.",
+      selectUser: "Benutzer auswählen",
+      selectedUserTitle: "Ausgewählter Benutzer",
       userLookup: "Benutzer-ID oder E-Mail",
       loadUser: "Benutzer laden",
       updateUser: "Benutzer speichern",
@@ -90,7 +90,7 @@ export const de: Translations = {
       resetPassword: "Passwort-Reset",
       testTitle: "Funktions-Tests",
       testAccountEndpoints: "Konto-Endpunkte testen",
-      openAdminSettings: "Admin-Einstellungen oeffnen",
+      openAdminSettings: "Admin-Einstellungen öffnen",
     },
     errors: {
       title: "Ein Fehler ist aufgetreten",
@@ -136,6 +136,8 @@ export const de: Translations = {
       accountDeleted: "Konto gelöscht",
       userDeleted: "Benutzer gelöscht",
       requestFailed: "Die Kontoanfrage ist fehlgeschlagen.",
+      backendOffline:
+        "Das Backend ist nicht erreichbar. Bitte versuche es später erneut.",
       usersLoaded: "Benutzer geladen",
       userLoaded: "Benutzer geladen",
       userUpdated: "Benutzer aktualisiert",

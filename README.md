@@ -131,6 +131,8 @@ Sanny/ (Root Workspace)
 
 Sanny and Auth use the same semantic light/dark theme from `@sanny/styles`: neutral surfaces, green accents, locally bundled Manrope typography, consistent spacing, 4-8px radii, and visible keyboard focus. Theme selection continues to follow browser preferences until a manual choice is saved.
 
+Both Vite configs use the shared HTML theme bootstrap in `vite.shared.ts`. It applies the saved theme (cookie first, then localStorage, otherwise system preference) and a critical page background before React or external styles load, preventing a white flash on hard refresh. Keep the bootstrap's fallback colors aligned with the shared background tokens.
+
 `ThemeProvider` also supplies Framer Motion defaults through `MotionConfig` with `reducedMotion="user"`. `@sanny/ui` owns `AppShell`, route-entry motion, shared buttons, settings, and notifications. Both apps import the shared global/layout CSS in `src/main.tsx`, including standalone error and proof-resume routes. App-specific styles consume semantic variables instead of defining another light/dark palette. Auxiliary party routes keep their scoped colors.
 
 The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:auth`, and `test:e2e:accessibility:auth`. Its workflow publishes an artifact to `/public_html/auth/`; the hosting document root for `auth.sanny64.de` must match. The former login workspace/script names are no longer supported. Backend login endpoints and Auth0 callback URLs remain unchanged.

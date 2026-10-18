@@ -9,6 +9,7 @@ export type Toast = {
   id: number;
   kind: ToastKind;
   message: string;
+  attentionVersion: number;
   action?: ToastAction;
 };
 
@@ -47,12 +48,25 @@ export function dismissToast(id: number) {
   notifySubscribers();
 }
 
+export function retriggerToast(id: number) {
+  if (!toasts.some((toast) => toast.id === id)) return false;
+
+  toasts = toasts.map((toast) =>
+    toast.id === id
+      ? { ...toast, attentionVersion: toast.attentionVersion + 1 }
+      : toast,
+  );
+  notifySubscribers();
+  return true;
+}
+
 export function showToast(message: string, options: ToastOptions = {}) {
   const id = ++nextToastId;
   const toast: Toast = {
     id,
     message,
     kind: options.kind ?? "error",
+    attentionVersion: 0,
     ...(options.action ? { action: options.action } : {}),
   };
   toasts = [...toasts, toast];

@@ -1,5 +1,7 @@
 name: Deploy backend
 
+permissions: {}
+
 on:
   workflow_dispatch:
   push:

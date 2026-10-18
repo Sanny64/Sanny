@@ -1,5 +1,7 @@
 name: Build and Deploy auth frontend to Hetzner (prod-environment)
 
+permissions: {}
+
 on:
   push:
     branches:
@@ -13,6 +15,9 @@ on:
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code

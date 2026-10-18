@@ -1,5 +1,7 @@
 name: Build and Deploy docs to Hetzner (prod-environment)
 
+permissions: {}
+
 on:
   push:
     branches:
@@ -12,6 +14,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout Code
