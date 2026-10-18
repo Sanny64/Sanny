@@ -1,5 +1,3 @@
 export default function Refreshments() {
-  return (
-    <div></div>
-  );
+  return <div></div>;
 }

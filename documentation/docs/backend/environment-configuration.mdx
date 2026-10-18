@@ -1,0 +1,142 @@
+---
+title: Environment Configuration
+description: Backend environment variables and environment separation.
+sidebar_position: 4
+---
+
+The backend reads its local configuration from `backend/.env`. Start with
+`backend/.env.template`, then replace example values with credentials and resource
+identifiers for your own environment. Never commit `backend/.env`, real
+credentials, tenant identifiers, or private keys. Production secrets belong in
+the deployment environment's secret store, not in this file or in Compose
+overrides committed to the repository.
+
+## Environment selection
+
+`NODE_ENV` must be exactly `development` or `production`. The backend uses it to
+select the matching `DEV_` or `PROD_` values below. Set up distinct Auth0,
+database, and Redis resources for each environment; do not point development at
+production data. The production Compose configuration sets `NODE_ENV` to
+`production`.
+
+---
+
+## Auth0
+
+See [Auth0 Tenant Setup](./auth0-tenant-setup#actions) for explicit Auth0 environment configuration instructions.
+
+---
+
+## Backend
+
+```.env
+# Sanny backend environment template
+
+# Environment selection
+NODE_ENV="development" # Changing this value requires also changing it
+                       # for all auth0 applications, actions and database connections.
+                       # Must be exactly `development` or `production`.
+
+# Database and session store
+DATABASE_URL="mysql://username:password@server/database"
+REDIS_PASSWORD="some random string without special characters"
+
+# Grafana
+GRAFANA_ADMIN_USER="your grafana admin username"
+GRAFANA_ADMIN_PASSWORD="your grafana admin password"
+GRAFANA_DEV_ROOT_URL="https://localhost:8443/grafana/"
+GRAFANA_PROD_ROOT_URL="https://monitoring.example.de/grafana/"
+
+# Docker registry
+DOCKERHUB_USERNAME="your dockerhub username"
+DOCKERHUB_PAT="dckr_pat_your-personal-access-token"
+
+# Hetzner SMTP
+SMTP_HOST="your-mail-server:587"                 # Port 587 requires STARTTLS
+                                                 # Port 465 uses implicit TLS. Certificates are verified.
+SMTP_USER="your smtp user"                       # e.g. webmaster@domain.de
+SMTP_PASSWORD="your smtp password"
+SMTP_FROM_ADDRESS="your webmaster email address" # e.g. webmaster@domain.de
+
+# Auth0 application
+AUTH0_DOMAIN="example.location.auth0.com" # custom domain e.g. auth.example.com
+                                          # as configured in auth0; do not use http or https prefix here
+AUTH0_AUDIENCE="https://api.example.de"
+AUTH0_CLIENT_ID="your auth0 client id"
+AUTH0_CLIENT_SECRET="your auth0 client secret"
+AUTH0_M2M_CLIENT_ID="your auth0 m2m client id"
+AUTH0_M2M_CLIENT_SECRET="your auth0 m2m client secret"
+AUTH0_MGMT_AUDIENCE="https://tenant.location.auth0.com/api/v2/"
+
+# OAuth redirects and browser origins
+DEV_AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"
+PROD_AUTH0_CALLBACK_URL="https://api.example.de/api/v001/auth/callback"
+DEV_AUTH0_SUCCESS_REDIRECT="https://localhost:5173/"
+PROD_AUTH0_SUCCESS_REDIRECT="https://example.de/"
+DEV_AUTH0_LOGOUT_REDIRECT="https://localhost:5173/"
+PROD_AUTH0_LOGOUT_REDIRECT="https://example.de/"
+DEV_CORS_ORIGINS="https://localhost:5173,https://localhost:5174"
+PROD_CORS_ORIGINS="https://www.example.de,https://auth.example.de,https://example.de"
+
+# Auth0 token claims and verification
+AUTH0_EMAIL_CLAIM="https://example.de/email"
+AUTH0_NAME_CLAIM="https://example.de/name"
+AUTH0_ROLES_CLAIM="https://example.de/roles"
+AUTH0_CLAIM_NAMESPACE="https://example.de"
+AUTH0_EMAIL_VERIFIED_CLAIM="https://example.de/email_verified"
+
+# Backend security and operations
+DEV_TRUST_PROXY="false"
+PROD_TRUST_PROXY="172.28.0.2"
+AUTH0_ROLE_SYNC_ENABLED="true"
+
+# Account linking
+DEV_ACCOUNT_LINK_FRONTEND_URL="https://localhost:5174/confirm-linking"
+PROD_ACCOUNT_LINK_FRONTEND_URL="https://auth.example.de/confirm-linking"
+ACCOUNT_LINK_PROOF_SECRET="some random string without special characters"
+AUTH0_DATABASE_CONNECTION="your auth0 database connection"
+AUTH0_DATABASE_CONNECTION_ID="con_your-auth0-database-connection-id"
+
+# Playwright test configuration
+## testUser:
+TESTUSER_EMAIL="testuser@example.com"
+TESTUSER_PASSWORD="your account password for the app"
+TESTGOOGLEUSER_EMAIL="testuser@gmail.com"
+TESTGOOGLEUSER_PASSWORD="your google account password for the app"
+
+# Rate limiting
+AUTH0_GLOBAL_BUDGET_PER_MIN=200
+
+# Webhooks
+DISCORD_WEBHOOK="your discord webhook url"
+```
+
+---
+
+## Auth Frontend (`auth/.env.local`)
+
+Configure the backend API origin for the selected environment. The Auth frontend does not use Auth0 client credentials; OAuth is initiated and completed by the backend.
+
+```
+VITE_DEV_API_URL=https://localhost:8443
+VITE_PROD_API_URL=https://api.example.com
+```
+
+The API origins must match the backend environment and its CORS configuration.
+
+---
+
+## Public Frontend (`sanny/.env.local`)
+
+The public frontend also uses the backend API origin. It does not configure an Auth0 React SDK client.
+
+```
+VITE_DEV_API_URL=https://localhost:8443
+VITE_PROD_API_URL=https://api.example.com
+```
+
+The values must match the selected backend environment and its CORS configuration.
+
+---
+
+Last edit: 17.10.2026

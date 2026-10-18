@@ -1,0 +1,8 @@
+{
+  "label": "Local Testing",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Frontend lint, build, component, browser, and accessibility testing."
+  }
+}

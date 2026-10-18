@@ -1,0 +1,23 @@
+---
+title: Allgemein
+description: Allgemeine Informationen zu allen Frontend-Projekten.
+sidebar_position: 1
+---
+
+## Frontend-Workspaces
+
+Beide Apps verwenden React 19, TypeScript, Vite und die Data-Router-APIs von React Router. In `main.tsx` steht `ThemeProvider` vor `LanguageProvider`; `App.tsx` erstellt jeweils einen `createBrowserRouter`, der mit `RouterProvider` gerendert wird.
+
+Die gemeinsame `AppShell` aus `@sanny/ui` stellt den gebrandeten Rahmen, Skip-Navigation und ein fokussierbares Main-Landmark bereit. Gemeinsame globale und Layout-CSS wird im App-Einstiegspunkt importiert, damit auch eigenständige Routen dieselbe Basis erhalten. Die Party-Routen von Sanny verwenden ein separates Auxiliary-Layout mit routenspezifischen Farben.
+
+Die Routen sind vorhanden, aber die Seiteninhalte von Portfolio, Projekten, Spielen, Blog und Party zeigen derzeit übersetzte Platzhalter. Einstellungen/Admin und die Account-Linking-Abläufe der Auth-App sind interaktiv. Eigenständige Spiele unter `games/` sind von den Sanny-Routen getrennt.
+
+---
+
+## Zusätzliche Routenthemen
+
+Weitere Informationen zu Sannys routenspezifischen Farben und Auxiliary-Layout stehen unter [Sanny](./sanny#besonderes-verhalten).
+
+---
+
+Last edit: 05.09.2026

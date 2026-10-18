@@ -10,13 +10,7 @@
 ![Static Badge](https://img.shields.io/badge/HOSTED_ON-HETZNER-red?style=for-the-badge&logo=hetzner&logoSize=auto)
 
 </center>
-<div align="center">
-  <img alt="Homepage" src="*placeholder*" />
-</div>
-
-Hey there, Sanny here 👋 this is my personal website.
-
-It'll be used as a **portfolio**, a helper for me to **host events** and for you to get some **entertainment** of it.
+Hey there, Sanny here. This repository contains my public website, authentication helper, backend, shared frontend packages, standalone games, and developer documentation.
 
 ## Content
 
@@ -33,7 +27,7 @@ Clone this repository. You will need node.js and git installed.
 
 ### Installation and Setup Instructions
 
-Installation: npm install
+Install dependencies from the repository root with `npm ci`.
 
 In the project directory, run one of the workspace scripts:
 
@@ -49,9 +43,9 @@ For quality checks, use scripts defined by the root `package.json`:
 - Shared-package lint: `npm run lint -w @sanny/i18n`, `npm run lint -w @sanny/styles`, and `npm run lint -w @sanny/ui`
 - `npm run build:auth`, `npm run build:sanny`, and `npm run build:docs`
 
-`npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](documenation/docs/backend/local-testing/automated-testing.mdx), [frontend automated testing guide](documenation/docs/frontend/local-testing/automated-testing.mdx), and [staging readiness checklist](backend/TODO.md).
+`npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx), [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx), and [staging readiness checklist](backend/TODO.md).
 
-That will open https://localhost:5173 for frontend projects and http://localhost:3000 for docusaurus to view the selected app in dev mode in your browser. The page will reload automatically if you make edits.
+Run each app you need in its own terminal. Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and the English docs at `http://localhost:3000` (`npm run dev:docs-de` serves German docs at port `3001`). Frontend development servers use a local HTTPS certificate and reload when source changes.
 
 ### Directory Structure
 
@@ -124,7 +118,7 @@ Sanny/ (Root Workspace)
 ### Frontend
 
 - React + Typescript + Vite
-- Routing via React-Router-Dom
+- Routing via React Router data-router APIs
 - Animations via Framer-Motion
 
 ### Shared Visual System
@@ -144,7 +138,7 @@ The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:aut
 - Auth0 custom database authentication
 - Role-Based Access Control (RBAC) through Auth0
 - MySQL (MariaDB + HeidiSQL)
-- Cloudflare (through Auth0) + Fastify-Helmet (@fastify/helmet)
+- Fastify Helmet (`@fastify/helmet`)
 
 ### Deployment
 
@@ -152,7 +146,7 @@ The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:aut
 - Version control via Git and [Github](https://github.com/Sanny64/Sanny)
 - Hosted at Hetzner Webhosting on [Sanny64](https://www.sanny64.de)
 - Before deployment check whether all your repository secrets are set (Frontend: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD | Backend: VPS_HOST, VPS_USER , VPS_SSH_KEY)
-- Backend only running locally for now.
+- The backend has a VPS deployment workflow. Pushes to `main` test and publish an image; the VPS deployment itself requires a manual `workflow_dispatch` run and configured deployment secrets.
 
 ## Features
 
@@ -160,27 +154,22 @@ The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:aut
   - If no cookie value is set for either language or theme the website falls back to browser preferences
 - Transient account/admin feedback and recoverable auth/linking failures use shared toasts, with German and English messages under `shared.notifications`. Loading, empty states, confirmations, and terminal errors remain on their pages.
 - Unknown routes in the main frontend display the localized 404 page. Explicit `/error?status=...` redirects and router errors retain their corresponding error pages.
-- Auth0 authentication routed via sub-domain to the protected Fastify API
-- RBAC
+- Auth0 authorization-code login with PKCE is handled by the backend; browser apps use its server-side session API.
+- Current Auth0 roles used by the application are `user` and `admin`.
 - Auth0 credentials and application-user data share the MySQL user store without a second signup
-- Cloudflare security features
 
 ### Integrations
 
-- WhatsApp
-- Gmail
-- OAuth2 (Google)
-- Cloudflare
+- Google OAuth through Auth0
+- SMTP for backend password-reset email
 
 ## Auth & Roles
 
-There are four roles: standard user, authenticated user, recruiter, admin. They all come with different permissions.
-
-Recruiters differ to authenticated users in a way they get access to personal information and pictures of me.
-
-Authenticated users differ to standard users in a way they can use forms and interact with allowed backend services.
+The application currently uses the Auth0 roles `user` and `admin`. Self-service API permissions are assigned to `user`; administrative routes require `admin` and the relevant API permission, with MFA for sensitive operations. Recruiter and other role-specific content is not currently implemented.
 
 ## Pages
+
+The routes listed below exist, but public page bodies currently render translated placeholders. The descriptions and feature lists are product direction, not shipped page functionality. Interactive settings/admin and authentication flows are implemented separately.
 
 - [Homepage](#homepage)
 - [Portfolio](#portfolio)
@@ -218,11 +207,11 @@ The portfolio ([/portfolio](https://www.sanny64.de/portfolio)) is supposed to be
 My projects archive ([/projects](https://www.sanny64.de/projects))
 
 - My [first ever website](https://www.sanny64.de/games/first/index.html) [@Provadis-School](https://www.provadis-hochschule.de)
-- Haptic Navigation Wristbands "Haptigation" [@Provadis-School](https://www.provadis-hochschule.de) ([/haptigation](https://www.sanny64.de/projects/haptigation))
-- Golf Handicap Calculator "PROSCRUM" [@Provadis-School](https://www.provadis-hochschule.de) ([/proscrum](https://www.sanny64.de/projects/proscrum))
-- College Management System "Student Assistant Utility" [@Provadis-School](https://www.provadis-hochschule.de) ([/sau](https://www.sanny64.de/projects/sau))
-- Surface Evaluation Ordering System "SEOS" [@Deutsche-Telekom-Technik-GmbH](https://www.telekom.com/de) ([/seos](https://www.sanny64.de/projects/seos))
-- Internal ServiceNow-based IT-Service-Management (Incident-/Change-Management) "SM.Now" [@Deutsche-Telekom-IT-GmbH](https://www.telekom.com/de) ([/smnow](https://www.sanny64.de/projects/smnow))
+- Haptic Navigation Wristbands "Haptigation" [@Provadis-School](https://www.provadis-hochschule.de) ([/projects/haptigation](https://www.sanny64.de/projects/haptigation))
+- Golf Handicap Calculator "PROSCRUM" [@Provadis-School](https://www.provadis-hochschule.de) ([/projects/proscrum](https://www.sanny64.de/projects/proscrum))
+- College Management System "Student Assistant Utility" [@Provadis-School](https://www.provadis-hochschule.de) ([/projects/sau](https://www.sanny64.de/projects/sau))
+- Surface Evaluation Ordering System "SEOS" [@Deutsche-Telekom-Technik-GmbH](https://www.telekom.com/de) ([/projects/seo](https://www.sanny64.de/projects/seo))
+- Internal ServiceNow-based IT-Service-Management (Incident-/Change-Management) "SM.Now" [@Deutsche-Telekom-IT-GmbH](https://www.telekom.com/de) ([/projects/sm.now](https://www.sanny64.de/projects/sm.now))
 - Link to games archive ([/games](https://www.sanny64.de/games))
 
 ---
@@ -243,11 +232,11 @@ A blog ([/blog](https://www.sanny64.de/blog)) for my political, philosophical an
 
 ### Event-Organisation
 
-The event organization pages ([/party](https://www.sanny64.de/party)) are separated from the other pages.
+The event organization routes ([/party](https://www.sanny64.de/party), `/party/comfort`, and `/party/refreshments`) use a separate visual layout and are not linked from the main navigation. They remain directly routable; their current page bodies are placeholders.
 
 They follow their own theme and mainly focus on making the user feel comfortable.
 
-They're accessible only via QR-codes and can't be reached from the main UI.
+The following is the intended event-page content, not current functionality:
 
 1. **Main Page**
 
@@ -284,6 +273,7 @@ Auth is hosted at https://auth.sanny64.de and handles account-link confirmation 
 ## Settings
 
 ### Default
+
 The settings can be accessed with /settings across all subdomains
 
 - Dark/Light mode
@@ -291,8 +281,9 @@ The settings can be accessed with /settings across all subdomains
 - Accessibility settings (coming soon)
 - Self user actions (change password, username)
 
-### Admin 
-The admin settings allow user account changes (roles, username, etc.) for different user accounts if an admin user logs in. 
+### Admin
+
+The admin settings allow user account changes (roles, username, etc.) for different user accounts if an admin user logs in.
 They are restricted for any non admin users.
 
 ## Error-Handling

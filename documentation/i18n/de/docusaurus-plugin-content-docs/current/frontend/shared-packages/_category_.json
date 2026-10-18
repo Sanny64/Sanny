@@ -1,0 +1,8 @@
+{
+  "label": "Geteilte Pakete",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Hier findest du die Dokumentation zu den gemeinsam genutzten Paketen."
+  }
+}

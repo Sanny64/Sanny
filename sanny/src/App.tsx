@@ -25,40 +25,43 @@ import { restoreLogoutReturnTo } from "./utils/reauthentication";
 
 restoreLogoutReturnTo();
 
-const router = createBrowserRouter([
-  {
-    // Main routes using the <Main /> Layout
-    element: <Main />,
-    errorElement: <ErrorPage />,
-    children: [
-      { path: "/", element: <Home /> },
-      { path: "/home", element: <Navigate to="/" replace /> },
-      { path: "/portfolio", element: <Portfolio /> },
-      { path: "/projects", element: <Projects /> },
-      { path: "/projects/haptigation", element: <Haptigation /> },
-      { path: "/projects/proscrum", element: <Proscrum /> },
-      { path: "/projects/sau", element: <SAU /> },
-      { path: "/projects/seo", element: <SEO /> },
-      { path: "/projects/sm.now", element: <SMNow /> },
-      { path: "/blog", element: <Blog /> },
-      { path: "/games", element: <Games /> },
-      { path: "/settings", element: <AccountSettings /> },
-      { path: "/settings/admin", element: <AdminSettings /> },
-      { path: "/error", element: <ErrorPage /> },
-      { path: "*", element: <ErrorPage status={404} /> },
-    ],
-  },
-  {
-    // Auxiliary routes using the <Auxiliary /> Layout
-    element: <Auxiliary />,
-    errorElement: <ErrorPage />,
-    children: [
-      { path: "/party", element: <Party /> },
-      { path: "/party/refreshments", element: <Refreshments /> },
-      { path: "/party/comfort", element: <Comfort /> },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      // Main routes using the <Main /> Layout
+      element: <Main />,
+      errorElement: <ErrorPage />,
+      children: [
+        { path: "/", element: <Home /> },
+        { path: "/home", element: <Navigate to="/" replace /> },
+        { path: "/portfolio", element: <Portfolio /> },
+        { path: "/projects", element: <Projects /> },
+        { path: "/projects/haptigation", element: <Haptigation /> },
+        { path: "/projects/proscrum", element: <Proscrum /> },
+        { path: "/projects/sau", element: <SAU /> },
+        { path: "/projects/seo", element: <SEO /> },
+        { path: "/projects/sm.now", element: <SMNow /> },
+        { path: "/blog", element: <Blog /> },
+        { path: "/games", element: <Games /> },
+        { path: "/settings", element: <AccountSettings /> },
+        { path: "/settings/admin", element: <AdminSettings /> },
+        { path: "/error", element: <ErrorPage /> },
+        { path: "*", element: <ErrorPage status={404} /> },
+      ],
+    },
+    {
+      // Auxiliary routes using the <Auxiliary /> Layout
+      element: <Auxiliary />,
+      errorElement: <ErrorPage />,
+      children: [
+        { path: "/party", element: <Party /> },
+        { path: "/party/refreshments", element: <Refreshments /> },
+        { path: "/party/comfort", element: <Comfort /> },
+      ],
+    },
+  ],
+  { basename: import.meta.env.BASE_URL },
+);
 
 function App() {
   return (

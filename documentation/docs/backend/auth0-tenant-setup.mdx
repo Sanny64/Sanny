@@ -1,0 +1,87 @@
+---
+title: Auth0 Tenant Setup
+description: Configure Auth0 for the Sanny backend and account flows.
+sidebar_position: 2
+---
+
+# Auth0 Tenant Setup
+
+Use a separate Auth0 tenant for each environment that operates concurrently. The Login Action and custom database settings are tenant-wide; a single tenant configuration cannot safely serve different development and production resources at the same time.
+
+Auth0 hosts login and runs the custom database scripts, while the Sanny database remains the application user store. The backend owns the authorization-code flow, PKCE exchange, and session.
+
+## Application URLs
+
+Create a **Regular Web Application** for the backend. Store its Client ID and Client Secret as `AUTH0_CLIENT_ID` and `AUTH0_CLIENT_SECRET` in the backend's secret configuration. Do not put the client secret in either browser app.
+
+| Setting                                        | Local development                                                                                                   | Production example                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Application Login URI                          | `https://localhost:5174/account-link-proof-resume`                                                                  | `https://auth.example.de/account-link-proof-resume`                                                                 |
+| Allowed Callback URLs                          | `https://localhost:8443/api/v001/auth/callback`, `https://localhost:8443/api/v001/auth/account-link-proof/callback` | `https://api.example.de/api/v001/auth/callback`, `https://api.example.de/api/v001/auth/account-link-proof/callback` |
+| Allowed Logout URLs                            | `https://localhost:5173/`                                                                                           | `https://example.de/`                                                                                               |
+| Allowed Web Origins and Allowed Origins (CORS) | Not required for the current backend-driven flow                                                                    | Not required unless a browser client calls Auth0 directly                                                           |
+
+Enable Authorization Code and Refresh Token grants, refresh-token rotation and reuse detection, and `offline_access` for the API. Do not enable the Implicit Grant or SPA-only cross-origin authentication for this flow. The Application Login URI resumes ownership proof after password reset; it is not an OAuth callback.
+
+## API and Roles
+
+Create an API whose identifier exactly matches `AUTH0_AUDIENCE`, and configure RS256 signing, RBAC, and permissions in access tokens. The backend uses these permissions:
+
+| Permission     | Use                                              |
+| -------------- | ------------------------------------------------ |
+| `update:me`    | Update the signed-in user's profile              |
+| `delete:me`    | Delete the signed-in user's profile              |
+| `read:users`   | Read user profiles as an administrator           |
+| `write:users`  | Create users or manage roles as an administrator |
+| `update:users` | Update users as an administrator                 |
+| `delete:users` | Delete users as an administrator                 |
+
+Assign `update:me` and `delete:me` to the `user` role; assign administrative permissions to the reviewed `admin` role. The backend reads permissions from the `permissions` claim or, when absent, the OAuth `scope` claim.
+
+## Custom Database Connection
+
+Create a Database connection, enable **Use my own database**, and enable it for the Regular Web Application. Configure the scripts from `backend/auth0/database-action/`:
+
+| Auth0 action    | Repository file     |
+| --------------- | ------------------- |
+| Login           | `login.js`          |
+| Get User        | `getUser.js`        |
+| Create          | `create.js`         |
+| Verify          | `verify.js`         |
+| Change Password | `changePassword.js` |
+| Delete          | `delete.js`         |
+
+Provide the connection configuration values `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, and `DB_SSL_CA`. Use a dedicated database user with only the required `User` table access, and keep TLS certificate validation enabled. Test each script with Auth0's **Try** controls against a non-production account. The [script reference](./auth0-database-action-scripts) documents callback behavior and password policy.
+
+## Google Connection
+
+Configure the Google connection under **Authentication > Social** and enable it for the same Regular Web Application. The current account-linking flow supports `auth0` and `google-oauth2`. Matching verified email addresses trigger explicit ownership proof; they do not link accounts automatically.
+
+## Management API Applications
+
+Use separate Machine-to-Machine applications for Auth0 Actions and backend Management API operations. Authorize each under **Applications > APIs > Auth0 Management API** with only the scopes required by its code.
+
+The Actions application needs `update:users`, `read:users`, `create:user_identities`, `update:users_app_metadata`, and `delete:users` for the deployed verification, role, linking, and cancellation actions. The backend application needs `create:user_tickets` for password-reset tickets. Role synchronization is disabled unless `AUTH0_ROLE_SYNC_ENABLED=true`; if enabled, also grant only the user/role read and update scopes required by that feature.
+
+Set `AUTH0_MGMT_AUDIENCE` to `https://<AUTH0_DOMAIN>/api/v2/`, including the trailing slash. Use the same tenant domain throughout an Auth0 transaction.
+
+## Actions
+
+Create and deploy the following repository Actions, then attach them to their triggers. Backend deployment does not publish Auth0 Actions.
+
+- Post Login, in order: `verifyEmail.js`, `linkAccounts.js`, `mfaStepUp.js`, `roleClaims.js`.
+- Post User Registration: `assignDefaultUserRole.js`.
+
+Configure Action secrets using the Management API application for Actions:
+
+- Shared secrets: `AUTH0_DOMAIN`, `AUTH0_M2M_CLIENT_ID`, `AUTH0_M2M_CLIENT_SECRET`, and `AUTH0_MGMT_AUDIENCE`.
+- `verifyEmail.js`: `AUTH0_EMAIL_VERIFIED_CLAIM=https://sanny64.app/email_verified`.
+- `linkAccounts.js`: `NODE_ENV`, the matching `DEV_ACCOUNT_LINK_CONFIRMATION_URL` or `PROD_ACCOUNT_LINK_CONFIRMATION_URL`, `ACCOUNT_LINK_ALLOWED_PROVIDERS=auth0,google-oauth2`, and `ACCOUNT_LINK_PROOF_SECRET`.
+- `mfaStepUp.js`: `MFA_ACR=http://schemas.openid.net/pape/policies/2007/06/multi-factor` and `EMAIL_MFA_ACR=https://sanny64.de/acr/email-otp`.
+- `roleClaims.js` and `assignDefaultUserRole.js`: `AUTH0_DEFAULT_ROLE_ID` for the reviewed `user` role. `roleClaims.js` also needs `AUTH0_CLAIM_NAMESPACE=https://sanny64.app` and `AUTH0_EMAIL_VERIFIED_CLAIM=https://sanny64.app/email_verified`.
+
+The `linkAccounts.js` Action uses signed, directional ownership proof. Its `pending`, `confirmed`, and `cancelled` metadata does not suppress another prompt while identities remain unlinked. The canonical identity is Google after successful linking.
+
+## Verification
+
+Use the [Auth0 tenant contract](./auth0-tenant-contract), [environment configuration](./environment-configuration), and [backend quickstart](./local-testing/quickstart-testing) to verify the tenant and local flows. Keep credentials, certificates, and tenant-specific secrets out of source control and documentation.

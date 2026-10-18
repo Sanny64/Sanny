@@ -11,31 +11,34 @@ const apiUrl = import.meta.env.DEV
   ? import.meta.env.VITE_DEV_API_URL
   : import.meta.env.VITE_PROD_API_URL;
 
-const router = createBrowserRouter([
-  {
-    path: "/account-link-proof-resume",
-    element: <AccountLinkingResumePage />,
-    loader: () =>
-      prepareProofResume(apiUrl, window.location.hash, () => sessionStorage),
-  },
-  {
-    element: <Main />,
-    errorElement: <ErrorPage />,
-    children: [
-      { path: "/", element: <Home /> },
-      { path: "/settings", element: <Settings /> },
-      {
-        path: "/confirm-linking",
-        element: <AccountLinkingPage />,
-      },
-      {
-        path: "/account-link-proof-complete",
-        element: <AccountLinkingProofPage />,
-      },
-      { path: "*", element: <ErrorPage status={404} /> },
-    ],
-  },
-]);
+const router = createBrowserRouter(
+  [
+    {
+      path: "/account-link-proof-resume",
+      element: <AccountLinkingResumePage />,
+      loader: () =>
+        prepareProofResume(apiUrl, window.location.hash, () => sessionStorage),
+    },
+    {
+      element: <Main />,
+      errorElement: <ErrorPage />,
+      children: [
+        { path: "/", element: <Home /> },
+        { path: "/settings", element: <Settings /> },
+        {
+          path: "/confirm-linking",
+          element: <AccountLinkingPage />,
+        },
+        {
+          path: "/account-link-proof-complete",
+          element: <AccountLinkingProofPage />,
+        },
+        { path: "*", element: <ErrorPage status={404} /> },
+      ],
+    },
+  ],
+  { basename: import.meta.env.BASE_URL },
+);
 
 function App() {
   return (

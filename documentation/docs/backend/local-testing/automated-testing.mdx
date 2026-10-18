@@ -1,0 +1,39 @@
+---
+title: Automated Testing
+description: Run backend type, unit, monitoring, and Redis integration tests locally.
+sidebar_position: 2
+---
+
+## Commands
+
+Run commands from the repository root.
+
+| Command                      | Purpose                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `npm run test:backend`       | Type-check the backend, then run backend unit and monitoring tests.       |
+| `npm run test:backend:redis` | Run the real-Redis session integration test; Docker is required.          |
+| `npm run test`               | Run the complete root gate, including backend, frontend, and integration. |
+
+Backend unit tests live in `backend/src/tests/`; monitoring integration tests live in `backend/monitoring/tests/`. These checks exercise backend behavior and do not run browser UI or accessibility tests.
+
+The Redis check uses Docker and the backend's configured test stack. The root gate also requires installed Playwright browsers and a reachable development API/Auth0 tenant for live integration tests. Keep dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials for that integration suite; never use personal accounts.
+
+---
+
+## Test Boundaries
+
+- **Backend:** `npm run test:backend` and `npm run test:backend:redis` cover type checks, backend unit/monitoring tests, and Redis-backed session behavior.
+- **Frontend:** `npm run test:frontend` covers app lint/build, shared UI components, mocked browser behavior, and accessibility. See [Frontend Automated Testing](../../frontend/local-testing/automated-testing.mdx).
+- **Cross-system integration:** `npm run test:integration` runs live Auth0/browser flows. It exercises the connected apps and API, so it is not a backend-only or frontend-only test gate.
+
+Mocked browser checks prove frontend behavior and request/response contracts only; they do not prove backend persistence. Live integration checks do not cover every provider or account lifecycle. Google automation is explicitly skipped because the provider can block controlled browsers; keep manual provider verification separate.
+
+---
+
+## Continue
+
+Use [Backend Manual Testing](./manual-testing.mdx) for backend and hosted-environment verification. Use [Frontend Manual Testing](../../frontend/local-testing/manual-testing.mdx) for keyboard, screen-reader, zoom, and other frontend checks. Hosted verification evidence belongs in [Monitoring and Verification](../monitoring.mdx); local tests do not count as staging sign-off.
+
+---
+
+Last edit: 18.10.2026

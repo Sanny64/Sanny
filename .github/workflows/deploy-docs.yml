@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - "documenation/**"
+      - "documentation/**"
       - "package.json"
       - "package-lock.json"
 
@@ -33,7 +33,7 @@ jobs:
         run: npm ci
 
       - name: Copy favicon from root
-        run: cp ./favicon.ico ./documenation/static/img/
+        run: cp ./favicon.ico ./documentation/static/img/
 
       - name: Build docs
         run: npm run build:docs
@@ -51,5 +51,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: loose
-          local-dir: ./documenation/build/
+          local-dir: ./documentation/build/
           server-dir: /public_html/docs/

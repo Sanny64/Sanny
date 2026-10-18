@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# Sanny Public Site
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The `sanny/` workspace is the public React 19, TypeScript, and Vite application. It shares localization, theme, and UI behavior through `@sanny/i18n`, `@sanny/styles`, and `@sanny/ui`.
 
-Currently, two official plugins are available:
+## Routes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `/`, `/portfolio`, `/projects`, `/projects/haptigation`, `/projects/proscrum`, `/projects/sau`, `/projects/seo`, `/projects/sm.now`, `/blog`, and `/games`
+- `/party`, `/party/comfort`, and `/party/refreshments` use the auxiliary layout and scoped colors.
+- `/settings` and `/settings/admin` contain interactive account and admin UI.
 
-## React Compiler
+The public content routes are present, but their page bodies currently render translated placeholders. The standalone games under `games/` are separate projects and are not embedded in these route pages.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## App Structure
 
-## Expanding the ESLint configuration
+`src/main.tsx` installs `ThemeProvider` before `LanguageProvider` and imports shared styles. `src/App.tsx` defines the React Router data routes. Main routes use `AppShell`; party routes use the auxiliary layout.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Authentication is handled by the Fastify backend and Auth0. The browser reads `VITE_DEV_API_URL` in development and `VITE_PROD_API_URL` in production; it does not configure an Auth0 SPA client.
 
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
+## Development
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Run these commands from the repository root:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+```sh
+npm ci
+npm run dev:sanny
+npm run lint:sanny
+npm run build:sanny
+npm run test:e2e:accessibility:sanny
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The development server uses HTTPS at `https://localhost:5173`. Build and lint wrappers are defined in the root `package.json`.
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
-
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
-```
+See the [frontend documentation](../documentation/docs/frontend/projects/sanny.mdx) and [deployment guide](../documentation/docs/general-info/deployment.mdx) for shared behavior and workflow details.

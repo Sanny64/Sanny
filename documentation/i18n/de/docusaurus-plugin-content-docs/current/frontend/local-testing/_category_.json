@@ -1,0 +1,8 @@
+{
+  "label": "Lokale Tests",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Lint-, Build-, Komponenten-, Browser- und Barrierefreiheitstests für das Frontend."
+  }
+}

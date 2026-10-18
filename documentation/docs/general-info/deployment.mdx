@@ -1,0 +1,279 @@
+---
+title: Deployment
+description: Deployment/Release flow and Git guide
+sidebar_position: 5
+---
+
+# Deployment
+
+This project uses a simple release train for a monorepo with:
+
+- `sanny` frontend.
+- `auth` frontend.
+- `documentation` site.
+- Fastify backend.
+- Shared packages under `shared/packages/**`.
+
+The goal is to keep `main` very tidy, support a real web test environment, and keep the workflow easy to run for a solo developer.
+
+---
+
+## Branch model
+
+This project uses `dev -> test -> main`.
+
+This is the repository's documented release convention, not a branch-protection rule enforced by GitHub Actions. The workflows enforce their configured branch/path triggers but do not enforce pull-request or squash-merge policy.
+
+### `dev`
+
+- Daily development branch.
+- Feature work lands here first.
+- Commit history can be messy.
+- Nothing in `dev` is considered release-ready until it has been promoted to `test`.
+
+### `test`
+
+- Release-candidate branch.
+- Deploys the public test environment.
+- Used to verify the exact release on the web before production.
+- Fixes for release-candidate issues land here first.
+
+### `main`
+
+- Production branch only.
+- Kept clean and readable.
+- Updated only by squash-merging `test` into `main`.
+- Each release should create one small squash commit on `main`.
+
+---
+
+## Deployment mapping
+
+### Test environment
+
+A push to `test` deploys the internet-accessible test environment. The workflow does not add login protection.
+
+- `sanny` -> `/public_html/testing/` (URL path `/testing/`).
+- `auth` -> `/public_html/testing/auth/` (URL path `/testing/auth/`).
+- `docs` -> `/public_html/testing/docs/` (URL path `/testing/docs/`, including both locales).
+- `.github/workflows/deploy-to-test.yml` builds and uploads all three frontends together using the existing FTP secrets. It also supports manual runs via `workflow_dispatch`.
+- Test builds set the asset and router base paths without changing production defaults. Apache rewrite rules support refreshing nested React routes.
+- Shared packages are built as part of the frontend pipeline whenever relevant.
+- The test workflow deploys only the frontend apps and documentation; it does not deploy the backend.
+
+### Production
+
+A push to `main` deploys production.
+
+- `sanny` -> production site.
+- `auth` -> production site.
+- `docs` -> production site.
+- Shared packages are built as part of the frontend pipeline whenever relevant.
+- A push to `main` runs backend checks and builds/pushes the backend image. The VPS deployment job runs only when `deploy-backend.yml` is started with `workflow_dispatch`.
+- The separate `deploy-images.yml` workflow builds and pushes a Docker Hub image on `dev` pushes and version tags; it does not deploy to the VPS.
+
+---
+
+## Shared packages rule
+
+`shared/packages/**` always affects frontend builds.
+
+That means:
+
+- Any relevant change in `shared/packages/**` must trigger the frontend pipeline.
+- Shared packages are not deployed manually on their own.
+- If a shared package changes, the dependent frontend must rebuild in test and production.
+
+This keeps shared code in sync with the apps that consume it.
+
+---
+
+## Release flow
+
+### 1. Build work on `dev`
+
+- Create a feature branch from `dev`.
+  - `feat/<name>`
+- Make your changes.
+- Merge the feature branch back into `dev`.
+
+### 2. Promote `dev` to `test`
+
+- When you want a release candidate, merge `dev` into `test`.
+- Push `test`.
+- The test environment deploys automatically.
+
+### 3. Test on the web
+
+- Open the test environment in a browser.
+- Verify UI, integration, deployment behavior, and any backend-dependent flows.
+- Fix anything that fails by branching from `test`.
+
+### 4. Fix release issues on `test`
+
+- Create a fix branch from `test`.
+  - `fix/<name>`
+- Apply the fix.
+- Merge the fix back into `test`.
+- Push `test` again to redeploy the test environment.
+- Once the fix is verified, promote test to main and merge test into dev.
+
+### 5. Promote `test` to `main`
+
+- Once the test environment is approved, open a pull request from `test` to `main`.
+- Use squash merge.
+- This creates one clean release commit on `main`.
+
+### 6. Production deploy
+
+- After the squash merge, production deploys from `main`.
+- Frontends and docs deploy automatically.
+- Backend deployment needs a manual `workflow_dispatch` trigger in the GitHub Actions menu.
+  <br />
+  <br />
+  <center>
+    <img
+      src="/img/release_flow.drawio.svg"
+      alt="Release flowchart"
+      description="Release flowchart showing feature branches merged into dev, then test, with fix loops and final deployment through PR to main and manual trigger in GitHub Actions."
+    />
+  </center>
+
+---
+
+## Step-by-step Git Guide
+
+### Working on a feature
+
+Create a feature branch based off the dev-branch:
+
+```bash
+git checkout dev
+git pull origin dev
+git checkout -b feat/<name>
+```
+
+Commit your work and push the branch:
+
+```bash
+git add .
+git commit -m "Describe the change"
+git push -u origin feat/<name>
+```
+
+When finished, merge it back into `dev`:
+
+```bash
+git checkout dev
+git pull origin dev
+git merge feat/<name>
+git push origin dev
+```
+
+### Start a release candidate
+
+When `dev` is ready to ship:
+
+```bash
+git checkout test
+git pull origin test
+git merge dev
+git push origin test
+```
+
+This deploys the test environment.
+
+### Test the release
+
+Use the public test site to verify:
+
+- Layout and UI.
+- Routing.
+- API behavior.
+- Shared package changes.
+- Any deployment-specific issues.
+
+If the release is good, move on to production. If not, fix it on `test`.
+
+### Fix a problem found on `test`
+
+Create a bug-fixing branch based off the test-branch:
+
+```bash
+git checkout test
+git pull origin test
+git checkout -b fix/<name>
+```
+
+Make the fix, then merge it back into `test`:
+
+```bash
+git add .
+git commit -m "Fix release issue"
+git checkout test
+git pull origin test
+git merge fix/<name>
+git push origin test
+```
+
+Repeat for all bugs.
+After every fix is validated on `test` and the release is fully stable, merge test into dev.
+
+```bash
+git checkout dev
+git pull origin dev
+git merge test
+git push origin dev
+```
+
+### Promote to production
+
+When `test` is approved:
+
+1. Open a pull request from `test` to `main`.
+2. Let CI run.
+3. Use squash merge.
+
+This keeps `main` tidy and produces one compact release commit.
+
+---
+
+## Resync feature branches
+
+If feature branches drift apart and you want them to share the same working state again, use `dev` as the integration point.
+
+1. Merge all feature branches into `dev` locally (in dependency order to avoid conflicts).
+2. Push `dev`.
+3. On each feature branch, pull or merge `dev` to synchronize.
+4. Push the updated feature branches.
+
+This is a recovery step using the normal `dev` integration branch. It is useful when several branches depend on the same shared-package or workspace changes and you need local dev servers to work consistently again.
+
+---
+
+## Production deploy behavior
+
+Production deploy starts from `main` after the squash merge.
+
+- `sanny`, `auth`, and the documentation site deploy from `main` when their workflow path filters match.
+- Changes in shared packages trigger the frontend pipelines that include those paths.
+- A push to `main` builds and publishes the backend image; the VPS deployment requires a manual `workflow_dispatch` run.
+
+This makes `main` the source of truth for production while keeping the actual release history small and clean.
+
+---
+
+## Backend note
+
+Backend deployment is separate from the frontend release train.
+
+That means:
+
+- The `test` branch workflow does not deploy the backend.
+- A push to `main` builds and publishes the backend image but does not deploy it to the VPS.
+- A manual `workflow_dispatch` run of `deploy-backend.yml` performs the VPS deployment and requires the deployment secrets and host to be configured.
+- Frontend and docs releases should still follow the normal `dev -> test -> main` path regardless of backend status.
+
+---
+
+Last edit: 18.10.2026
