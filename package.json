@@ -75,7 +75,7 @@
     "test": "npm run format:check && npm run test:backend && npm run test:backend:redis && npm run test:frontend && npm run test:integration"
   },
   "overrides": {
-    "image-size@<= >2.0.2": " >2.0.2",
+    "image-size@<=2.0.2": ">2.0.2",
     "serialize-javascript@<=7.0.3": "7.0.3"
   }
 }
