@@ -51,14 +51,16 @@ Dies ist die dokumentierte Release-Konvention des Repositorys, keine von GitHub 
 
 ### Testumgebung
 
-Ein Push nach `test` stellt die im Internet erreichbare Testumgebung bereit. Der Workflow ergänzt keinen Login-Schutz.
+Ein Push nach `test` stellt die im Internet erreichbare Testumgebung mit HTTP Basic Auth für Website-Besucher bereit.
 
-`sanny` -> `/public_html/testing/` (URL-Pfad `/testing/`).
-`auth` -> `/public_html/testing/auth/` (URL-Pfad `/testing/auth/`).
-`docs` -> `/public_html/testing/docs/` (URL-Pfad `/testing/docs/`, einschließlich beider Sprachen).
-`.github/workflows/deploy-to-test.yml` baut und lädt alle drei Frontends gemeinsam mit den vorhandenen FTP-Secrets hoch. Manuelle Starts über `workflow_dispatch` werden ebenfalls unterstützt.
-Test-Builds setzen Asset- und Router-Basispfade, ohne die Produktions-Defaults zu ändern. Apache-Rewrite-Regeln unterstützen das Neuladen verschachtelter React-Routen.
-Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
+- `sanny` -> `/public_html/testing/`, erreichbar unter `https://test.sanny64.de/`.
+- `auth` -> `/public_html/testing/auth/`, erreichbar unter `https://test.auth.sanny64.de/`.
+- `docs` -> `/public_html/testing/docs/`, erreichbar unter `https://test.docs.sanny64.de/`, einschließlich beider Sprachen.
+- `.github/workflows/deploy-to-test.yml` baut alle drei Frontends und lädt jede Website mit einer eigenen FTP-Synchronisationsdatei und den vorhandenen FTP-Secrets hoch. Manuelle Starts über `workflow_dispatch` sind auf `test` beschränkt.
+- Die verschachtelten Verzeichnisse sind Dokumentenwurzeln beim Hoster, keine URL-Präfixe; alle Builds verwenden `/`. Subdomains und HTTPS müssen bei Hetzner eingerichtet werden. Vorhandene Repository-Variablen `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR` oder `TEST_DOCS_SERVER_DIR` überschreiben diese Verzeichnisse.
+- `TEST_BASIC_AUTH_ENTRY` enthält eine Zeile `benutzername:passwort-hash`. `TEST_BASIC_AUTH_FILE_PATH` enthält den absoluten Server-Dateisystempfad zur Datei `/public_html/testing/.htpasswd`, nicht den FTP-sichtbaren Pfad. Alle drei Websites müssen diese gemeinsame Passwortdatei lesen dürfen.
+  Test-Builds setzen Asset- und Router-Basispfade, ohne die Produktions-Defaults zu ändern. Apache-Rewrite-Regeln unterstützen das Neuladen verschachtelter React-Routen.
+  Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
 
 ### Produktion
 
@@ -119,7 +121,7 @@ So bleibt gemeinsam genutzter Code mit den Apps synchron, die ihn verwenden.
 
 ### 5. `test` nach `main` übernehmen
 
-- Sobald die Testumgebung freigegeben ist, öffne einen Pull Request von `test` nach `main`.
+- Sobald die Testumgebung freigegeben ist und wieder zurück in `dev` gemerged wurde, öffne einen Pull Request von `test` nach `main`.
 - Verwende Squash-Merge.
 - Dadurch entsteht ein einzelner sauberer Release-Commit auf `main`.
 

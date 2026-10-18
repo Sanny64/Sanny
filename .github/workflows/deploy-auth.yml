@@ -37,7 +37,14 @@ jobs:
         run: npm run lint:auth && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
 
       - name: Build the project
-        run: npm run build:auth
+        run: |
+          if [ -z "$VITE_PROD_API_URL" ]; then
+            echo "Set the VITE_PROD_API_URL repository variable before deploying production."
+            exit 1
+          fi
+          npm run build:auth
+        env:
+          VITE_PROD_API_URL: ${{ vars.VITE_PROD_API_URL }}
 
       - name: Upload auth build
         uses: actions/upload-artifact@v4

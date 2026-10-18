@@ -51,12 +51,14 @@ This is the repository's documented release convention, not a branch-protection 
 
 ### Test environment
 
-A push to `test` deploys the internet-accessible test environment. The workflow does not add login protection.
+A push to `test` deploys the internet-accessible test environment with HTTP Basic Auth for website visitors.
 
-- `sanny` -> `/public_html/testing/` (URL path `/testing/`).
-- `auth` -> `/public_html/testing/auth/` (URL path `/testing/auth/`).
-- `docs` -> `/public_html/testing/docs/` (URL path `/testing/docs/`, including both locales).
-- `.github/workflows/deploy-to-test.yml` builds and uploads all three frontends together using the existing FTP secrets. It also supports manual runs via `workflow_dispatch`.
+- `sanny` -> `/public_html/testing/`, served at `https://test.sanny64.de/`.
+- `auth` -> `/public_html/testing/auth/`, served at `https://test.auth.sanny64.de/`.
+- `docs` -> `/public_html/testing/docs/`, served at `https://test.docs.sanny64.de/`, including both locales.
+- `.github/workflows/deploy-to-test.yml` builds all three frontends and uploads each site with its own FTP sync-state file using the existing FTP secrets. Manual runs via `workflow_dispatch` are restricted to `test`.
+- The nested directories are hosting document roots, not URL prefixes; all builds use `/`. Configure the subdomains and HTTPS in Hetzner. Existing `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR`, or `TEST_DOCS_SERVER_DIR` repository variables override these directories.
+- Set `TEST_BASIC_AUTH_ENTRY` to one `username:hashed-password` line and `TEST_BASIC_AUTH_FILE_PATH` to the absolute server filesystem path of `/public_html/testing/.htpasswd` (not its FTP-visible path). All three sites must be allowed to read this shared password file.
 - Test builds set the asset and router base paths without changing production defaults. Apache rewrite rules support refreshing nested React routes.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
 - The test workflow deploys only the frontend apps and documentation; it does not deploy the backend.
@@ -116,11 +118,11 @@ This keeps shared code in sync with the apps that consume it.
 - Apply the fix.
 - Merge the fix back into `test`.
 - Push `test` again to redeploy the test environment.
-- Once the fix is verified, promote test to main and merge test into dev.
+- Once the fix is verified merge `test`back into `dev` so both environments are on the same snapshot again.
 
 ### 5. Promote `test` to `main`
 
-- Once the test environment is approved, open a pull request from `test` to `main`.
+- Once the test environment is approved and has been merged back to `dev`, open a pull request from `test` to `main`.
 - Use squash merge.
 - This creates one clean release commit on `main`.
 

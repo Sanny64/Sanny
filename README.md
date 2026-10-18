@@ -47,6 +47,25 @@ For quality checks, use scripts defined by the root `package.json`:
 
 Run each app you need in its own terminal. Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and the English docs at `http://localhost:3000` (`npm run dev:docs-de` serves German docs at port `3001`). Frontend development servers use a local HTTPS certificate and reload when source changes.
 
+### Deployment
+
+Every push to `main` runs the production docs workflow. Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. All sites are built for the subdomain root (`/`).
+
+Configure the GitHub Actions repository variable `VITE_DEV_API_URL` for the test backend and `VITE_PROD_API_URL` for the production backend. The test workflow passes the development URL into the existing `VITE_PROD_API_URL` build-time slot because optimized Vite builds use the production code path, regardless of deployment branch. Production workflows use the production URL. Builds fail if their required URL is missing. Local `.env.local` files remain unchanged and are not available on GitHub runners. The test URL must be reachable by visitors; `localhost` would point to each visitor's own device.
+
+Configure these HTTPS subdomains in Hetzner with the corresponding document roots (FTP-visible paths):
+
+| Branch | Domain                 | FTP directory                |
+| ------ | ---------------------- | ---------------------------- |
+| `main` | `docs.sanny64.de`      | `/public_html/docs/`         |
+| `test` | `test.sanny64.de`      | `/public_html/testing/`      |
+| `test` | `test.auth.sanny64.de` | `/public_html/testing/auth/` |
+| `test` | `test.docs.sanny64.de` | `/public_html/testing/docs/` |
+
+The test destinations can be overridden with GitHub repository variables `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR`, and `TEST_DOCS_SERVER_DIR`; include a trailing slash. Update or remove existing overrides if they point elsewhere. Auth and docs are nested directories on disk but are served at `/` on their own subdomains. Each upload uses a site-specific FTP sync-state file. DNS, TLS certificates, and subdomain document roots must be configured in the hosting control panel; FTP deployment does not create them.
+
+Both workflows use `FTP_SERVER`, `FTP_USERNAME`, and `FTP_PASSWORD` secrets. Test sites also require `TEST_BASIC_AUTH_ENTRY` containing one `username:hashed-password` line and `TEST_BASIC_AUTH_FILE_PATH` containing the absolute server filesystem path to the main test site's `.htpasswd`. This is not the FTP-visible path. All three sites use that shared password file, so Apache must be permitted to read it from each subdomain. Apache must allow Basic Auth and rewrite directives in `.htaccess`. Sanny and Auth use SPA fallbacks; docs serves its generated pages and `404.html`.
+
 ### Directory Structure
 
 ```

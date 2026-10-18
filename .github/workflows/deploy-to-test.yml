@@ -7,18 +7,6 @@ on:
   push:
     branches:
       - test
-    paths:
-      - "auth/**"
-      - "sanny/**"
-      - "documentation/**"
-      - "shared/packages/**"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.shared.ts"
-      - "tsconfig*.json"
-      - "eslint.shared.mjs"
-      - "shared/eslint.shared.config.js"
-      - ".github/workflows/deploy-to-test.yml"
 
 concurrency:
   group: deploy-frontends-test
@@ -26,6 +14,7 @@ concurrency:
 
 jobs:
   lint-and-build:
+    if: github.ref == 'refs/heads/test'
     runs-on: ubuntu-latest
 
     permissions:
@@ -60,19 +49,24 @@ jobs:
           npm run build -w @sanny/styles
           npm run build -w @sanny/ui
 
-      - name: Build frontends for the testing path
+      - name: Build frontends for test subdomains
         run: |
-          npm run build -w sanny -- --base=/testing/
-          npm run build -w auth -- --base=/testing/auth/
+          if [ -z "$VITE_PROD_API_URL" ]; then
+            echo "Set the VITE_DEV_API_URL repository variable before deploying test."
+            exit 1
+          fi
+          npm run build -w sanny -- --base=/
+          npm run build -w auth -- --base=/
           npm run build:docs
         env:
-          DOCUSAURUS_URL: https://sanny64.de
-          DOCUSAURUS_BASE_URL: /testing/docs/
+          VITE_PROD_API_URL: ${{ vars.VITE_DEV_API_URL }}
+          DOCUSAURUS_URL: https://test.docs.sanny64.de
+          DOCUSAURUS_BASE_URL: /
 
-      - name: Stage testing site
+      - name: Stage testing sites
         run: |
-          mkdir -p testing-site/auth testing-site/docs
-          cp -a sanny/dist/. testing-site/
+          mkdir -p testing-site/sanny testing-site/auth testing-site/docs
+          cp -a sanny/dist/. testing-site/sanny/
           cp -a auth/dist/. testing-site/auth/
           cp -a documentation/build/. testing-site/docs/
           if [[ "$TEST_BASIC_AUTH_ENTRY" == *$'\n'* || "$TEST_BASIC_AUTH_ENTRY" == *$'\r'* || ! "$TEST_BASIC_AUTH_ENTRY" =~ ^[^:]+:[^:]+$ ]]; then
@@ -83,7 +77,7 @@ jobs:
             echo "TEST_BASIC_AUTH_FILE_PATH must be an absolute server path using only letters, numbers, '.', '_', '/', or '-'."
             exit 1
           fi
-          printf '%s\n' "$TEST_BASIC_AUTH_ENTRY" > testing-site/.htpasswd
+          printf '%s\n' "$TEST_BASIC_AUTH_ENTRY" > testing-site/sanny/.htpasswd
           printf '%s\n' \
             'DirectoryIndex index.html' \
             'AuthType Basic' \
@@ -92,12 +86,15 @@ jobs:
             'Require valid-user' \
             '<Files ".htpasswd">' \
             '    Require all denied' \
-            '</Files>' \
+            '</Files>' > testing-site/sanny/.htaccess
+          cp testing-site/sanny/.htaccess testing-site/docs/.htaccess
+          printf '%s\n' \
             'RewriteEngine On' \
             'RewriteCond %{REQUEST_FILENAME} !-f' \
             'RewriteCond %{REQUEST_FILENAME} !-d' \
-            'RewriteRule ^ index.html [L]' > testing-site/.htaccess
-          cp testing-site/.htaccess testing-site/auth/.htaccess
+            'RewriteRule ^ index.html [L]' >> testing-site/sanny/.htaccess
+          cp testing-site/sanny/.htaccess testing-site/auth/.htaccess
+          printf '%s\n' 'ErrorDocument 404 /404.html' >> testing-site/docs/.htaccess
         env:
           TEST_BASIC_AUTH_ENTRY: ${{ secrets['TEST_BASIC_AUTH_ENTRY'] }}
           TEST_BASIC_AUTH_FILE_PATH: ${{ secrets['TEST_BASIC_AUTH_FILE_PATH'] }}
@@ -113,6 +110,16 @@ jobs:
   deploy:
     needs: lint-and-build
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - site: sanny
+            server-dir: ${{ vars.TEST_SANNY_SERVER_DIR || '/public_html/testing/' }}
+          - site: auth
+            server-dir: ${{ vars.TEST_AUTH_SERVER_DIR || '/public_html/testing/auth/' }}
+          - site: docs
+            server-dir: ${{ vars.TEST_DOCS_SERVER_DIR || '/public_html/testing/docs/' }}
 
     steps:
       - name: Download frontend builds
@@ -129,5 +136,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: loose
-          local-dir: ./testing-site/
-          server-dir: /public_html/testing/
+          local-dir: ./testing-site/${{ matrix.site }}/
+          server-dir: ${{ matrix.server-dir }}
+          state-name: .ftp-deploy-sync-state-${{ matrix.site }}.json

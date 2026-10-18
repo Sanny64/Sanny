@@ -40,7 +40,14 @@ jobs:
         run: npm run lint:sanny && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
 
       - name: Build the project
-        run: npm run build:sanny
+        run: |
+          if [ -z "$VITE_PROD_API_URL" ]; then
+            echo "Set the VITE_PROD_API_URL repository variable before deploying production."
+            exit 1
+          fi
+          npm run build:sanny
+        env:
+          VITE_PROD_API_URL: ${{ vars.VITE_PROD_API_URL }}
 
       - name: Deploy to Hetzner via FTP
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
