@@ -15,6 +15,7 @@ Hey there, Sanny here. This repository contains my public website, authenticatio
 ## Content
 
 - [Getting Started](#getting-started)
+- [Documentation](#documentation)
 - [Project Direction](#project-direction)
 - [Tech-Stack](#tech-stack)
 - [Features](#features)
@@ -43,7 +44,7 @@ For quality checks, use scripts defined by the root `package.json`:
 - Shared-package lint: `npm run lint -w @sanny/i18n`, `npm run lint -w @sanny/styles`, and `npm run lint -w @sanny/ui`
 - `npm run build:auth`, `npm run build:sanny`, and `npm run build:docs`
 
-`npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx), [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx), and [staging readiness checklist](backend/TODO.md).
+`npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx) and [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx).
 
 Run each app you need in its own terminal. Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and the English docs at `http://localhost:3000` (`npm run dev:docs-de` serves German docs at port `3001`). Frontend development servers use a local HTTPS certificate and reload when source changes.
 
@@ -53,16 +54,30 @@ waits for Redis health, uses separate networking and data volumes, limits the
 test run to 120 seconds, and removes its containers and volumes afterward. The
 development stack does not need to be running.
 
+### Branches and Releases
+
+This project uses three long-lived branches: `dev -> test -> main`.
+
+| Branch | Purpose                                                              | Deploys to                      |
+| ------ | -------------------------------------------------------------------- | ------------------------------- |
+| `dev`  | Daily development. No sites are deployed from here.                  | Backend image only (Docker Hub) |
+| `test` | Release candidate. Verified on the web before going to production.   | Test environment (Basic Auth)   |
+| `main` | Production only. Exactly one commit per release, tagged for version. | Production                      |
+
+A release is created by building one new commit on `main` from the file tree of `test` (no merge, no squash-merge), then tagging it as `release-1.0.0.x`. This keeps `main` clean and conflict-free while `dev` and `test` keep their full history. The complete flow with all commands is described in the [deployment documentation](documentation/docs/general-info/deployment.mdx).
+
 ### Deployment
 
-Every push to `main` runs the production docs workflow. Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. All sites are built for the subdomain root (`/`).
+Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. Every push to `main` runs the production workflows (frontends and docs, subject to their path filters). All sites are built for the subdomain root (`/`).
 
 Configure the GitHub Actions repository variable `VITE_DEV_API_URL` for the test backend and `VITE_PROD_API_URL` for the production backend. The test workflow passes the development URL into the existing `VITE_PROD_API_URL` build-time slot because optimized Vite builds use the production code path, regardless of deployment branch. Production workflows use the production URL. Builds fail if their required URL is missing. Local `.env.local` files remain unchanged and are not available on GitHub runners. The test URL must be reachable by visitors; `localhost` would point to each visitor's own device.
 
-Configure these HTTPS subdomains in Hetzner with the corresponding document roots (FTP-visible paths):
+Configure these HTTPS subdomains in your prefered web hosting service provider (e.g. Hetzner) with the corresponding document roots (FTP-visible paths):
 
 | Branch | Domain                 | FTP directory                |
 | ------ | ---------------------- | ---------------------------- |
+| `main` | `sanny64.de`           | see production workflow      |
+| `main` | `auth.sanny64.de`      | `/public_html/auth/`         |
 | `main` | `docs.sanny64.de`      | `/public_html/docs/`         |
 | `test` | `test.sanny64.de`      | `/public_html/testing/`      |
 | `test` | `test.auth.sanny64.de` | `/public_html/testing/auth/` |
@@ -71,6 +86,8 @@ Configure these HTTPS subdomains in Hetzner with the corresponding document root
 The test destinations can be overridden with GitHub repository variables `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR`, and `TEST_DOCS_SERVER_DIR`; include a trailing slash. Update or remove existing overrides if they point elsewhere. Auth and docs are nested directories on disk but are served at `/` on their own subdomains. Each upload uses a site-specific FTP sync-state file. DNS, TLS certificates, and subdomain document roots must be configured in the hosting control panel; FTP deployment does not create them.
 
 Both workflows use `FTP_SERVER`, `FTP_USERNAME`, and `FTP_PASSWORD` secrets. Test sites also require `TEST_BASIC_AUTH_ENTRY` containing one or more newline-separated `username:hashed-password` lines (no blank lines), and `TEST_BASIC_AUTH_FILE_PATH` containing the absolute server filesystem path to the main test site's `.htpasswd`. This is not the FTP-visible path. Each line provides a separate login that works across all three sites. The test workflow generates `.htpasswd` from the secret and uploads it with the Sanny site, so no manual WebFTP upload is needed. If `TEST_SANNY_SERVER_DIR` is overridden, make sure `TEST_BASIC_AUTH_FILE_PATH` matches the file's actual upload location. Apache must be permitted to read the shared password file from each subdomain and allow Basic Auth and rewrite directives in `.htaccess`. Sanny and Auth use SPA fallbacks; docs serves its generated pages and `404.html`.
+
+The backend is deployed separately: a push to `main` runs backend checks and publishes an image, while the VPS deployment itself requires a manual `workflow_dispatch` run. The `deploy-images.yml` workflow builds and pushes the backend Docker Hub image on pushes to `dev` that change files in `backend/`, and on version tags; it does not deploy to the VPS.
 
 ### Directory Structure
 
@@ -99,35 +116,53 @@ Sanny/ (Root Workspace)
 │        ├── utils/
 │        └── server.ts
 │
+├── documentation/                   # Frontend: docs.sanny64.de (Docusaurus)
+│   └── docs/                        # MDX sources, e.g. general-info/deployment.mdx
+│
 ├── games/
-│   ├── first/#index.html     # Independent game service / repository (first ever website of mine)
-│   └── blockrunner/          # Independent game service / repository (programming challenge)
+│   ├── first/                       # Independent game service / repository (first ever website of mine, index.html)
+│   └── blockrunner/                 # Independent game service / repository (programming challenge)
 │
-├── auth/                    # Frontend: auth.sanny64.de (Vite + React + TS)
+├── auth/                            # Frontend: auth.sanny64.de (Vite + React + TS)
 │   ├── public/
 │   └── src/
-│       ├── assets/           # Frontend project specific assets
-│       ├── components/       # Custom frontend project exclusive components
-│       └── pages/            # Authentication helper routes
+│       ├── assets/                  # Frontend project specific assets
+│       ├── components/              # Custom frontend project exclusive components
+│       └── pages/                   # Authentication helper routes
 │
-├── sanny/                    # Frontend: sanny64.de (Vite + React + TS)
+├── sanny/                           # Frontend: sanny64.de (Vite + React + TS)
 │   ├── public/
 │   └── src/
-│       ├── assets/           # Frontend project specific assets
-│       ├── components/       # Custom frontend project exclusive components
-│       └── pages/            # Main: Home, Blog, Games, Portfolio, Projects | Auxiliary: Party (different style)
+│       ├── assets/                  # Frontend project specific assets
+│       ├── components/              # Custom frontend project exclusive components
+│       └── pages/                   # Main: Home, Blog, Games, Portfolio, Projects | Auxiliary: Party (different style)
 │
-├── shared                    # Shared custom npm packages
+├── shared/                          # Shared custom npm packages
 │   └── packages/
-│       ├── i18n/             # Shared language context, types, utilities, and translations
-│       ├── styles/           # Shared theme context, types, utilities, and styling state
-│       └── ui/               # Shared ui components, pages and component/page styles
-│           ├── components/   # Buttons, TextInput, etc.
-│           ├── pages/        # Settings, Errors
+│       ├── i18n/                    # Shared language context, types, utilities, and translations
+│       ├── styles/                  # Shared theme context, types, utilities, and styling state
+│       └── ui/                      # Shared ui components, pages and component/page styles
+│           ├── components/          # Buttons, TextInput, etc.
+│           ├── pages/               # Settings, Errors
 │           └── styles/
 │
-├── .gitignore                # Global git ignoring rules
-└── README.md                 # Project roadmap & documentation
+├── .gitignore                       # Global git ignoring rules
+└── README.md                        # Project overview & setup
+```
+
+## Documentation
+
+The developer documentation is built with Docusaurus. Its sources are plain MDX files in `documentation/docs/` and it is published at [docs.sanny64.de](https://docs.sanny64.de).
+
+Good starting points:
+
+- [Getting Started](documentation/docs/start.mdx)
+- [Deployment and Git flow](documentation/docs/general-info/deployment.mdx)
+
+If you want to feed the documentation to a tool or an AI agent, either clone the repository or fetch single files as raw text. The `main` branch always contains the latest released state:
+
+```
+https://raw.githubusercontent.com/Sanny64/Sanny/main/documentation/docs/<path>.mdx
 ```
 
 ## Project Direction

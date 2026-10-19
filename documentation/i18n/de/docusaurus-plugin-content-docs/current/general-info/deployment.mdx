@@ -29,21 +29,24 @@ Dies ist die dokumentierte Release-Konvention des Repositorys, keine von GitHub 
 - Täglicher Entwicklungs-Branch.
 - Feature-Arbeit landet zuerst hier.
 - Die Commit-Historie kann unaufgeräumt sein.
-- Änderungen auf `dev` gelten erst dann als releasebereit, wenn sie nach `test` übernommen wurden.
+- Die Commit-Historie wird niemals umgeschrieben.
+- Von `dev` wird keine Website deployed und es werden keine Backend-Images gebaut oder veröffentlicht. Änderungen gelten erst dann als releasebereit, wenn sie nach `test` übernommen wurden.
 
 ### `test`
 
 - Branch für Release-Kandidaten.
-- Stellt die öffentliche Testumgebung bereit.
+- Stellt die internet-erreichbare, durch Basic Auth geschützte Testumgebung bereit.
 - Dient dazu, das konkrete Release vor der Produktion im Web zu prüfen.
 - Fehlerbehebungen für den Release-Kandidaten landen zuerst hier.
+- Die vollständige Commit-Historie bleibt erhalten und wird niemals umgeschrieben.
 
 ### `main`
 
 - Ausschließlich für Produktion.
-- Wird sauber und übersichtlich gehalten.
-- Wird nur durch Squash-Merges von `test` nach `main` aktualisiert.
-- Jedes Release sollte einen einzelnen kleinen Squash-Commit auf `main` erzeugen.
+- Wird sauber und übersichtlich gehalten: genau ein Commit pro Release.
+- Wird niemals gemergt. Jeder Release-Commit wird aus dem Dateibaum von `test` erstellt (siehe [„`test` nach `main` übernehmen“](#5-test-nach-main-übernehmen)).
+- Jeder Release-Commit erhält einen Tag im Format `release-1.0.0.x`.
+- `main` und `test` teilen absichtlich keine Commit-Historie. Zum Release-Zeitpunkt haben sie lediglich identische Datei-Inhalte.
 
 ---
 
@@ -62,16 +65,28 @@ Ein Push nach `test` stellt die im Internet erreichbare Testumgebung mit HTTP Ba
   Test-Builds setzen Asset- und Router-Basispfade, ohne die Produktions-Defaults zu ändern. Apache-Rewrite-Regeln unterstützen das Neuladen verschachtelter React-Routen.
   Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
 
+#### Basic-Auth-Zugang erzeugen
+
+Erzeuge mit Docker einen bcrypt-Passwort-Hash:
+
+```powershell
+docker run --rm -it httpd:2.4-alpine htpasswd -nB tester
+```
+
+Ersetze `tester` durch den gewünschten Benutzernamen und gib das Passwort ein, wenn du dazu aufgefordert wirst. `htpasswd` gibt die vollständige Zeile im Format `benutzername:hash` aus. Füge diese Zeile zu `TEST_BASIC_AUTH_ENTRY` hinzu. Für jeden Zugang kommt eine Zeile ohne Leerzeilen hinzu.
+
+Der Workflow erstellt `.htpasswd` bei jedem Deployment neu aus `TEST_BASIC_AUTH_ENTRY`; vorhandene Einträge werden nicht angehängt. Kopiere daher vor dem Hinzufügen eines Zugangs alle bestehenden `benutzername:hash`-Zeilen aus der aktuellen `.htpasswd`-Datei in `TEST_BASIC_AUTH_ENTRY` und ergänze anschließend die neue Zeile. Andernfalls funktionieren die bisherigen Zugänge nicht mehr.
+
 ### Produktion
 
 Ein Push nach `main` stellt die Produktionsumgebung bereit.
 
-- `sanny` -> Produktionsseite.
-- `auth` -> Produktionsseite.
-- `docs` -> Produktionsseite.
+- `sanny` -> Produktionsseite unter `https://sanny64.de/`.
+- `auth` -> Produktionsseite unter `https://auth.sanny64.de/`.
+- `docs` -> Produktionsseite unter `https://docs.sanny64.de/`.
 - Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
-- Ein Push nach `main` führt Backend-Prüfungen aus und baut/veröffentlicht das Backend-Image. Der VPS-Deployment-Job wird nur durch einen manuellen Start von `deploy-backend.yml` über `workflow_dispatch` ausgeführt.
-- Der separate Workflow `deploy-images.yml` baut bei Pushes nach `dev` und bei Versionstags ein Docker-Hub-Image; er deployed nicht auf den VPS.
+- Ein Push nach `main` führt Backend-Prüfungen aus und baut/veröffentlicht das Backend-Image. Pushes nach `dev` bauen oder veröffentlichen keine Backend-Images.
+- Der VPS-Deployment-Job wird nur durch einen manuellen Start von `deploy-backend.yml` über `workflow_dispatch` ausgeführt.
 
 ---
 
@@ -117,28 +132,29 @@ So bleibt gemeinsam genutzter Code mit den Apps synchron, die ihn verwenden.
 - Nimm die Fehlerbehebung vor.
 - Merge den Fix zurück nach `test`.
 - Push erneut nach `test`, um die Testumgebung neu zu deployen.
-- Sobald der Fix geprüft ist, überführe `test` nach `main` und merge `test` zurück nach `dev`.
+- Sobald alle Fixes geprüft sind, merge `test` zurück nach `dev`, damit beide Branches wieder denselben Stand haben.
 
 ### 5. `test` nach `main` übernehmen
 
-- Sobald die Testumgebung freigegeben ist und wieder zurück in `dev` gemerged wurde, öffne einen Pull Request von `test` nach `main`.
-- Verwende Squash-Merge.
-- Dadurch entsteht ein einzelner sauberer Release-Commit auf `main`.
+- Sobald die Testumgebung freigegeben und `test` zurück nach `dev` gemerged wurde, erstelle den Release-Commit auf `main` aus dem Dateibaum von `test`.
+- Das ist kein Merge: Es entstehen keine Merge-Konflikte und keine Commits aus `test` werden nach `main` übernommen.
+- Versehe den Release-Commit mit einem Tag im Format `release-1.0.0.x` und pushe beides zusammen.
 
 ### 6. Produktionsdeployment
 
-- Nach dem Squash-Merge wird die Produktion von `main` aus deployed.
+- Nach dem Push des Release-Commits wird die Produktion von `main` aus deployed.
 - Frontends und Docs werden automatisch deployed.
 - Das Backend-Deployment muss im GitHub-Actions-Menü manuell über `workflow_dispatch` ausgelöst werden.
-  <br />
-  <br />
-  <center>
-    <img
-      src="/img/release_flow.drawio.svg"
-      alt="Release-Ablauf: Feature-Branches werden nach dev und anschließend nach test gemergt; Fixes durchlaufen eine Schleife, bevor ein Pull Request nach main und die manuelle Auslösung in GitHub Actions das Deployment starten."
-      description="Release-Ablaufdiagramm mit Feature-Branches, dev, test, Fehlerbehebung und dem finalen Deployment über einen Pull Request nach main sowie manueller Auslösung in GitHub Actions."
-    />
-  </center>
+
+### Übersicht
+
+<br />
+<center>
+  <img
+    src="/img/release_flow.drawio.svg"
+    alt="Release-Ablauf: Feature-Branches werden nach dev und anschließend nach test gemergt; Fixes durchlaufen eine Schleife. Der Release-Commit auf main wird aus dem Dateibaum von test erstellt und zusammen mit seinem Tag gepusht; das Backend-VPS-Deployment wird manuell in GitHub Actions gestartet."
+  />
+</center>
 
 ---
 
@@ -228,13 +244,58 @@ git push origin dev
 
 ### Für die Produktion freigeben
 
-Wenn `test` freigegeben ist:
+Wenn `test` freigegeben und zurück nach `dev` gemerged ist, erstelle den Release-Commit auf `main` aus dem Dateibaum von `test`.
 
-1. Öffne einen Pull Request von `test` nach `main`.
-2. Lass CI durchlaufen.
-3. Verwende Squash-Merge.
+Ersetze `1.0.0.x` in allen drei Stellen durch die neue Version (Bash / Git Bash):
 
-So bleibt `main` übersichtlich und erhält eine kompakte Release-Historie.
+```bash
+git fetch origin
+git checkout main
+git merge --ff-only origin/main
+NEW=$(git commit-tree 'origin/test^{tree}' -p origin/main -m "Release 1.0.0.x")
+git merge --ff-only "$NEW"
+git tag release-1.0.0.x
+git push origin main release-1.0.0.x
+```
+
+PowerShell-Variante:
+
+```powershell
+git fetch origin
+git checkout main
+git merge --ff-only origin/main
+$NEW = git commit-tree "origin/test^{tree}" -p origin/main -m "Release 1.0.0.x"
+git merge --ff-only $NEW
+git tag release-1.0.0.x
+git push origin main release-1.0.0.x
+```
+
+`git commit-tree` erstellt einen einzelnen Commit mit exakt dem Dateibaum von `test` und `origin/main` als einzigem Vorgänger. Es werden keine Commits aus `test` übernommen. `git merge --ff-only` bewegt `main` auf diesen Commit, ohne Dateien zu überschreiben oder einen Force-Push zu benötigen. Der Tag kennzeichnet das Release und wird zusammen mit `main` gepusht.
+
+Prüfe anschließend das Ergebnis:
+
+```bash
+git diff --stat origin/test main
+git log --oneline -3 main
+```
+
+Der erste Befehl darf nichts ausgeben, da beide Branches denselben Datei-Inhalt haben müssen. Die Log-Ausgabe zeigt einen Release-Commit pro Version.
+
+Falls `main` auf GitHub geschützt ist und Pull Requests verlangt, wird der direkte Push abgelehnt. Erlaube den Push für dein Admin-Konto oder deaktiviere die Regel für `main`. Pull Requests und CI sind nicht Teil dieses Schritts; die Prüfung erfolgt vorher auf der Testumgebung. Falls ein Release fehlerhaft ist, behebe den Fehler auf `test` und erstelle das nächste Release. Schreibe `main` nicht um.
+
+#### Beispielhistorie
+
+```text
+main:  A -- R1 -- R2 -- R3                 (ein getaggter Commit pro Release)
+test:  A -- a1 -- a2 -- ... -- a70 -- ...  (vollständige Historie, nie umgeschrieben)
+dev:   A -- a1 -- ... -- a70 -- d1 -- ...  (vollständige Historie, nie umgeschrieben)
+```
+
+`R1`, `R2` und `R3` enthalten jeweils dieselben Dateien wie `test` zum Zeitpunkt des Releases, aber nicht dessen Commits.
+
+#### Hotfixes
+
+Ändere `main` niemals direkt. Jede Änderung auf `main`, die nicht in `test` enthalten ist, wird beim nächsten Release-Commit überschrieben. Hotfixes folgen dem normalen Ablauf: Fehler auf `test` beheben, nach `dev` zurückmergen und anschließend den nächsten Release-Commit erstellen.
 
 ---
 
@@ -253,11 +314,12 @@ Dies ist ein Wiederherstellungsschritt über den normalen Integrations-Branch `d
 
 ## Verhalten des Produktionsdeployments
 
-Das Produktionsdeployment startet nach dem Squash-Merge auf `main`.
+Das Produktionsdeployment startet, nachdem der Release-Commit nach `main` gepusht wurde.
 
 - `sanny`, `auth` und die Dokumentationsseite werden von `main` deployed, wenn ihre Workflow-Pfadfilter zutreffen.
 - Änderungen an gemeinsam genutzten Paketen lösen die Frontend-Workflows aus, die diese Pfade enthalten.
-- Ein Push nach `main` baut und veröffentlicht das Backend-Image; für das VPS-Deployment ist ein manueller Start per `workflow_dispatch` erforderlich.
+- Ein Push nach `main` baut und veröffentlicht das Backend-Image.
+- Für das VPS-Deployment ist ein manueller Start per `workflow_dispatch` in Github erforderlich.
 
 Damit bleibt `main` die maßgebliche Quelle für Produktion und die eigentliche Release-Historie dennoch klein.
 
@@ -276,4 +338,4 @@ Das bedeutet:
 
 ---
 
-Last edit: 17.10.2026
+Last edit: 19.10.2026

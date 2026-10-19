@@ -14,7 +14,7 @@ This project uses a simple release train for a monorepo with:
 - Fastify backend.
 - Shared packages under `shared/packages/**`.
 
-The goal is to keep `main` very tidy, support a real web test environment, and keep the workflow easy to run for a solo developer.
+The goal is to keep `main` very tidy (one commit per release), support a real web test environment, and keep the workflow easy to run for a solo developer.
 
 ---
 
@@ -22,28 +22,31 @@ The goal is to keep `main` very tidy, support a real web test environment, and k
 
 This project uses `dev -> test -> main`.
 
-This is the repository's documented release convention, not a branch-protection rule enforced by GitHub Actions. The workflows enforce their configured branch/path triggers but do not enforce pull-request or squash-merge policy.
+This is the repository's documented release convention, not a branch-protection rule enforced by GitHub Actions. The workflows enforce their configured branch/path triggers but do not enforce pull-request or merge policy.
 
 ### `dev`
 
 - Daily development branch.
 - Feature work lands here first.
-- Commit history can be messy.
-- Nothing in `dev` is considered release-ready until it has been promoted to `test`.
+- Commit history can be messy and is never rewritten.
+- No site is deployed from `dev`, and nothing in it is considered release-ready until it has been promoted to `test`.
+- The only exception is the backend image: pushes to `dev` that change files in `backend/` build and publish it to Docker Hub via `deploy-images.yml`. This does not deploy anything to the VPS.
 
 ### `test`
 
 - Release-candidate branch.
-- Deploys the public test environment.
+- Deploys the internet-accessible, Basic-Auth-protected test environment.
 - Used to verify the exact release on the web before production.
 - Fixes for release-candidate issues land here first.
+- Keeps its full commit history and is never rewritten.
 
 ### `main`
 
 - Production branch only.
-- Kept clean and readable.
-- Updated only by squash-merging `test` into `main`.
-- Each release should create one small squash commit on `main`.
+- Kept clean and readable: exactly one commit per release.
+- Never merged into. Every release commit is created from the file tree of `test` (see [Promote `test` to `main`](#5-promote-test-to-main)).
+- Every release commit carries a tag in the form `release-1.0.0.x`.
+- `main` and `test` intentionally do not share commit history. They only share identical file contents at release time.
 
 ---
 
@@ -67,12 +70,12 @@ A push to `test` deploys the internet-accessible test environment with HTTP Basi
 
 A push to `main` deploys production.
 
-- `sanny` -> production site.
-- `auth` -> production site.
-- `docs` -> production site.
+- `sanny` -> production site at `https://sanny64.de/`.
+- `auth` -> production site at `https://auth.sanny64.de/`.
+- `docs` -> production site at `https://docs.sanny64.de/`.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
 - A push to `main` runs backend checks and builds/pushes the backend image. The VPS deployment job runs only when `deploy-backend.yml` is started with `workflow_dispatch`.
-- The separate `deploy-images.yml` workflow builds and pushes a Docker Hub image on `dev` pushes and version tags; it does not deploy to the VPS.
+- The separate `deploy-images.yml` workflow builds and pushes the backend Docker Hub image on pushes to `dev` that change files in `backend/`, and on version tags; it does not deploy to the VPS. Make sure its tag filter either matches or deliberately ignores the `release-*` tags.
 
 ---
 
@@ -118,28 +121,29 @@ This keeps shared code in sync with the apps that consume it.
 - Apply the fix.
 - Merge the fix back into `test`.
 - Push `test` again to redeploy the test environment.
-- Once the fix is verified merge `test`back into `dev` so both environments are on the same snapshot again.
+- Once every fix is verified, merge `test` back into `dev` so both branches are on the same snapshot again.
 
 ### 5. Promote `test` to `main`
 
-- Once the test environment is approved and has been merged back to `dev`, open a pull request from `test` to `main`.
-- Use squash merge.
-- This creates one clean release commit on `main`.
+- Once the test environment is approved and `test` has been merged back into `dev`, create the release commit on `main`.
+- The commit is built from the file tree of `test` with `git commit-tree`. This is not a merge, so it cannot cause merge conflicts, and none of the commits from `test` end up in `main`.
+- The commit is tagged `release-1.0.0.x` and pushed together with `main`.
 
 ### 6. Production deploy
 
-- After the squash merge, production deploys from `main`.
+- After the push, production deploys from `main`.
 - Frontends and docs deploy automatically.
 - Backend deployment needs a manual `workflow_dispatch` trigger in the GitHub Actions menu.
-  <br />
-  <br />
-  <center>
-    <img
-      src="/img/release_flow.drawio.svg"
-      alt="Release flowchart"
-      description="Release flowchart showing feature branches merged into dev, then test, with fix loops and final deployment through PR to main and manual trigger in GitHub Actions."
-    />
-  </center>
+
+### Overview
+
+<br />
+<center>
+  <img
+    src="/img/release_flow.drawio.svg"
+    alt="Release flowchart showing feature branches merged into dev, then test, with fix loops and the final release commit on main plus manual backend trigger in GitHub Actions."
+  />
+</center>
 
 ---
 
@@ -187,7 +191,7 @@ This deploys the test environment.
 
 ### Test the release
 
-Use the public test site to verify:
+Use the internet-accessible test site to verify:
 
 - Layout and UI.
 - Routing.
@@ -219,7 +223,7 @@ git push origin test
 ```
 
 Repeat for all bugs.
-After every fix is validated on `test` and the release is fully stable, merge test into dev.
+After every fix is validated on `test` and the release is fully stable, merge `test` into `dev`:
 
 ```bash
 git checkout dev
@@ -230,13 +234,67 @@ git push origin dev
 
 ### Promote to production
 
-When `test` is approved:
+When `test` is approved and merged back into `dev`, create the release commit on `main`.
 
-1. Open a pull request from `test` to `main`.
-2. Let CI run.
-3. Use squash merge.
+Replace `1.0.0.x` with the new version in all three places (Bash / Git Bash):
 
-This keeps `main` tidy and produces one compact release commit.
+```bash
+git fetch origin
+git checkout main
+git merge --ff-only origin/main
+NEW=$(git commit-tree 'origin/test^{tree}' -p origin/main -m "Release 1.0.0.x")
+git merge --ff-only "$NEW"
+git tag release-1.0.0.x
+git push origin main release-1.0.0.x
+```
+
+PowerShell variant:
+
+```powershell
+git fetch origin
+git checkout main
+git merge --ff-only origin/main
+$NEW = git commit-tree "origin/test^{tree}" -p origin/main -m "Release 1.0.0.x"
+git merge --ff-only $NEW
+git tag release-1.0.0.x
+git push origin main release-1.0.0.x
+```
+
+What the commands do:
+
+- `git fetch origin` and `git merge --ff-only origin/main` bring your local `main` up to date and abort if it has diverged.
+- `git commit-tree 'origin/test^{tree}' -p origin/main` creates one new commit containing exactly the files of `test`, with the previous `main` commit as its only parent. No commits from `test` are copied.
+- `git merge --ff-only "$NEW"` moves `main` forward to that commit. Nothing is overwritten or force-pushed.
+- The tag marks the release and is pushed together with `main`.
+
+Verify the result. Both commands should show no difference:
+
+```bash
+git diff --stat origin/test main
+git log --oneline -3 main
+```
+
+The first command must print nothing (identical file contents), and the log shows one release commit per version.
+
+Notes:
+
+- If `main` is protected on GitHub (pull request required), the direct push is rejected. Allow the push for your admin account or disable the rule for `main`.
+- Pull requests and CI are intentionally not part of this step. Verification happens on the test environment before the release commit is created.
+- If a release turns out to be wrong, fix it on `test` and create the next release. Do not rewrite `main`.
+
+#### Example history
+
+```text
+main:  A -- R1 -- R2 -- R3                 (one commit per release, tagged)
+test:  A -- a1 -- a2 -- ... -- a70 -- ...  (full history, never rewritten)
+dev:   A -- a1 -- ... -- a70 -- d1 -- ...  (full history, never rewritten)
+```
+
+`R1`, `R2` and `R3` contain the same files that `test` had at the time of each release, but not its commits.
+
+#### Hotfixes
+
+Never change `main` directly. Every file change on `main` that is not on `test` is overwritten by the next release commit. Hotfixes follow the normal path: fix on `test` (branch `fix/<name>`), merge back into `dev`, then create the next release commit.
 
 ---
 
@@ -255,7 +313,7 @@ This is a recovery step using the normal `dev` integration branch. It is useful 
 
 ## Production deploy behavior
 
-Production deploy starts from `main` after the squash merge.
+Production deploy starts from `main` after the release commit is pushed.
 
 - `sanny`, `auth`, and the documentation site deploy from `main` when their workflow path filters match.
 - Changes in shared packages trigger the frontend pipelines that include those paths.
@@ -278,4 +336,4 @@ That means:
 
 ---
 
-Last edit: 18.10.2026
+Last edit: 19.10.2026
