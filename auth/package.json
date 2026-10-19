@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "build": "vite build",
     "dev": "vite --port 5174 --strictPort",
-    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
     "lint": "eslint .",
-    "typecheck": "tsc -b",
-    "check": "npm run lint && npm run typecheck",
-    "preview": "vite preview"
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck"
   },
   "dependencies": {
     "@sanny/i18n": "*",
@@ -21,12 +21,5 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.9.4"
-  },
-  "devDependencies": {
-    "@types/node": "^24.12.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "typescript": "~6.0.2",
-    "vite": "^8.0.12"
   }
 }

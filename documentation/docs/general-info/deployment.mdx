@@ -52,6 +52,10 @@ This is the repository's documented release convention, not a branch-protection 
 
 ## Deployment mapping
 
+All test and production workflows depend on `.github/workflows/verify.yml`, the same secret-free verification gate used by pull requests. This includes tooling contracts and docs checks/builds, not just app builds. GitHub branch protection must separately require its result. Action references are pinned to commit SHAs and FTPS requires trusted hostname-matching certificates; there is no insecure certificate fallback.
+
+Set repository variables `VITE_DEV_API_URL` and `VITE_PROD_API_URL` to the respective reachable HTTPS API origins. Test and production workflows pass their selected value as `VITE_API_URL`. Browser code uses only that canonical value. Local Vite development/test mode can still resolve the existing development input, and production mode the production input; explicit `VITE_API_URL` wins. Builds reject missing/invalid origins.
+
 ### Test environment
 
 A push to `test` deploys the internet-accessible test environment with HTTP Basic Auth for website visitors.
@@ -74,7 +78,7 @@ Docs deploy from `main` when `documentation/**`, `shared/packages/**`, `package.
 - `auth` -> production site at `https://auth.sanny64.de/`.
 - `docs` -> production site at `https://docs.sanny64.de/`.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
-- A push to `main` that changes `backend/**` or `.github/workflows/deploy-backend.yml` runs backend checks and builds the image once, publishing the same `latest` and commit-SHA tags to GHCR and Docker Hub (`s4nny64/app`). Docker Hub remains the image source for Gordon's analysis and for the VPS.
+- A push to `main` that changes `backend/**` or `.github/workflows/deploy-backend.yml` runs backend checks and builds the image once, publishing the same `latest` and commit-SHA tags to GHCR and Docker Hub (`sanny64/backend`). Docker Hub remains the image source for Gordon's analysis and for the VPS.
 - A manual `workflow_dispatch` from `main` builds and publishes the image, then deploys that exact commit-SHA tag from Docker Hub to the VPS. Manual runs from other branches are skipped. Docker Hub credentials are configured as GitHub Actions secrets, not backend runtime variables.
 
 ---

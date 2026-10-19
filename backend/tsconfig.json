@@ -3,14 +3,11 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "target": "ES2023",
     "lib": ["ES2023"],
     "types": ["node"],
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "verbatimModuleSyntax": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force"
+    "noUncheckedSideEffectImports": true
   },
   "include": ["src/**/*.ts", "monitoring/tests/**/*.ts", "prisma.config.ts"]
 }

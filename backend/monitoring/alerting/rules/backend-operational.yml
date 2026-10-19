@@ -33,7 +33,7 @@ groups:
           severity: critical
         annotations:
           summary: "Fastify metrics target is unavailable"
-          description: "Prometheus cannot scrape the backend metrics endpoint. Check the app container and internal network."
+          description: "Prometheus cannot scrape the backend metrics endpoint. Check the backend container and internal network."
 
       - uid: backend-restarted
         title: "Backend Restart Detected"

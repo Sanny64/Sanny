@@ -16,9 +16,7 @@ type LoginButtonProps = {
 
 const sessionWarningLeadMs = 15 * 60 * 1000;
 
-const apiUrl = import.meta.env.DEV
-  ? import.meta.env.VITE_DEV_API_URL
-  : import.meta.env.VITE_PROD_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 let authCheckPromise: Promise<Response> | null = null;
 
 function checkAuthentication() {

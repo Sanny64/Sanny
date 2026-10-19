@@ -23,7 +23,7 @@ services:
       - ../monitoring/tests/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ../monitoring/tests/grafana-contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
       - ../monitoring/tests/grafana-policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
-      - ../monitoring/tests/grafana-test-rules.yml:/etc/grafana/provisioning/alerting/test-rules.yml:ro
+      - ${SANNY_MONITORING_TEST_RULES:?Run the monitoring test runner}:/etc/grafana/provisioning/alerting/test-rules.yml:ro
     depends_on:
       - loki
       - notification-sink

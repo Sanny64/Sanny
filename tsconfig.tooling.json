@@ -3,5 +3,12 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
-  "include": ["vite.shared.ts", "playwright*.ts", "e2e/**/*.ts"]
+  "include": [
+    "vite.shared.ts",
+    "playwright*.ts",
+    "e2e/**/*.ts",
+    "auth/vite.config.ts",
+    "sanny/vite.config.ts",
+    "shared/packages/ui/vitest.config.ts"
+  ]
 }

@@ -14,9 +14,21 @@ on:
       - "tsconfig.base.json"
       - ".dockerignore"
       - ".github/workflows/deploy-backend.yml"
+      - ".github/workflows/verify.yml"
+
+concurrency:
+  group: deploy-backend-production
+  cancel-in-progress: false
 
 jobs:
+  verify:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify.yml
+
   build-and-publish:
+    needs: verify
     if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
@@ -26,25 +38,9 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci --workspace=backend --include-workspace-root=true
-
-      - name: Lint and typecheck
-        run: npm run check:backend
-
-      - name: Test
-        run: npm test -w backend
 
       - name: Generate image metadata
         id: meta
@@ -52,7 +48,7 @@ jobs:
         with:
           images: |
             ghcr.io/sanny64/sanny/backend
-            docker.io/s4nny64/app
+            docker.io/sanny64/backend
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,format=long
@@ -61,20 +57,20 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PAT }}
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: ./backend/docker/Dockerfile
@@ -102,6 +98,6 @@ jobs:
           script: |
             echo "$DOCKERHUB_PAT" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
             cd /var/www/sanny/backend/docker
-            docker compose -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.prod.yml up -d --no-build app
+            docker compose -f docker-compose.prod.yml pull sanny64-backend
+            docker compose -f docker-compose.prod.yml up -d --no-build sanny64-backend
             docker image prune -f

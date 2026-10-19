@@ -14,7 +14,7 @@ The public content routes are present, but their page bodies currently render tr
 
 `src/main.tsx` installs `ThemeProvider` before `LanguageProvider` and imports shared styles. `src/App.tsx` defines the React Router data routes. Main routes use `AppShell`; party routes use the auxiliary layout.
 
-Authentication is handled by the Fastify backend and Auth0. The browser reads `VITE_DEV_API_URL` in development and `VITE_PROD_API_URL` in production; it does not configure an Auth0 SPA client.
+Authentication is handled by the Fastify backend and Auth0. The browser reads only `VITE_API_URL`; shared Vite configuration resolves it from the existing development/production inputs or an explicit deployment value. It does not configure an Auth0 SPA client. Run `npm run check` before manual builds.
 
 ## Development
 
@@ -25,7 +25,7 @@ npm ci
 npm run dev:sanny
 npm run lint:sanny
 npm run build:sanny
-npm run test:e2e:accessibility:sanny
+npm run test:frontend:accessibility:sanny
 ```
 
 The development server uses HTTPS at `https://localhost:5173`. Build and lint wrappers are defined in the root `package.json`.

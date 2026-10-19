@@ -11,8 +11,8 @@ React + Vite + TypeScript app for the authentication subdomain.
 - Build with `npm run build:auth`.
 - Lint with `npm run lint:auth`.
 - Run app-local static checks with `npm run check -w auth`; it composes `lint` and `typecheck`. This app has no standalone unit-test script; browser tests belong to root E2E tooling.
-- Run `npm run test:e2e:accessibility:auth` for the Auth accessibility suite across browser projects.
-- For focused verification after editing shared packages, run `npm run build:auth`; the root wrapper typechecks shared source before building the app.
+- Run `npm run test:frontend:accessibility:auth` for the Auth accessibility suite across browser projects.
+- For verification after shared changes, run `npm run check` then `npm run build:auth`. Builds produce output only; static checks are separate.
 
 ## Code Style Guidelines
 

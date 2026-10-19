@@ -8,8 +8,8 @@ services:
       app-network:
         ipv4_address: 172.28.0.2
 
-  app:
-    image: s4nny64/app:${BACKEND_IMAGE_TAG:-latest}
+  sanny64-backend:
+    image: sanny64/backend:${BACKEND_IMAGE_TAG:-latest}
     env_file:
       - ../.env
     environment:

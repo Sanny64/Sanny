@@ -36,7 +36,7 @@ In the project directory, run one of the workspace scripts:
 - npm run dev:auth
 - npm run dev:docs
 
-For quality checks, use scripts defined by the root `package.json`. Shared packages export source; app build wrappers typecheck them rather than producing library artifacts. `npm run test:tooling` adds config contracts and tooling checks, and the full root gate also typechecks documentation. See the [workspace tooling and migration guide](documentation/docs/general-info/workspace-tooling.mdx) for removed commands, root Docker context, and the operator-controlled Alloy rollout.
+For quality checks, use scripts defined by the root `package.json`. Shared packages export source without library build artifacts. TypeScript, Vite, and common development types are root-owned; package configs define source boundaries, and root tooling owns Vite/Vitest/Playwright configs. Builds produce output only: run `npm run check` before building manually. `npm run test:tooling` checks configuration contracts. See the [workspace tooling and migration guide](documentation/docs/general-info/workspace-tooling.mdx) for migration details.
 
 - `npm run format:check`
 - `npm run test`
@@ -45,15 +45,16 @@ For quality checks, use scripts defined by the root `package.json`. Shared packa
 - Shared-package lint: `npm run lint -w @sanny/i18n`, `npm run lint -w @sanny/styles`, and `npm run lint -w @sanny/ui`
 - `npm run build:auth`, `npm run build:sanny`, and `npm run build:docs`
 
-`npm run test` runs formatting, tooling and documentation typechecks, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers typecheck shared source before each app. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx) and [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx).
+`npm run test:ci` runs formatting, all workspace/tooling static checks, config contracts, backend unit/monitoring/Redis tests, app builds, components, mocked browsers, and a docs build for both locales without live authentication credentials. `npm run test` adds live password-user Auth0 tests and reports the full elapsed duration. Mocked and live Playwright suites each run once across Chromium, Firefox, and Edge. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require manual password-login verification. The gates require Docker; the full gate additionally requires a reachable development API/Auth0 setup. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx) and [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx).
 
 Run each app you need in its own terminal. Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and the English docs at `http://localhost:3000` (`npm run dev:docs-de` serves German docs at port `3001`). Frontend development servers use a local HTTPS certificate and reload when source changes.
 
-`npm run test:backend:redis` starts a disposable Compose project that inherits the
-real app and Redis environment, TLS configuration, and service definitions. It
-waits for Redis health, uses separate networking and data volumes, limits the
-test run to 120 seconds, and removes its containers and volumes afterward. The
-development stack does not need to be running.
+`npm run test:integration:redis -w backend` starts a disposable Compose project
+with a backend test image and Redis using a fixed test-only password plus the
+repository TLS certificates. Its Docker network is internal, and it does not load
+`backend/.env` or use the running backend stack. It waits for Redis health, uses a
+separate data volume, limits the test run to 120 seconds, and removes its
+containers and volume afterward.
 
 ### Branches and Releases
 
@@ -71,7 +72,9 @@ A release is created by building one new commit on `main` from the file tree of 
 
 Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. Docs deploy from `main` when `documentation/**`, `shared/packages/**`, `package.json`, or `package-lock.json` changes. Sanny and Auth deploy from `main` when their configured app, shared-package, or root package files change. Backend changes under `backend/` or to its workflow trigger checks and publish one image to GHCR and Docker Hub; a manual run from `main` deploys its exact Docker Hub commit-SHA image to the VPS. All sites are built for the subdomain root (`/`).
 
-Configure the GitHub Actions repository variable `VITE_DEV_API_URL` for the test backend and `VITE_PROD_API_URL` for the production backend. The test workflow passes the development URL into the existing `VITE_PROD_API_URL` build-time slot because optimized Vite builds use the production code path, regardless of deployment branch. Production workflows use the production URL. Builds fail if their required URL is missing. Local `.env.local` files remain unchanged and are not available on GitHub runners. The test URL must be reachable by visitors; `localhost` would point to each visitor's own device.
+Configure the GitHub Actions repository variable `VITE_DEV_API_URL` for the test backend and `VITE_PROD_API_URL` for production. Both deployments pass their respective value as `VITE_API_URL`, the only API setting consumed by browser code. Locally, shared Vite configuration resolves that value from `VITE_DEV_API_URL` for development/test mode and `VITE_PROD_API_URL` for production mode; an explicit `VITE_API_URL` takes precedence. Existing local environment files need not be renamed and are not available on GitHub runners. Builds require an HTTPS origin without credentials, paths, queries, or fragments. The test URL must be reachable by visitors; `localhost` points to each visitor's own device.
+
+Every deployment depends on the same secret-free `verify.yml` gate used for pull requests. Actions are pinned to commit SHAs, checkout does not persist credentials, and FTPS requires trusted hostname-matching certificates. Fix the hosting certificate or FTP hostname instead of disabling verification. Configure a GitHub ruleset to require the verification check and review for protected branches; workflow files alone do not enforce branch protection.
 
 Configure these HTTPS subdomains in your prefered web hosting service provider (e.g. Hetzner) with the corresponding document roots (FTP-visible paths):
 
@@ -88,7 +91,7 @@ The test workflow uses fixed destinations: `/public_html/testing/`, `/public_htm
 
 Both workflows use `FTP_SERVER`, `FTP_USERNAME`, and `FTP_PASSWORD` secrets. Test sites also require `TEST_BASIC_AUTH_ENTRY` containing one or more newline-separated `username:hashed-password` lines (no blank lines), and `TEST_BASIC_AUTH_FILE_PATH` containing the absolute server filesystem path to the main test site's `.htpasswd`. This is not the FTP-visible path. Each line provides a separate login that works across all three sites. The test workflow generates `.htpasswd` from the secret and uploads it with the Sanny site, so no manual WebFTP upload is needed. Apache must be permitted to read the shared password file from each subdomain and allow Basic Auth and rewrite directives in `.htaccess`. Sanny and Auth use SPA fallbacks; docs serves its generated pages and `404.html`.
 
-The backend uses one image workflow: pushes to `main` that change `backend/**` or `.github/workflows/deploy-backend.yml` run checks and publish the same `latest` and commit-SHA images to GHCR and Docker Hub (`s4nny64/app`). Docker Hub is used by Gordon and as the VPS deployment source. A manual `workflow_dispatch` from `main` deploys the exact commit-SHA image; runs from other branches do not publish or deploy.
+The backend uses one image workflow: pushes to `main` that change `backend/**` or `.github/workflows/deploy-backend.yml` run checks and publish the same `latest` and commit-SHA images to GHCR and Docker Hub (`sanny64/backend`). Docker Hub is used by Gordon and as the VPS deployment source. A manual `workflow_dispatch` from `main` deploys the exact commit-SHA image; runs from other branches do not publish or deploy.
 
 ### Directory Structure
 
@@ -190,7 +193,7 @@ Both Vite configs use the shared HTML theme bootstrap in `vite.shared.ts`. It ap
 
 `ThemeProvider` also supplies Framer Motion defaults through `MotionConfig` with `reducedMotion="user"`. `@sanny/ui` owns `AppShell`, route-entry motion, shared buttons, settings, and notifications. Both apps import the shared global/layout CSS in `src/main.tsx`, including standalone error and proof-resume routes. App-specific styles consume semantic variables instead of defining another light/dark palette. Auxiliary party routes keep their scoped colors.
 
-The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:auth`, and `test:e2e:accessibility:auth`. Its workflow publishes an artifact to `/public_html/auth/`; the hosting document root for `auth.sanny64.de` must match. The former login workspace/script names are no longer supported. Backend login endpoints and Auth0 callback URLs remain unchanged.
+The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:auth`, and `test:frontend:accessibility:auth`. Its workflow publishes an artifact to `/public_html/auth/`; the hosting document root for `auth.sanny64.de` must match. The former login workspace/script names are no longer supported. Backend login endpoints and Auth0 callback URLs remain unchanged.
 
 ### Backend
 

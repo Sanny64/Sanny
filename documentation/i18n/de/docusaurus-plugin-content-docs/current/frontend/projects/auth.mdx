@@ -31,7 +31,7 @@ Auth und Sanny verwenden `AppShell`, semantische Farbvariablen fuer helle und du
 
 ## Entwicklung und Deployment
 
-Die Befehle im Repository-Stamm sind `npm run dev:auth`, `npm run lint:auth`, `npm run build:auth` und `npm run test:e2e:accessibility:auth`. Die App laeuft unter `https://localhost:5174`.
+Die Befehle im Repository-Stamm sind `npm run dev:auth`, `npm run lint:auth`, `npm run build:auth` und `npm run test:frontend:accessibility:auth`. Die App laeuft unter `https://localhost:5174`.
 
 Der Workflow `deploy-auth.yml` uebergibt den Build als Artefakt und veroeffentlicht `auth/dist/` unter `/public_html/auth/`. Der Document Root der Auth-Subdomain muss darauf zeigen. Backend-Login-Endpunkte und Auth0-Callbacks bleiben unveraendert. Die Startseite zeigt den Anfragestatus und gemeinsame Darstellungseinstellungen, kein separates Login-Formular.
 

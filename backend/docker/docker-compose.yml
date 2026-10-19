@@ -11,12 +11,12 @@ services:
       - ../nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - nginx-logs:/var/log/nginx
     depends_on:
-      - app
+      - sanny64-backend
     networks:
       - app-network
     restart: unless-stopped
 
-  app:
+  sanny64-backend:
     build:
       context: ../..
       dockerfile: backend/docker/Dockerfile

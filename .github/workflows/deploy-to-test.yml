@@ -13,7 +13,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    if: github.ref == 'refs/heads/test'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify.yml
+
   lint-and-build:
+    needs: verify
     if: github.ref == 'refs/heads/test'
     runs-on: ubuntu-latest
 
@@ -22,29 +29,21 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Check the projects
-        run: |
-          npm run check:frontend
-          npm run check:docs
-
-      - name: Check and test tooling
-        run: npm run check:tooling && npm run test:tooling
-
       - name: Build frontends for test subdomains
         run: |
-          if [ -z "$VITE_DEV_API_URL" ]; then
+          if [ -z "$VITE_API_URL" ]; then
             echo "Set the VITE_DEV_API_URL repository variable before deploying to the test environment."
             exit 1
           fi
@@ -52,7 +51,7 @@ jobs:
           npm run build -w auth -- --base=/
           npm run build:docs
         env:
-          VITE_DEV_API_URL: ${{ vars.VITE_DEV_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_DEV_API_URL }}
           DOCUSAURUS_URL: https://test.docs.sanny64.de
           DOCUSAURUS_BASE_URL: /
 
@@ -100,7 +99,7 @@ jobs:
           TEST_BASIC_AUTH_FILE_PATH: ${{ secrets['TEST_BASIC_AUTH_FILE_PATH'] }}
 
       - name: Upload frontend builds
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: testing-site
           path: testing-site/
@@ -124,7 +123,7 @@ jobs:
 
     steps:
       - name: Download frontend builds
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: testing-site
           path: testing-site/
@@ -133,7 +132,7 @@ jobs:
         shell: bash
         run: |
           curl --disable --silent --show-error --fail \
-            --ssl-reqd --insecure --ftp-pasv \
+            --ssl-reqd --ftp-pasv \
             --connect-timeout 15 --max-time 60 \
             --user "$FTP_USERNAME:$FTP_PASSWORD" \
             --list-only --output /dev/null \
@@ -151,7 +150,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
-          security: loose
+          security: strict
           local-dir: ./testing-site/${{ matrix.site }}/
           server-dir: ${{ matrix.server-dir }}
           state-name: .ftp-deploy-sync-state-${{ matrix.site }}.json

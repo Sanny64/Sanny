@@ -14,7 +14,7 @@ Use isolated development or staging services and dedicated test identities. Neve
 
 ## Before Staging
 
-- [ ] Run the backend tests with `npm run test:backend` and `npm run test:backend:redis`; record results. Run [frontend checks](../../frontend/local-testing/automated-testing.mdx) separately. The root `npm run test` composes backend, frontend, and live integration gates; docs build remains separate.
+- [ ] Run backend unit, monitoring, and Redis tests with `npm run test:backend`; record results. Run [frontend checks](../../frontend/local-testing/automated-testing.mdx) separately. The root `npm run test` composes backend, frontend, docs, and live integration gates.
 - [ ] Verify password signup/login, email verification, password reset, logout, and session expiry with dedicated identities.
 - [ ] Verify Google sign-in and account linking in both directions (Google first and password first): ownership reauthentication, confirm, cancel, expired request/cleanup, and the final Auth0 identity plus local database record. Follow [Account Linking](./account-linking-testing.mdx).
 - [ ] Verify successful profile update, account deletion, admin lookup/list pagination, role changes, password reset, and denied access for non-admins. Confirm persistence and cleanup in the isolated environment.

@@ -34,10 +34,10 @@ Delivery and Grafana notification history are the evidence; configuration alone 
 Run the opt-in webhook test from the repository root:
 
 ```powershell
-docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true app node --import=tsx --test monitoring/tests/discord-integration.test.ts
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/discord-integration.test.ts
 ```
 
-The test sends a synthetic message through the app container's configured webhook and expects HTTP `204`. It checks the webhook itself, not Grafana alert routing. Run it only when a visible test message in that Discord destination is acceptable.
+The test sends a synthetic message through the backend container's configured webhook and expects HTTP `204`. It checks the webhook itself, not Grafana alert routing. Run it only when a visible test message in that Discord destination is acceptable.
 
 ---
 
@@ -46,7 +46,7 @@ The test sends a synthetic message through the app container's configured webhoo
 This integration sends bounded synthetic Loki entries above the three log-rule thresholds and asks Grafana whether `429 Rate Limit Spike`, `Auth Endpoint Abuse`, and `Auth Callback Flood` fired:
 
 ```powershell
-docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true app node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
 ```
 
 This may send Discord warnings and a critical email. Run only when those side effects are intended. Grafana API access needs `GRAFANA_ADMIN_USER` and `GRAFANA_ADMIN_PASSWORD` matching the stored Grafana account. Changing Compose values does not change an existing Grafana password. Correct authentication before retrying.

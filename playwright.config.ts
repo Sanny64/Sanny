@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e/mock",
   fullyParallel: true,
+  workers: 2,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
@@ -32,6 +33,7 @@ export default defineConfig({
       url: "https://127.0.0.1:5175",
       ignoreHTTPSErrors: true,
       reuseExistingServer: !process.env.CI,
+      env: { VITE_API_URL: "https://127.0.0.1:8443" },
       timeout: 120_000,
     },
     {
@@ -39,6 +41,7 @@ export default defineConfig({
       url: "https://127.0.0.1:5176",
       ignoreHTTPSErrors: true,
       reuseExistingServer: !process.env.CI,
+      env: { VITE_API_URL: "https://127.0.0.1:8443" },
       timeout: 120_000,
     },
   ],

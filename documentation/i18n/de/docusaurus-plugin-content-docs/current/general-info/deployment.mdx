@@ -85,7 +85,7 @@ Docs werden bei Änderungen an `documentation/**`, `shared/packages/**`, `packag
 - `auth` -> Produktionsseite unter `https://auth.sanny64.de/`.
 - `docs` -> Produktionsseite unter `https://docs.sanny64.de/`.
 - Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
-- Ein Push nach `main`, der `backend/**` oder `.github/workflows/deploy-backend.yml` ändert, führt Backend-Prüfungen aus und baut das Image einmal. Derselbe Image-Build wird mit den Tags `latest` und Commit-SHA nach GHCR und Docker Hub (`s4nny64/app`) veröffentlicht. Docker Hub bleibt die Image-Quelle für Gordons Analyse und das VPS-Deployment.
+- Ein Push nach `main`, der `backend/**` oder `.github/workflows/deploy-backend.yml` ändert, führt Backend-Prüfungen aus und baut das Image einmal. Derselbe Image-Build wird mit den Tags `latest` und Commit-SHA nach GHCR und Docker Hub (`sanny64/backend`) veröffentlicht. Docker Hub bleibt die Image-Quelle für Gordons Analyse und das VPS-Deployment.
 - Ein manueller Start von `workflow_dispatch` auf `main` baut und veröffentlicht das Image und deployed anschließend genau diesen Commit-SHA-Tag von Docker Hub auf den VPS. Manuelle Starts von anderen Branches werden übersprungen. Docker-Hub-Zugangsdaten werden als GitHub-Actions-Secrets konfiguriert, nicht als Backend-Laufzeitvariablen.
 
 ---

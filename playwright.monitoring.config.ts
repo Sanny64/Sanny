@@ -7,7 +7,6 @@ export default defineConfig({
   reporter: "list",
   workers: 1,
   use: {
-    ...devices["Desktop Chrome"],
     baseURL: process.env.SANNY_E2E_API_URL ?? "https://localhost:8443",
     ignoreHTTPSErrors: true,
   },

@@ -127,7 +127,7 @@ the backend workflow:
 2. Go to **Secrets and variables** > **Actions** > **New repository secret**.
 3. Add `DOCKERHUB_USERNAME` with the Docker Hub account name.
 4. Add `DOCKERHUB_PAT` with a Docker Hub access token that can push to
-   `s4nny64/app`.
+   `sanny64/backend`.
 
 The `deploy-backend.yml` workflow uses these secrets to publish images to Docker
 Hub and to authenticate the VPS before it pulls the selected image. GHCR uses

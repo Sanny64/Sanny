@@ -8,8 +8,6 @@ const composeArgs = [
   "compose",
   "--project-directory",
   "docker",
-  "--env-file",
-  ".env",
   "--project-name",
   `sanny-redis-tests-${pid}`,
   "--file",
@@ -77,7 +75,7 @@ try {
     "--build",
     "--abort-on-container-exit",
     "--exit-code-from",
-    "app",
+    "sanny64-backend",
   ]);
 } finally {
   cleanupStarted = true;

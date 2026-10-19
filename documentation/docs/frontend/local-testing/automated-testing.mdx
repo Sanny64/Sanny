@@ -11,30 +11,35 @@ Live E2E tests open visible browser windows (`--headed`) and may display flashin
 
 Run commands from the repository root.
 
-| Command                                 | Purpose                                                                                    |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `npm run test:frontend`                 | Run app lint/build, shared package lint, UI components, and mocked frontend browser tests. |
-| `npm run test:frontend:accessibility`   | Run shared and app accessibility suites across Chromium, Firefox, and Edge.                |
-| `npm run test:e2e:accessibility:shared` | Run shared accessibility checks across Chromium, Firefox, and Edge.                        |
-| `npm run test:e2e:accessibility:auth`   | Run Auth accessibility browser tests only.                                                 |
-| `npm run test:e2e:accessibility:sanny`  | Run Sanny accessibility browser tests only.                                                |
-| `npm run test:e2e:mocked`               | Run all mocked frontend browser tests in Chromium, Firefox, and Edge.                      |
-| `npm run test:components`               | Run the shared UI Vitest component suite.                                                  |
-| `npm run check -w auth`                 | Run Auth lint and typechecking through its base scripts.                                   |
-| `npm run check -w sanny`                | Run Sanny lint and typechecking through its base scripts.                                  |
-| `npm run lint:auth`                     | Lint the Auth frontend.                                                                    |
-| `npm run lint:sanny`                    | Lint the public frontend.                                                                  |
-| `npm run lint -w @sanny/i18n`           | Lint the shared localization package.                                                      |
-| `npm run lint -w @sanny/styles`         | Lint the shared styles package.                                                            |
-| `npm run lint -w @sanny/ui`             | Lint the shared UI package.                                                                |
-| `npm run build:auth`                    | Typecheck shared source packages, then build Auth.                                         |
-| `npm run build:sanny`                   | Typecheck shared source packages, then build Sanny.                                        |
+| Command                                      | Purpose                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `npm run test:frontend`                      | Run app lint/build, shared package lint, UI components, and mocked frontend browser tests. |
+| `npm run test:frontend:accessibility:auth`   | Run Auth accessibility browser tests only.                                                 |
+| `npm run test:frontend:accessibility:sanny`  | Run Sanny accessibility browser tests only.                                                |
+| `npm run test:frontend:accessibility:shared` | Run shared accessibility checks across Chromium, Firefox, and Edge.                        |
+| `npm run test:frontend:accessibility`        | Run shared and app accessibility suites across Chromium, Firefox, and Edge.                |
+| `npm run test:e2e:mocked`                    | Run all mocked frontend browser tests in Chromium, Firefox, and Edge.                      |
+| `npm run test:e2e:real`                      | Run live Auth0 tests in Chromium, Firefox, and Edge in one Playwright invocation.          |
+| `npm run test:components`                    | Run the shared UI Vitest component suite.                                                  |
+| `npm run check -w auth`                      | Run Auth lint and typechecking through its base scripts.                                   |
+| `npm run check -w sanny`                     | Run Sanny lint and typechecking through its base scripts.                                  |
+| `npm run lint:auth`                          | Lint the Auth frontend.                                                                    |
+| `npm run lint:sanny`                         | Lint the public frontend.                                                                  |
+| `npm run lint -w @sanny/i18n`                | Lint the shared localization package.                                                      |
+| `npm run lint -w @sanny/styles`              | Lint the shared styles package.                                                            |
+| `npm run lint -w @sanny/ui`                  | Lint the shared UI package.                                                                |
+| `npm run build:auth`                         | Build Auth; run static checks separately.                                                  |
+| `npm run build:sanny`                        | Build Sanny; run static checks separately.                                                 |
 
-Each app's workspace `check` script composes its `lint` and `typecheck` base scripts; neither app exposes a test alias for lint. `npm run test:frontend` composes frontend static checks, builds, UI component tests, and mocked browser tests; those tests stub API responses and do not verify backend persistence. Backend tests are documented separately under [Backend Local Testing](../../backend/local-testing/automated-testing.mdx). Live Auth0/browser flows are cross-system integration checks, run with `npm run test:integration`. The root `npm run test` composes all workspace checks and backend/frontend/integration tests; the docs build remains separate.
+Each app's workspace `check` script composes its `lint` and `typecheck` base scripts; neither app exposes a test alias for lint. `npm run test:frontend` runs frontend static checks, builds, components, and mocked browsers, including accessibility specs. The complete gate runs all static checks once. Mocked tests stub API responses and do not verify backend persistence. `npm run test:ci` adds backend unit/monitoring/Redis checks and one docs build for both locales without live credentials; `npm run test` additionally runs live Auth0 integration without repeating prior suites. Mocked and live Playwright suites each cover Chromium, Firefox, and Edge in one invocation. See [Backend Local Testing](../../backend/local-testing/automated-testing.mdx).
 
 ---
 
 ## Latest Full Suite Run
+
+- Latest CI verification (2026-10-19, Node 24.22.0): `npm run test:ci` passed in 14:02 after script reconciliation. This includes all static checks, 18 configuration contracts, backend unit/monitoring checks, app builds/components, 644 mocked browser tests (10 intentional skips), and both docs locales. Real Redis passed in the preceding full attempt. Live Auth0 remains failing; this CI result is not a successful full gate or hosted sign-off.
+
+- Configuration-normalization attempt (2026-10-19, Node 24.22.0): the root command exited 1 after 15:19. CI/static checks, production-derived monitoring, frontend builds/components/mocked browsers, docs builds, and real Redis passed. A concurrently removed script alias prevented the final stage; the script graph was repaired and all 18 configuration contracts passed afterward. Independent live Chromium, Firefox, and Edge checks reached Auth0 but failed with `invalid_authentication_state`; Google was intentionally skipped. This is not a successful full run or hosted sign-off.
 
 - Latest attempt: 2026-10-19, Node 24, normalized `npm run test`; runtime 12:25, exit code 1. Formatting, all workspace/tooling checks, 7 config contracts, backend/monitoring/Redis checks, app builds, 11 components, and mocked browsers passed (Chromium 218; Firefox/Edge 213 each plus 5 visual skips). Live Chromium failed with connection refused because the development backend was stopped. After starting it with `npm run start:backend`, a separate `npm run test:integration` passed password-user login/logout in Chromium, Firefox, and Edge (1 passed and 1 intentional Google skip each). This verifies recovery but does not turn the original root invocation into a successful run.
 - Previous successful full run:
@@ -64,7 +69,7 @@ The axe tests use WCAG 2.2 AA tags across all registered Sanny public routes and
 - Axe checks automated WCAG 2.2 AA rules only for the routes, states, languages, and themes included in the suite. Specific keyboard flows are tested, but this is not a complete keyboard audit.
 - The root `npm run test` also runs a live password-user Auth0 flow against the configured local/development API and tenant. This adds evidence for that test identity and path, not every identity provider or account lifecycle.
 
-Mocked frontend tests do not exercise backend persistence or live Auth0. A passing suite does not prove behavior on every browser/device, every WCAG success criterion, screen-reader compatibility, production/staging configuration, or that all possible inputs and states work. Visual baselines are captured in Chromium only, and the documentation site is not built by the root gate. Use manual and hosted-environment checks for the remaining assurance; see [Backend Local Testing](../../backend/local-testing/automated-testing.mdx) for backend and integration boundaries.
+Mocked frontend tests do not exercise backend persistence or live Auth0. A passing suite does not prove behavior on every browser/device, every WCAG success criterion, screen-reader compatibility, production/staging configuration, or all possible inputs and states. Visual baselines are captured in Chromium only. Both root gates now build documentation. Use manual and hosted-environment checks for the remaining assurance; see [Backend Local Testing](../../backend/local-testing/automated-testing.mdx).
 
 ---
 

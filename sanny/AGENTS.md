@@ -11,8 +11,8 @@ Main public React + Vite + TypeScript site for the portfolio, pages, and interac
 - Build with `npm run build:sanny`.
 - Lint with `npm run lint:sanny`.
 - Run app-local static checks with `npm run check -w sanny`; it composes `lint` and `typecheck`. This app has no standalone unit-test script; browser tests belong to root E2E tooling.
-- Run `npm run test:e2e:accessibility:sanny` for the Sanny accessibility suite across browser projects.
-- When shared packages change, verify with `npm run build:sanny`; the root wrapper typechecks shared source before building the app.
+- Run `npm run test:frontend:accessibility:sanny` for the Sanny accessibility suite across browser projects.
+- When shared packages change, run `npm run check` then `npm run build:sanny`. Builds produce output only; static checks are separate.
 
 ## Code Style Guidelines
 

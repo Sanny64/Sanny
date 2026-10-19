@@ -25,7 +25,7 @@ Die automatisierte Suite überspringt den Google-Login absichtlich. Google-Provi
 
 ## Vor dem Staging
 
-- [ ] Backend-Tests mit `npm run test:backend` und `npm run test:backend:redis` ausführen und Ergebnisse dokumentieren. [Frontend-Prüfungen](../../frontend/local-testing/automated-testing) separat ausführen. Das Root-`npm run test` setzt Backend-, Frontend- und Live-Integrations-Gates zusammen; der Docs-Build bleibt separat.
+- [ ] Backend-Unit-, Monitoring- und Redis-Tests mit `npm run test:backend` ausführen und Ergebnisse dokumentieren. [Frontend-Prüfungen](../../frontend/local-testing/automated-testing) separat ausführen. Das Root-`npm run test` setzt Backend-, Frontend-, Docs- und Live-Integrations-Gates zusammen.
 - [ ] Passwortregistrierung/-anmeldung, E-Mail-Verifizierung, Passwort-Reset, Logout und Sitzungsablauf mit dedizierten Testkonten prüfen.
 - [ ] Google-Anmeldung und Account-Verknüpfung in beiden Richtungen prüfen: Besitz-Reauthentifizierung, Bestätigen, Abbrechen, Ablauf/Bereinigung und resultierende Auth0-/lokale Kontodaten. Siehe [Account-Linking](./account-linking-testing).
 - [ ] Erfolgreiche Profiländerung, Kontolöschung, Admin-Suche/Paginierung, Rollenänderung, Passwort-Reset und Ablehnung für Nicht-Admins in isolierter Umgebung prüfen; Persistenz und Bereinigung bestätigen.

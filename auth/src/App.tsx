@@ -7,9 +7,7 @@ import AccountLinkingResumePage from "./pages/accountLinkingPage/AccountLinkingR
 import { prepareProofResume } from "./utils/proof-resume";
 import { Error as ErrorPage, Settings, ToastViewport } from "@sanny/ui";
 
-const apiUrl = import.meta.env.DEV
-  ? import.meta.env.VITE_DEV_API_URL
-  : import.meta.env.VITE_PROD_API_URL;
+const apiUrl = import.meta.env.VITE_API_URL;
 
 const router = createBrowserRouter(
   [

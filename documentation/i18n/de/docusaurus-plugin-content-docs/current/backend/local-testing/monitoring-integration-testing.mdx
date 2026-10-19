@@ -32,17 +32,17 @@ Dabei wird eine echte E-Mail versendet. Zustellung und Benachrichtigungshistorie
 Den explizit aktivierten Webhooktest im Repository-Stammverzeichnis ausführen:
 
 ```powershell
-docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true app node --import=tsx --test monitoring/tests/discord-integration.test.ts
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/discord-integration.test.ts
 ```
 
-Der Test versendet eine synthetische Nachricht über `DISCORD_WEBHOOK` des App-Containers und erwartet HTTP `204`. Er prüft den Webhook selbst, nicht Grafanas Alarmweiterleitung. Nur ausführen, wenn eine sichtbare Testnachricht im konfigurierten Discord-Ziel in Ordnung ist.
+Der Test versendet eine synthetische Nachricht über `DISCORD_WEBHOOK` des Backend-Containers und erwartet HTTP `204`. Er prüft den Webhook selbst, nicht Grafanas Alarmweiterleitung. Nur ausführen, wenn eine sichtbare Testnachricht im konfigurierten Discord-Ziel in Ordnung ist.
 
 ## Grafana-Regeln auslösen
 
 Dieser Integrationstest sendet begrenzte synthetische Loki-Einträge über die Schwellenwerte der drei Logregeln und fragt anschließend Grafana ab, ob `429 Rate Limit Spike`, `Auth Endpoint Abuse` und `Auth Callback Flood` ausgelöst wurden:
 
 ```powershell
-docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true app node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
 ```
 
 Dabei können Discord-Warnungen und eine kritische E-Mail versendet werden. Nur ausführen, wenn diese Nebenwirkungen beabsichtigt sind. Grafanas API-Abfrage benötigt `GRAFANA_ADMIN_USER` und `GRAFANA_ADMIN_PASSWORD`, passend zum gespeicherten Grafana-Konto. Eine Änderung der Compose-Umgebungswerte ändert kein bestehendes Grafana-Passwort; wiederholte fehlgeschlagene Basic-Authentifizierungen können das Konto vorübergehend sperren. Vor einem erneuten Versuch zuerst die Authentifizierung korrigieren.

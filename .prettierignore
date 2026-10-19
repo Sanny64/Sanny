@@ -1,8 +1,6 @@
 **/dist
 **/build
 **/.docusaurus
-node_modules
-**/node_modules
 test-results
 playwright-report
 package-lock.json

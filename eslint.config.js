@@ -5,6 +5,15 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
+const browserSource = [
+  "auth/src/**/*.{ts,tsx}",
+  "sanny/src/**/*.{ts,tsx}",
+  "shared/packages/ui/src/**/*.{ts,tsx}",
+  "shared/packages/i18n/**/*.{ts,tsx}",
+  "shared/packages/styles/**/*.{ts,tsx}",
+  "documentation/src/**/*.{ts,tsx}",
+];
+
 export default defineConfig(
   globalIgnores([
     "**/dist/**",
@@ -24,18 +33,31 @@ export default defineConfig(
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommended],
-    languageOptions: { globals: globals.node },
   },
   {
     files: [
-      "auth/src/**/*.{ts,tsx}",
-      "sanny/src/**/*.{ts,tsx}",
-      "shared/packages/**/*.{ts,tsx}",
-      "documentation/src/**/*.{ts,tsx}",
+      "backend/**/*.{ts,tsx}",
+      "vite.shared.ts",
+      "playwright*.ts",
+      "e2e/**/*.ts",
+      "auth/vite.config.ts",
+      "sanny/vite.config.ts",
+      "documentation/docusaurus.config.ts",
+      "documentation/sidebars.ts",
+      "shared/packages/*/vitest.config.ts",
     ],
+    languageOptions: { globals: globals.node },
+  },
+  {
+    files: browserSource,
+    ignores: ["**/*.config.ts"],
     extends: [reactHooks.configs.flat.recommended],
+    languageOptions: { globals: globals.browser },
+  },
+  {
+    files: [...browserSource, "backend/src/**/*.ts"],
+    ignores: ["**/*.config.ts", "**/tests/**"],
     languageOptions: {
-      globals: globals.browser,
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
@@ -43,6 +65,7 @@ export default defineConfig(
     },
     rules: {
       "@typescript-eslint/await-thenable": "error",
+      "@typescript-eslint/no-floating-promises": "error",
     },
   },
   {

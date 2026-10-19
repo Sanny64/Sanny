@@ -25,6 +25,12 @@ export default defineConfig(frontendConfig, {
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  webServer: Array.isArray(frontendConfig.webServer)
+    ? frontendConfig.webServer.map((server) => ({
+        ...server,
+        env: { ...server.env, VITE_API_URL: process.env.VITE_API_URL ?? "" },
+      }))
+    : frontendConfig.webServer,
   use: {
     trace: "off",
     screenshot: "off",

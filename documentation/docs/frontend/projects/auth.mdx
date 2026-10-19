@@ -33,7 +33,7 @@ Both Auth and Sanny use `AppShell`, semantic light/dark surface tokens, bundled 
 
 ## Development and Deployment
 
-Use `npm run dev:auth`, `npm run lint:auth`, `npm run build:auth`, and `npm run test:e2e:accessibility:auth` from the root. The app runs at `https://localhost:5174`.
+Use `npm run dev:auth`, `npm run lint:auth`, `npm run build:auth`, and `npm run test:frontend:accessibility:auth` from the root. The app runs at `https://localhost:5174`.
 
 The `deploy-auth.yml` workflow passes the built artifact to the deploy job and publishes `auth/dist/` to `/public_html/auth/`. The auth subdomain document root must point there. Existing runtime configuration files move with the directory; endpoint URLs do not change merely because the workspace was renamed.
 

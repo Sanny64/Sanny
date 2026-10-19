@@ -15,9 +15,20 @@ on:
       - "eslint.config.js"
       - "tsconfig*.json"
       - ".github/workflows/deploy-sanny.yml"
+      - ".github/workflows/verify.yml"
+
+concurrency:
+  group: deploy-sanny-production
+  cancel-in-progress: false
 
 jobs:
+  verify:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify.yml
+
   build-and-deploy:
+    needs: verify
     runs-on: ubuntu-latest
 
     permissions:
@@ -25,12 +36,12 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
 
@@ -40,18 +51,15 @@ jobs:
       - name: Copy favicon from root
         run: cp ./favicon.ico ./sanny/public/
 
-      - name: Lint the projects
-        run: npm run lint:sanny && npm run lint -w @sanny/i18n && npm run lint -w @sanny/styles && npm run lint -w @sanny/ui
-
       - name: Build the project
         run: |
-          if [ -z "$VITE_PROD_API_URL" ]; then
+          if [ -z "$VITE_API_URL" ]; then
             echo "Set the VITE_PROD_API_URL repository variable before deploying production."
             exit 1
           fi
-          npm run build:sanny
+          npm run build -w sanny
         env:
-          VITE_PROD_API_URL: ${{ vars.VITE_PROD_API_URL }}
+          VITE_API_URL: ${{ vars.VITE_PROD_API_URL }}
 
       - name: Deploy to Hetzner via FTP
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
@@ -60,6 +68,6 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
-          security: loose
+          security: strict
           local-dir: ./sanny/dist/
           server-dir: /public_html/sanny/
