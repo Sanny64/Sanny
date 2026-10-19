@@ -30,7 +30,7 @@ This is the repository's documented release convention, not a branch-protection 
 - Feature work lands here first.
 - Commit history can be messy and is never rewritten.
 - No site is deployed from `dev`, and nothing in it is considered release-ready until it has been promoted to `test`.
-- The only exception is the backend image: pushes to `dev` that change files in `backend/` build and publish it to Docker Hub via `deploy-images.yml`. This does not deploy anything to the VPS.
+- No deployment workflow is triggered by pushes to `dev`.
 
 ### `test`
 
@@ -60,7 +60,7 @@ A push to `test` deploys the internet-accessible test environment with HTTP Basi
 - `auth` -> `/public_html/testing/auth/`, served at `https://test.auth.sanny64.de/`.
 - `docs` -> `/public_html/testing/docs/`, served at `https://test.docs.sanny64.de/`, including both locales.
 - `.github/workflows/deploy-to-test.yml` builds all three frontends and uploads each site with its own FTP sync-state file using the existing FTP secrets. Manual runs via `workflow_dispatch` are restricted to `test`.
-- The nested directories are hosting document roots, not URL prefixes; all builds use `/`. Configure the subdomains and HTTPS in Hetzner. Existing `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR`, or `TEST_DOCS_SERVER_DIR` repository variables override these directories.
+- The nested directories are hosting document roots, not URL prefixes; all builds use `/`. Configure the subdomains and HTTPS in Hetzner. The workflow uses fixed FTP destinations: `/public_html/testing/`, `/public_html/testing/auth/`, and `/public_html/testing/docs/`.
 - Set `TEST_BASIC_AUTH_ENTRY` to one or more newline-separated `username:hashed-password` lines. Each line creates a separate login, and every login works across all three sites. Do not include blank lines. The workflow generates `.htpasswd` from this secret and uploads it with the Sanny site. Set `TEST_BASIC_AUTH_FILE_PATH` to the absolute server filesystem path of `/public_html/testing/.htpasswd` (not its FTP-visible path). All three sites must be allowed to read this shared password file.
 - Test builds set the asset and router base paths without changing production defaults. Apache rewrite rules support refreshing nested React routes.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
@@ -68,14 +68,14 @@ A push to `test` deploys the internet-accessible test environment with HTTP Basi
 
 ### Production
 
-A push to `main` deploys production.
+Docs deploy from `main` when `documentation/**`, `shared/packages/**`, `package.json`, or `package-lock.json` changes. Sanny and Auth deploy from `main` only when their configured paths change; the backend workflow runs for backend or workflow changes.
 
 - `sanny` -> production site at `https://sanny64.de/`.
 - `auth` -> production site at `https://auth.sanny64.de/`.
 - `docs` -> production site at `https://docs.sanny64.de/`.
 - Shared packages are built as part of the frontend pipeline whenever relevant.
-- A push to `main` runs backend checks and builds/pushes the backend image. The VPS deployment job runs only when `deploy-backend.yml` is started with `workflow_dispatch`.
-- The separate `deploy-images.yml` workflow builds and pushes the backend Docker Hub image on pushes to `dev` that change files in `backend/`, and on version tags; it does not deploy to the VPS. Make sure its tag filter either matches or deliberately ignores the `release-*` tags.
+- A push to `main` that changes `backend/**` or `.github/workflows/deploy-backend.yml` runs backend checks and builds the image once, publishing the same `latest` and commit-SHA tags to GHCR and Docker Hub (`s4nny64/app`). Docker Hub remains the image source for Gordon's analysis and for the VPS.
+- A manual `workflow_dispatch` from `main` builds and publishes the image, then deploys that exact commit-SHA tag from Docker Hub to the VPS. Manual runs from other branches are skipped. Docker Hub credentials are configured as GitHub Actions secrets, not backend runtime variables.
 
 ---
 
@@ -317,7 +317,7 @@ Production deploy starts from `main` after the release commit is pushed.
 
 - `sanny`, `auth`, and the documentation site deploy from `main` when their workflow path filters match.
 - Changes in shared packages trigger the frontend pipelines that include those paths.
-- A push to `main` builds and publishes the backend image; the VPS deployment requires a manual `workflow_dispatch` run.
+- A push to `main` that changes backend files builds and publishes the same backend image to GHCR and Docker Hub; VPS deployment requires a manual `workflow_dispatch` run from `main`.
 
 This makes `main` the source of truth for production while keeping the actual release history small and clean.
 
@@ -330,8 +330,8 @@ Backend deployment is separate from the frontend release train.
 That means:
 
 - The `test` branch workflow does not deploy the backend.
-- A push to `main` builds and publishes the backend image but does not deploy it to the VPS.
-- A manual `workflow_dispatch` run of `deploy-backend.yml` performs the VPS deployment and requires the deployment secrets and host to be configured.
+- A push to `main` that changes backend files builds and publishes the image to GHCR and Docker Hub but does not deploy it to the VPS.
+- A manual `workflow_dispatch` run of `deploy-backend.yml` from `main` deploys the exact Docker Hub commit-SHA image and requires Docker Hub and VPS secrets plus a configured host.
 - Frontend and docs releases should still follow the normal `dev -> test -> main` path regardless of backend status.
 
 ---

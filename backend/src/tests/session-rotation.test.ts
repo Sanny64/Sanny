@@ -35,7 +35,6 @@ import {
   SESSION_TTL_MS,
 } from "../utils/session.js";
 import { getTrustProxy } from "../utils/config.js";
-import { applyRateLimit } from "../utils/rate-limit.js";
 import userRoutes from "../routes/user.route.js";
 import prisma from "../utils/prisma.js";
 

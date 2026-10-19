@@ -1879,7 +1879,6 @@ test("non-admins cannot access admin-only user routes even with permissions", as
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);
   server.addHook("onRoute", (route) => {
-    const methods = Array.isArray(route.method) ? route.method : [route.method];
     const isAdminRoute =
       route.url.endsWith("/users/list") ||
       route.url.endsWith("/users/roles/available") ||

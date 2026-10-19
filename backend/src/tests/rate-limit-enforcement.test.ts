@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import Fastify from "fastify";
 import { readFile } from "node:fs/promises";
+import { parse } from "yaml";
 import { applyRateLimit } from "../utils/rate-limit.js";
 import { getHtmlErrorRedirectUrl } from "../utils/error-response.js";
 import internalRoutes from "../routes/internal.route.js";
@@ -230,19 +231,27 @@ test("rate-limit responses return JSON to APIs and redirect browser navigation",
       /location \/nginx_status \{[\s\S]*?allow all;/,
     );
 
-    for (const composeFile of [
-      "../../docker/docker-compose.yml",
-      "../../docker/docker-compose.prod.yml",
-    ]) {
-      const composeConfig = await readFile(
-        new URL(composeFile, import.meta.url),
+    const development = parse(
+      await readFile(
+        new URL("../../docker/docker-compose.yml", import.meta.url),
         "utf8",
-      );
-      assert.match(
-        composeConfig,
-        /--nginx\.scrape-uri=http:\/\/nginx:8081\/nginx_status/,
-      );
-    }
+      ),
+    );
+    const production = parse(
+      await readFile(
+        new URL("../../docker/docker-compose.prod.yml", import.meta.url),
+        "utf8",
+      ),
+    );
+    assert.ok(
+      development.services["nginx-exporter"].command.includes(
+        "--nginx.scrape-uri=http://nginx:8081/nginx_status",
+      ),
+    );
+    assert.deepEqual(production.services["nginx-exporter"].extends, {
+      file: "docker-compose.yml",
+      service: "nginx-exporter",
+    });
   } finally {
     await server.close();
   }

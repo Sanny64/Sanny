@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { appendFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 
 const expectedAlertNames = [
   "429 Rate Limit Spike",
@@ -191,4 +193,32 @@ test("synthetic Loki entries trigger all configured log-based Grafana rules", as
     [],
     "Grafana did not deliver all expected alerts to the test notification sink",
   );
+});
+
+test("Alloy forwards application and NGINX files with the existing job labels", async () => {
+  await waitForService(`${lokiUrl}/ready`, "Loki");
+  const marker = `alloy-integration-${randomUUID()}`;
+  for (const [job, directory] of [
+    ["nginx", "/var/log/nginx"],
+    ["backend", "/var/log/app"],
+  ]) {
+    await appendFile(`${directory}/alloy-test.log`, `${marker}\n`);
+    const query = new URL(`${lokiUrl}/loki/api/v1/query_range`);
+    query.searchParams.set("query", `{job="${job}"} |= "${marker}"`);
+    const deadline = Date.now() + 30_000;
+    let received = false;
+    while (Date.now() < deadline) {
+      const response = await fetch(query, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      assert.equal(response.status, 200);
+      const result = (await response.json()) as { data: { result: unknown[] } };
+      if (result.data.result.length > 0) {
+        received = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+    assert.ok(received, `Alloy did not forward ${job} logs to Loki`);
+  }
 });

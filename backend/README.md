@@ -1,5 +1,7 @@
 # Backend
 
+Install with root `npm ci` using Node 24/npm 11 and the root lockfile. Build from the repository root with `docker build -f backend/docker/Dockerfile .`; `npm run build:backend` builds only. Production Compose inherits common services from the development file, and Alloy replaces Promtail. Follow the [workspace migration guide](../documentation/docs/general-info/workspace-tooling.mdx) before deployment.
+
 ## Account linking
 
 Google/password identity conflicts require confirmation and authentication of
@@ -21,7 +23,7 @@ The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the auth frontend's
 
 ## Automated testing
 
-Run `npm run test:backend` from the repository root for the backend type-check and unit suite. Run `npm run test:backend:redis` for the Redis-backed session integration test; Docker must be available.
+Run `npm run check:backend` from root for ESLint and typechecking, and `npm run test:backend` for unit and monitoring tests. `lint:backend` and `typecheck:backend` run each static check separately. Root commands delegate to backend-owned scripts. Run `npm run test:backend:redis` for disposable Redis integration; Docker must be available. Direct integration commands use `npm run test:integration:monitoring -w backend`, `:discord`, or `:redis`.
 
 The Redis runner starts a disposable Compose project inheriting the real app and Redis settings, including TLS and environment configuration. Redis must pass its health check before the tests start. Its network and data/log volumes are isolated from the development stack and removed afterward, including on test failure. The test has a 120-second timeout; initial Redis connections use `REDIS_CONNECT_TIMEOUT_MS` (default 10000 milliseconds).
 

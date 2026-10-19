@@ -1,0 +1,15 @@
+.git
+**/node_modules
+**/.env
+**/.env.*
+**/.htpasswd
+**/certs
+**/.agents
+**/.secret
+**/dist
+**/build
+**/src/generated
+**/*.log
+games
+test-results
+playwright-report

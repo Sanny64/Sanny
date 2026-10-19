@@ -8,6 +8,8 @@ playwright-report
 package-lock.json
 **/package-lock.json
 **/.agents
+**/.env
+**/.env.*
 
 documentation/docs/start.mdx
 documentation/i18n/de/docusaurus-plugin-content-docs/current/start.mdx

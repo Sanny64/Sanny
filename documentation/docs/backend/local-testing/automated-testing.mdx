@@ -10,7 +10,8 @@ Run commands from the repository root.
 
 | Command                      | Purpose                                                                   |
 | ---------------------------- | ------------------------------------------------------------------------- |
-| `npm run test:backend`       | Type-check the backend, then run backend unit and monitoring tests.       |
+| `npm run check:backend`      | Run backend ESLint and TypeScript checks through the workspace.           |
+| `npm run test:backend`       | Run backend unit and monitoring tests through the workspace.              |
 | `npm run test:backend:redis` | Run the real-Redis session integration test; Docker is required.          |
 | `npm run test`               | Run the complete root gate, including backend, frontend, and integration. |
 
@@ -30,6 +31,8 @@ The root gate also requires installed Playwright browsers and a reachable develo
 
 ## Latest Full Suite Run
 
+- Latest attempt: 2026-10-19, Node 24, normalized `npm run test`; runtime 12:25, exit code 1. All static checks, 7 config contracts, backend unit/monitoring tests, real-Redis integration, frontend builds, 11 components, and all mocked browsers passed. Monitoring included both Grafana alert delivery and Alloy-to-Loki forwarding. Live Chromium then failed with connection refused because the development stack was stopped. After `npm run start:backend`, the separate `npm run test:integration` passed password-user login/logout across Chromium, Firefox, and Edge (1 passed and 1 intentional Google skip each). The original full invocation remains recorded as failed; the missing prerequisite was restored and the affected stage passed separately.
+- Previous successful full run:
 - Completed: 2026-10-18 22:38:36 UTC (`npm run test`, isolated `cmd`).
 - Total runtime: 14:23; exit code: 0.
 - Formatting, backend type/unit/monitoring checks, and Redis integration passed (155 backend unit tests passed, 1 skipped; monitoring integration: 1 passed).
@@ -40,7 +43,7 @@ The root gate also requires installed Playwright browsers and a reachable develo
 
 ## Test Boundaries
 
-- **Backend:** `npm run test:backend` checks backend types and runs unit/monitoring tests; `npm run test:backend:redis` exercises session behavior against disposable real Redis services.
+- **Backend:** `npm run check:backend` runs lint/types; `npm run test:backend` runs unit/monitoring tests; `npm run test:backend:redis` exercises session behavior against disposable real Redis services. The full root gate composes all three.
 - **Frontend:** `npm run test:frontend` runs app lint/build, shared UI component tests, and mocked browser/accessibility checks. See [Frontend Automated Testing](../../frontend/local-testing/automated-testing.mdx).
 - **Cross-system integration:** `npm run test:integration` exercises the connected apps, API, and live Auth0 password flow in the configured browsers. It is not a backend-only or frontend-only gate; Google automation is intentionally skipped.
 

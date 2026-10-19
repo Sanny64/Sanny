@@ -28,7 +28,7 @@ Clone this repository. You will need node.js and git installed.
 
 ### Installation and Setup Instructions
 
-Install dependencies from the repository root with `npm ci`.
+Use Node.js 24 and npm 11. Install every workspace, including the backend, from the repository root with `npm ci`; the root lockfile is authoritative.
 
 In the project directory, run one of the workspace scripts:
 
@@ -36,15 +36,16 @@ In the project directory, run one of the workspace scripts:
 - npm run dev:auth
 - npm run dev:docs
 
-For quality checks, use scripts defined by the root `package.json`:
+For quality checks, use scripts defined by the root `package.json`. Shared packages export source; app build wrappers typecheck them rather than producing library artifacts. `npm run test:tooling` adds config contracts and tooling checks, and the full root gate also typechecks documentation. See the [workspace tooling and migration guide](documentation/docs/general-info/workspace-tooling.mdx) for removed commands, root Docker context, and the operator-controlled Alloy rollout.
 
 - `npm run format:check`
 - `npm run test`
 - `npm run lint:backend`, `npm run lint:auth`, `npm run lint:sanny`, and `npm run lint:docs`
+- `npm run lint`, `npm run typecheck`, and `npm run check` run the corresponding base script in every workspace plus root tooling. `lint` is always ESLint; `typecheck` is always TypeScript; `check` composes both. Targeted `typecheck:*` and `check:*` wrappers use the same suffixes as `lint:*`.
 - Shared-package lint: `npm run lint -w @sanny/i18n`, `npm run lint -w @sanny/styles`, and `npm run lint -w @sanny/ui`
 - `npm run build:auth`, `npm run build:sanny`, and `npm run build:docs`
 
-`npm run test` runs formatting, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers build shared packages before each app. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx) and [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx).
+`npm run test` runs formatting, tooling and documentation typechecks, backend type/unit/monitoring tests, real-Redis integration, frontend app lint/build, the shared UI component suite, mocked browser tests, and live password-user Auth0 tests in headed Chromium, Firefox, and Edge. Docs build remains separate as `npm run build:docs`. Install Playwright browsers with `npx playwright install chromium firefox msedge` and use dedicated test credentials for live authentication. Google automation is intentionally skipped, and Cloudflare may require a manual password-login verification; the tests do not bypass either provider's checks. Frontend build wrappers typecheck shared source before each app. See the [backend automated testing guide](documentation/docs/backend/local-testing/automated-testing.mdx) and [frontend automated testing guide](documentation/docs/frontend/local-testing/automated-testing.mdx).
 
 Run each app you need in its own terminal. Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and the English docs at `http://localhost:3000` (`npm run dev:docs-de` serves German docs at port `3001`). Frontend development servers use a local HTTPS certificate and reload when source changes.
 
@@ -58,17 +59,17 @@ development stack does not need to be running.
 
 This project uses three long-lived branches: `dev -> test -> main`.
 
-| Branch | Purpose                                                              | Deploys to                      |
-| ------ | -------------------------------------------------------------------- | ------------------------------- |
-| `dev`  | Daily development. No sites are deployed from here.                  | Backend image only (Docker Hub) |
-| `test` | Release candidate. Verified on the web before going to production.   | Test environment (Basic Auth)   |
-| `main` | Production only. Exactly one commit per release, tagged for version. | Production                      |
+| Branch | Purpose                                                              | Deploys to                    |
+| ------ | -------------------------------------------------------------------- | ----------------------------- |
+| `dev`  | Daily development. No sites or images are deployed from here.        | None                          |
+| `test` | Release candidate. Verified on the web before going to production.   | Test environment (Basic Auth) |
+| `main` | Production only. Exactly one commit per release, tagged for version. | Production                    |
 
 A release is created by building one new commit on `main` from the file tree of `test` (no merge, no squash-merge), then tagging it as `release-1.0.0.x`. This keeps `main` clean and conflict-free while `dev` and `test` keep their full history. The complete flow with all commands is described in the [deployment documentation](documentation/docs/general-info/deployment.mdx).
 
 ### Deployment
 
-Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. Every push to `main` runs the production workflows (frontends and docs, subject to their path filters). All sites are built for the subdomain root (`/`).
+Every push to `test` runs the test frontend workflow; manual test runs are restricted to that branch. Docs deploy from `main` when `documentation/**`, `shared/packages/**`, `package.json`, or `package-lock.json` changes. Sanny and Auth deploy from `main` when their configured app, shared-package, or root package files change. Backend changes under `backend/` or to its workflow trigger checks and publish one image to GHCR and Docker Hub; a manual run from `main` deploys its exact Docker Hub commit-SHA image to the VPS. All sites are built for the subdomain root (`/`).
 
 Configure the GitHub Actions repository variable `VITE_DEV_API_URL` for the test backend and `VITE_PROD_API_URL` for the production backend. The test workflow passes the development URL into the existing `VITE_PROD_API_URL` build-time slot because optimized Vite builds use the production code path, regardless of deployment branch. Production workflows use the production URL. Builds fail if their required URL is missing. Local `.env.local` files remain unchanged and are not available on GitHub runners. The test URL must be reachable by visitors; `localhost` would point to each visitor's own device.
 
@@ -83,11 +84,11 @@ Configure these HTTPS subdomains in your prefered web hosting service provider (
 | `test` | `test.auth.sanny64.de` | `/public_html/testing/auth/` |
 | `test` | `test.docs.sanny64.de` | `/public_html/testing/docs/` |
 
-The test destinations can be overridden with GitHub repository variables `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR`, and `TEST_DOCS_SERVER_DIR`; include a trailing slash. Update or remove existing overrides if they point elsewhere. Auth and docs are nested directories on disk but are served at `/` on their own subdomains. Each upload uses a site-specific FTP sync-state file. DNS, TLS certificates, and subdomain document roots must be configured in the hosting control panel; FTP deployment does not create them.
+The test workflow uses fixed destinations: `/public_html/testing/`, `/public_html/testing/auth/`, and `/public_html/testing/docs/`. Auth and docs are nested directories on disk but are served at `/` on their own subdomains. Each test upload uses a site-specific FTP sync-state file. DNS, TLS certificates, and subdomain document roots must be configured in the hosting control panel; FTP deployment does not create them.
 
-Both workflows use `FTP_SERVER`, `FTP_USERNAME`, and `FTP_PASSWORD` secrets. Test sites also require `TEST_BASIC_AUTH_ENTRY` containing one or more newline-separated `username:hashed-password` lines (no blank lines), and `TEST_BASIC_AUTH_FILE_PATH` containing the absolute server filesystem path to the main test site's `.htpasswd`. This is not the FTP-visible path. Each line provides a separate login that works across all three sites. The test workflow generates `.htpasswd` from the secret and uploads it with the Sanny site, so no manual WebFTP upload is needed. If `TEST_SANNY_SERVER_DIR` is overridden, make sure `TEST_BASIC_AUTH_FILE_PATH` matches the file's actual upload location. Apache must be permitted to read the shared password file from each subdomain and allow Basic Auth and rewrite directives in `.htaccess`. Sanny and Auth use SPA fallbacks; docs serves its generated pages and `404.html`.
+Both workflows use `FTP_SERVER`, `FTP_USERNAME`, and `FTP_PASSWORD` secrets. Test sites also require `TEST_BASIC_AUTH_ENTRY` containing one or more newline-separated `username:hashed-password` lines (no blank lines), and `TEST_BASIC_AUTH_FILE_PATH` containing the absolute server filesystem path to the main test site's `.htpasswd`. This is not the FTP-visible path. Each line provides a separate login that works across all three sites. The test workflow generates `.htpasswd` from the secret and uploads it with the Sanny site, so no manual WebFTP upload is needed. Apache must be permitted to read the shared password file from each subdomain and allow Basic Auth and rewrite directives in `.htaccess`. Sanny and Auth use SPA fallbacks; docs serves its generated pages and `404.html`.
 
-The backend is deployed separately: a push to `main` runs backend checks and publishes an image, while the VPS deployment itself requires a manual `workflow_dispatch` run. The `deploy-images.yml` workflow builds and pushes the backend Docker Hub image on pushes to `dev` that change files in `backend/`, and on version tags; it does not deploy to the VPS.
+The backend uses one image workflow: pushes to `main` that change `backend/**` or `.github/workflows/deploy-backend.yml` run checks and publish the same `latest` and commit-SHA images to GHCR and Docker Hub (`s4nny64/app`). Docker Hub is used by Gordon and as the VPS deployment source. A manual `workflow_dispatch` from `main` deploys the exact commit-SHA image; runs from other branches do not publish or deploy.
 
 ### Directory Structure
 
@@ -102,7 +103,7 @@ Sanny/ (Root Workspace)
 │   │    └── post-user-registration/ # Scripts that run after user registration
 │   │
 │   ├── docker/                      # Docker compose and Dockerfile
-│   ├── monitoring/                  # Prometheus, exporters, Grafana, Loki, and Promtail
+│   ├── monitoring/                  # Prometheus, exporters, Grafana, Loki, and Alloy
 │   ├── nginx/                       # Reverse proxy, rate limiting safety net, 429-error handling
 │   ├── prisma/                      # Prisma Schema
 │   ├── redis/                       # Memory-NoSQL database
@@ -205,8 +206,8 @@ The authentication workspace is `auth/`; use `dev:auth`, `lint:auth`, `build:aut
 - CI/CD via [SamKirkland FTP-Deploy-Action](https://github.com/SamKirkland/FTP-Deploy-Action)
 - Version control via Git and [Github](https://github.com/Sanny64/Sanny)
 - Hosted at Hetzner Webhosting on [Sanny64](https://www.sanny64.de)
-- Before deployment check whether all your repository secrets are set (Frontend: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD | Backend: VPS_HOST, VPS_USER , VPS_SSH_KEY)
-- The backend has a VPS deployment workflow. Pushes to `main` test and publish an image; the VPS deployment itself requires a manual `workflow_dispatch` run and configured deployment secrets.
+- Before deployment check whether all your repository secrets are set (Frontend: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD | Backend: VPS_HOST, VPS_USERNAME, VPS_SSH_KEY)
+- The backend workflow tests and publishes one image to GHCR and Docker Hub when backend files change on `main`; a manual `workflow_dispatch` from `main` deploys that exact Docker Hub commit-SHA image to the VPS. Configure the Docker Hub and VPS secrets in GitHub Actions.
 
 ## Features
 

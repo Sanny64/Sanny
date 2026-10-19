@@ -9,7 +9,8 @@ Alle Befehle im Repository-Stammverzeichnis ausführen.
 
 | Befehl                       | Zweck                                                                  |
 | ---------------------------- | ---------------------------------------------------------------------- |
-| `npm run test:backend`       | Backend-Typprüfung sowie Backend-Unit- und Monitoring-Tests ausführen. |
+| `npm run check:backend`      | Backend-ESLint und TypeScript-Prüfung über das Workspace ausführen.    |
+| `npm run test:backend`       | Backend-Unit- und Monitoring-Tests über das Workspace ausführen.       |
 | `npm run test:backend:redis` | Redis-Session-Integration ausführen; Docker ist erforderlich.          |
 | `npm run test`               | Vollständiges Root-Gate für Backend, Frontend und Integration starten. |
 
@@ -33,6 +34,8 @@ Konten.
 
 ## Letzter vollständiger Testlauf
 
+- Neuester Versuch: 2026-10-19, Node 24, normalisiertes `npm run test`; 12:25, Exit-Code 1. Statische Prüfungen, 7 Konfigurationsverträge, Backend-/Monitoring-/Redis-Tests, Frontend-Builds, 11 Komponententests und gemockte Browser waren erfolgreich. Live-Chromium scheiterte an einer verweigerten Verbindung, weil der Entwicklungs-Stack gestoppt war. Nach `npm run start:backend` bestand ein separates `npm run test:integration` in Chromium, Firefox und Edge (jeweils 1 bestanden, 1 absichtlicher Google-Skip). Der ursprüngliche Gesamtlauf bleibt als fehlgeschlagen dokumentiert; die betroffene Stufe wurde nach Wiederherstellung der Voraussetzung separat erfolgreich geprüft.
+- Vorheriger erfolgreicher Gesamtlauf:
 - Beendet: 2026-10-18 22:38:36 UTC (`npm run test`, isoliertes `cmd`).
 - Gesamtlaufzeit: 14:23; Exit-Code: 0.
 - Formatierung, Backend-Typ-/Unit-/Monitoring-Tests und Redis-Integration waren erfolgreich (155 Backend-Unit-Tests bestanden, 1 übersprungen; Monitoring-Integration: 1 bestanden).
@@ -41,7 +44,7 @@ Konten.
 
 ## Testgrenzen
 
-- **Backend:** `npm run test:backend` prüft Backend-Typen und führt Unit-/Monitoring-Tests aus; `npm run test:backend:redis` testet Sitzungsabläufe mit isolierten, echten Redis-Diensten.
+- **Backend:** `npm run check:backend` führt Lint und Typprüfung aus; `npm run test:backend` führt Unit-/Monitoring-Tests aus; `npm run test:backend:redis` testet Sitzungsabläufe mit isolierten, echten Redis-Diensten. Das vollständige Root-Gate führt alle drei aus.
 - **Frontend:** `npm run test:frontend` führt App-Lint/Build, gemeinsame UI-Komponententests sowie gemockte Browser- und Accessibility-Prüfungen aus. Siehe [Automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx).
 - **Systemübergreifende Integration:** `npm run test:integration` prüft verbundene Apps, API und den Live-Auth0-Passwort-Flow in den konfigurierten Browsern. Dies ist kein reines Backend- oder Frontend-Gate; Google-Automatisierung wird absichtlich übersprungen.
 

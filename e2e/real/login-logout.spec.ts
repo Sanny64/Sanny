@@ -66,6 +66,7 @@ async function submitCredentialsAndWaitForCallback(
     }
     throw new Error(
       `Auth0 did not complete the backend callback; browser is at ${currentUrl.host}${currentUrl.pathname}.`,
+      { cause: error },
     );
   }
 }

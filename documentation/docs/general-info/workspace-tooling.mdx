@@ -1,0 +1,76 @@
+---
+title: Workspace Tooling
+description: Configuration ownership, verification, and migration of the npm monorepo.
+sidebar_position: 4
+---
+
+## Installation And Ownership
+
+Use Node.js 24 and npm 11. Install all workspaces once with root `npm ci`. The root lockfile is authoritative for the backend, apps, documentation, and shared packages; do not create workspace-local lockfiles. Common ESLint, Prettier, and Vite plugin dependencies belong to the root. Runtime dependencies remain declared by their consumers.
+
+| Configuration                                           | Responsibility                                                                                                                                             |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `eslint.config.js`                                      | One discovered flat policy for editor and CLI, with browser, Node/tooling, and React scopes. Frontend type-aware lint uses the TypeScript project service. |
+| Root `package.json`, `.editorconfig`, `.prettierignore` | Prettier options, editor whitespace, and exclusions for generated output and environment files.                                                            |
+| `tsconfig.base.json`                                    | Environment-neutral strict defaults.                                                                                                                       |
+| `tsconfig.frontend.base.json`                           | Browser libraries, Vite asset types, JSX, and frontend checks.                                                                                             |
+| `tsconfig.node.base.json`                               | Strict Node/tooling defaults without browser globals.                                                                                                      |
+| `tsconfig.tooling.json`                                 | Root Vite/Playwright configs and E2E files, including DOM types for browser-evaluated callbacks.                                                           |
+| Package TypeScript configs                              | Source boundaries; backend retains NodeNext resolution and stricter indexed/optional-property checks.                                                      |
+| `vite.shared.ts`                                        | Shared React/HTTPS plugins and the pre-render theme bootstrap.                                                                                             |
+
+## Shared Packages
+
+`@sanny/i18n`, `@sanny/styles`, and `@sanny/ui` are private, source-exported packages consumed through npm workspace links. Package exports, not TypeScript paths or Vite aliases, define resolution. Vite bundles TypeScript and assets with each app. Shared packages no longer emit `dist/` or need a build before development.
+
+Run `npm run typecheck:shared` for all shared packages, or `npm run typecheck -w @sanny/ui` for one. App build wrappers typecheck shared source before building. Keep UI tests in their separate Vitest config.
+
+## Verification
+
+Every workspace owns its base commands. Root wrappers call those workspace scripts; only repository-owned tooling, formatting, and cross-workspace E2E commands run directly at root.
+
+| Base script | Meaning                                                                                | Root command                                                                                             |
+| ----------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `lint`      | ESLint only; never the TypeScript compiler.                                            | `npm run lint`, or `npm run lint:backend` / `:auth` / `:sanny` / `:docs` / `:shared`.                    |
+| `typecheck` | TypeScript only; never ESLint.                                                         | `npm run typecheck`, or the same workspace suffixes.                                                     |
+| `check`     | Workspace composition: `npm run lint && npm run typecheck`.                            | `npm run check`, or the same workspace suffixes; `check:frontend` selects both apps and shared packages. |
+| `test`      | Actual test runners, not a lint/typecheck alias. Only workspaces with tests expose it. | `test:backend`, `test:components`, and repository E2E scripts.                                           |
+| `build`     | Produce app/image output; frontend builds call their own named `typecheck` first.      | Existing `build:auth`, `build:sanny`, `build:docs`, and `build:backend` wrappers.                        |
+| `dev`       | Run a frontend or documentation development server.                                    | `dev:auth`, `dev:sanny`, `dev:docs`, and `dev:docs-de`.                                                  |
+
+Backend `lint` covers source, tests, Prisma configuration, Docker runners, and monitoring tooling. Test doubles may use explicit `any` only in backend test files; production source retains the rule. Docusaurus permits `require` only for its `@site/static/*.svg` asset loader convention. These narrow exceptions do not disable other lint rules.
+
+- `npm run check:tooling`: tooling lint and E2E/tooling typechecks.
+- `npm run test:tooling`: configuration contract tests only.
+- `npm run lint:shared`: shared lint using the same root config as the editor.
+- `npm run test:frontend`: app lint/build, shared lint, components, and mocked browser tests.
+- `npm run check:backend`: backend lint and typechecks.
+- `npm run test:backend`: backend unit tests and disposable Docker monitoring integration, including Alloy-to-Loki delivery.
+- `npm run test:backend:redis`: disposable real-Redis integration using the workspace-aware image.
+- `npm run test`: formatting, all workspace/tooling checks, configuration tests, and the existing backend/Redis/frontend/live integration gates. Docs builds remain separate with `npm run build:docs`.
+- `npm run format:check`: repository formatting without writes.
+
+The default Playwright config selects only `e2e/mock`. `playwright.real.config.ts` explicitly selects live authentication, serializes tests, and loads only dedicated test-credential keys from the backend environment without overriding exported values. Live traces/screenshots are disabled to avoid recording authentication secrets. Monitoring remains isolated. CI rejects focused tests and does not reuse existing frontend servers; mocked failures retain traces/screenshots.
+
+Use existing `test:e2e:real:chromium`, `:firefox`, and `:edge` commands for headed live tests. Direct live invocations require `--config=playwright.real.config.ts`; passing a live directory to the default config no longer selects those tests.
+
+## Backend Containers
+
+Build from the repository root with `docker build -f backend/docker/Dockerfile .`. Docker installs the backend workspace from the root lockfile with `npm ci`, generates Prisma, then prunes development dependencies. Both stages use Debian-compatible Node 24 images. `tsx` remains a runtime dependency. Root `.dockerignore` excludes environment files, certificates, local dependencies, and generated output.
+
+Production Compose inherits common services from the development file; deploy both files together. Its app remains image-only with explicit production mode and fixed proxy trust. Deployment path filters track relevant root tooling. Dependabot targets the root npm workspace, backend Dockerfile directory, and GitHub Actions.
+
+## Breaking Changes And Migration
+
+Script normalization removes backend `type-check` in favor of `typecheck`; root `lint:backend` and `lint:docs` now run real ESLint. Use `typecheck:backend` / `typecheck:docs` for the former type-only behavior, or `check:*` for both. Auth and Sanny no longer expose `test` aliases for lint: use their `check` commands. Root `test:frontend:auth` / `test:frontend:sanny` aliases are removed; use `check:auth` / `check:sanny` plus the corresponding build wrapper. Documentation uses workspace `dev` instead of `start`.
+
+Backend integration commands use `test:integration:monitoring`, `test:integration:discord`, and `test:integration:redis`. They replace `test:monitoring`, `test:discord-integration`, `test:alert-rules-integration`, and the old host-only `test:redis:integration`. The Redis command now always owns its disposable Docker lifecycle. Root `test:backend:redis` delegates to that workspace script.
+
+1. Switch to Node 24/npm 11 and run root `npm ci`. Stop standalone workspace installs and workspace-local lockfiles.
+2. Replace shared package `build` commands with `npm run typecheck:shared` or a package `typecheck`. Old shared `dist/` outputs are unused; do not import them.
+3. Change external Docker build contexts from backend-only to the repository root. `npm run build:backend` builds only; it no longer starts the stack. Start/recreate services deliberately with the runtime commands.
+4. Use the explicit real config for direct live Playwright runs. Mocked tests never load live credentials.
+5. Deploy both Compose files and `backend/monitoring/config.alloy`. Pinned Grafana Alloy replaces Promtail. Keep `promtail-data`: Alloy imports its `positions.yaml` once and then stores offsets in `alloy-data`. Do not delete these volumes during rollout.
+6. From `backend/docker`, an operator runs `docker compose --env-file ../.env -f docker-compose.prod.yml up -d --remove-orphans alloy`, then verifies both log jobs in Loki. This removes orphaned Promtail without deleting volumes. The backend workflow deploys only the app, not this infrastructure migration.
+
+Alloy preserves `job="nginx"`, `job="backend"`, log paths, and private Loki access. Without legacy offsets it reads existing matching files from the beginning. Stop Alloy before rolling back to Promtail; Alloy offsets are not copied back, so rollback can replay logs. Monitoring digests are pinned and require deliberate verified updates.

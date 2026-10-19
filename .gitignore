@@ -9,6 +9,10 @@ lerna-debug.log*
 
 # Node modules and build output
 node_modules
+.env
+.env.*
+!.env.template
+!.env.*.template
 dist
 dist-ssr
 *.local
@@ -26,12 +30,7 @@ test-results
 *.sln
 *.sw?
 .agents
-.claude
-.windsurf
 .secret
-
-# Additional files to ignore
-AGENTS.md
 
 # Additional folders to ignore
 games

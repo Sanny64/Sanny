@@ -1,40 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
-import { config as loadDotenv } from "dotenv";
-
-const selectedRealSuite = process.argv.some((argument) =>
-  argument.replaceAll("\\", "/").includes("e2e/real"),
-);
-
-if (selectedRealSuite) {
-  const backendEnvironment: Record<string, string | undefined> = {};
-  loadDotenv({
-    path: "backend/.env",
-    processEnv: backendEnvironment,
-    quiet: true,
-  });
-
-  for (const key of [
-    "TESTUSER_EMAIL",
-    "TESTUSER_PASSWORD",
-    "TESTGOOGLEUSER_EMAIL",
-    "TESTGOOGLEUSER_PASSWORD",
-  ]) {
-    if (
-      process.env[key] === undefined &&
-      backendEnvironment[key] !== undefined
-    ) {
-      process.env[key] = backendEnvironment[key];
-    }
-  }
-}
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: "./e2e/mock",
   fullyParallel: true,
+  forbidOnly: Boolean(process.env.CI),
+  retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: {
     baseURL: "https://127.0.0.1:5175",
     ignoreHTTPSErrors: true,
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     {
@@ -55,14 +31,14 @@ export default defineConfig({
       command: "npm run dev -w auth -- --host 127.0.0.1 --port 5175",
       url: "https://127.0.0.1:5175",
       ignoreHTTPSErrors: true,
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
     {
       command: "npm run dev -w sanny -- --host 127.0.0.1 --port 5176",
       url: "https://127.0.0.1:5176",
       ignoreHTTPSErrors: true,
-      reuseExistingServer: true,
+      reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
   ],

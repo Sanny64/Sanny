@@ -8,7 +8,7 @@ sidebar_position: 6
 
 ## Deployment status
 
-The backend runs locally with Docker, and a VPS deployment workflow exists. A push to `main` runs checks and publishes an image; only a manual `workflow_dispatch` run executes the VPS deployment job. The repository does not establish that a hosted environment is provisioned or verified. A local container using `NODE_ENV=production` verifies production-mode configuration only; it is not a hosted deployment or release sign-off. Provision isolated staging before public production.
+The backend runs locally with Docker, and one workflow builds and publishes its production image. A push to `main` that changes `backend/**` or `.github/workflows/deploy-backend.yml` runs checks and builds the image once, publishing identical `latest` and commit-SHA tags to GHCR and Docker Hub (`s4nny64/app`). Docker Hub is the image source for Gordon's analysis and the VPS deployment. A manual `workflow_dispatch` from `main` builds and publishes the image, then deploys that exact commit-SHA tag to the VPS; manual runs from other branches are skipped. Configure `DOCKERHUB_USERNAME` and `DOCKERHUB_PAT` as GitHub Actions secrets, not backend runtime variables. The repository does not establish that a hosted environment is provisioned or verified. A local container using `NODE_ENV=production` verifies production-mode configuration only; it is not a hosted deployment or release sign-off. Provision isolated staging before public production.
 
 Keep Auth0, database, and Redis resources separate between environments. Load credentials from each environment's secret store. Never put real hostnames, tenant identifiers, or credentials in this repository.
 

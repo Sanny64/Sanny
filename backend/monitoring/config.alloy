@@ -1,0 +1,18 @@
+loki.source.file "logs" {
+  targets = [
+    { __path__ = "/var/log/nginx/*.log", job = "nginx" },
+    { __path__ = "/var/log/app/*.log", job = "backend" },
+  ]
+  forward_to = [loki.write.local.receiver]
+  legacy_positions_file = "/var/lib/promtail/positions.yaml"
+
+  file_match {
+    enabled = true
+  }
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

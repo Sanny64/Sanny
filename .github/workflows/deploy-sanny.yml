@@ -11,6 +11,10 @@ on:
       - "shared/packages/**"
       - "package.json"
       - "package-lock.json"
+      - "vite.shared.ts"
+      - "eslint.config.js"
+      - "tsconfig*.json"
+      - ".github/workflows/deploy-sanny.yml"
 
 jobs:
   build-and-deploy:

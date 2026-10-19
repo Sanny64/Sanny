@@ -62,8 +62,8 @@ function handleSignal(signal) {
 process.on("SIGINT", handleSignal);
 process.on("SIGTERM", handleSignal);
 
-let testExitCode = 1;
-let cleanupExitCode = 1;
+let testExitCode;
+let cleanupExitCode;
 try {
   testExitCode = await runDocker([
     "up",

@@ -51,10 +51,6 @@ GRAFANA_ADMIN_PASSWORD="dein Grafana-Administratorkennwort"
 GRAFANA_DEV_ROOT_URL="https://localhost:8443/grafana/"
 GRAFANA_PROD_ROOT_URL="https://monitoring.example.de/grafana/"
 
-# Docker-Registry
-DOCKERHUB_USERNAME="dein Docker-Hub-Benutzername"
-DOCKERHUB_PAT="dckr_pat_dein_persönlicher_Zugriffstoken"
-
 # Hetzner-SMTP
 SMTP_HOST="dein-mailserver:587"                 # Port 587 erfordert STARTTLS
                                                   # Port 465 verwendet implizites TLS. Zertifikate werden überprüft.
@@ -122,6 +118,23 @@ einschließlich Wiederholungen. Der Standardwert beträgt 10000 Millisekunden; z
 sind Ganzzahlen von 1 bis 2147483647. Wird das Limit erreicht, schlägt der Start fehl
 und der Client wird geschlossen. Der automatische Neuverbindungsversuch nach einem
 erfolgreichen Start bleibt unverändert.
+
+## GitHub-Actions-Secrets
+
+Docker-Hub-Zugangsdaten sind keine Backend-Laufzeitkonfiguration und dürfen nicht
+in `backend/.env` oder `.env.template` gespeichert werden. Lege sie als Repository-
+Secrets für den Backend-Workflow an:
+
+1. Öffne auf GitHub die **Settings** des Repositorys.
+2. Wähle **Secrets and variables** > **Actions** > **New repository secret**.
+3. Lege `DOCKERHUB_USERNAME` mit dem Docker-Hub-Kontonamen an.
+4. Lege `DOCKERHUB_PAT` mit einem Docker-Hub-Zugriffstoken an, das Images nach
+   `s4nny64/app` pushen darf.
+
+Der Workflow `deploy-backend.yml` verwendet diese Secrets zum Veröffentlichen der
+Images auf Docker Hub und zur Anmeldung des VPS, bevor dieser das ausgewählte
+Image herunterlädt. Für GHCR wird das `GITHUB_TOKEN` des Workflows verwendet;
+ein separates Registry-Secret ist dafür nicht nötig.
 
 ## Auth-Frontend (`auth/.env.local`)
 

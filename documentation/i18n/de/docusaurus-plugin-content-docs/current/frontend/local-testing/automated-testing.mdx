@@ -20,22 +20,24 @@ Alle Befehle im Repository-Stammverzeichnis ausführen.
 | `npm run test:e2e:accessibility:sanny`  | Nur die Accessibility-Browsertests für Sanny.                                           |
 | `npm run test:e2e:mocked`               | Alle gemockten Frontend-Browsertests in Chromium, Firefox und Edge.                     |
 | `npm run test:components`               | Vitest-Komponententests für das gemeinsame UI-Paket.                                    |
-| `npm run test -w auth`                  | Auth-Lint über das Workspace-Testskript ausführen.                                      |
-| `npm run test -w sanny`                 | Sanny-Lint über das Workspace-Testskript ausführen.                                     |
+| `npm run check -w auth`                 | Auth-Lint und Typprüfung über die Workspace-Basisskripte ausführen.                     |
+| `npm run check -w sanny`                | Sanny-Lint und Typprüfung über die Workspace-Basisskripte ausführen.                    |
 | `npm run lint:auth`                     | Auth-Frontend linten.                                                                   |
 | `npm run lint:sanny`                    | Öffentliches Frontend linten.                                                           |
 | `npm run lint -w @sanny/i18n`           | Gemeinsames Lokalisierungspaket linten.                                                 |
 | `npm run lint -w @sanny/styles`         | Gemeinsames Styles-Paket linten.                                                        |
 | `npm run lint -w @sanny/ui`             | Gemeinsames UI-Paket linten.                                                            |
-| `npm run build:auth`                    | Shared Workspaces in Abhängigkeitsreihenfolge und danach Auth bauen.                    |
-| `npm run build:sanny`                   | Shared Workspaces in Abhängigkeitsreihenfolge und danach Sanny bauen.                   |
+| `npm run build:auth`                    | Shared-Quellen typprüfen und danach Auth bauen.                                         |
+| `npm run build:sanny`                   | Shared-Quellen typprüfen und danach Sanny bauen.                                        |
 
-Das Workspace-`test`-Skript jeder App führt deren Lint aus. `npm run test:frontend` enthält alle Frontend-Prüfungen, einschließlich gemockter UI- und Accessibility-Browsertests. Die Tests mocken API-Antworten und prüfen keine Backend-Persistenz. Backend-Tests sind separat unter [Backend Local Testing](../../backend/local-testing/automated-testing.mdx) dokumentiert. Live-Auth0-/Browser-Flows sind systemübergreifende Integrationstests und laufen mit `npm run test:integration`. Das Root-`npm run test` setzt Backend-, Frontend- und Integrations-Gates zusammen; der Docs-Build bleibt separat.
+Das Workspace-`check`-Skript jeder App ruft deren Basisskripte `lint` und `typecheck` auf. Die Apps haben kein `test`-Alias für Lint. `npm run test:frontend` kombiniert statische Prüfungen, Builds, Komponententests und gemockte Browsertests. Die Tests mocken API-Antworten und prüfen keine Backend-Persistenz. Backend-Tests sind separat unter [Backend Local Testing](../../backend/local-testing/automated-testing.mdx) dokumentiert. Live-Auth0-/Browser-Flows laufen mit `npm run test:integration`. Das Root-`npm run test` setzt alle Workspace-Prüfungen sowie Backend-, Frontend- und Integrations-Gates zusammen; der Docs-Build bleibt separat.
 
 ---
 
 ## Letzter vollständiger Testlauf
 
+- Neuester Versuch: 2026-10-19, Node 24, normalisiertes `npm run test`; 12:25, Exit-Code 1. Statische Prüfungen, 7 Konfigurationsverträge, Backend-/Redis-Tests, App-Builds, 11 Komponenten und gemockte Browser waren erfolgreich (Chromium 218; Firefox/Edge jeweils 213 und 5 Visual-Skips). Live-Chromium scheiterte wegen des gestoppten Entwicklungs-Backends. Nach `npm run start:backend` war das separate `npm run test:integration` in Chromium, Firefox und Edge erfolgreich (jeweils 1 bestanden und 1 absichtlicher Google-Skip). Der ursprüngliche Gesamtlauf bleibt als fehlgeschlagen dokumentiert.
+- Vorheriger erfolgreicher Gesamtlauf:
 - Beendet: 2026-10-18 22:38:36 UTC (`npm run test`, isoliertes `cmd`).
 - Gesamtlaufzeit: 14:23; Exit-Code: 0.
 - Frontend-App-Lint/Build, Shared-Lint, Komponententests (11 bestanden) und gemockte Browsertests waren erfolgreich (Chromium: 218; Firefox und Edge: jeweils 213 bestanden und 5 Visual-Baseline-Tests übersprungen).

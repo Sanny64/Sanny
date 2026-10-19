@@ -10,13 +10,15 @@
     "start": "docker compose --project-directory docker --env-file .env start",
     "stop": "docker compose --project-directory docker --env-file .env stop",
     "restart": "docker compose --project-directory docker --env-file .env up -d --build --force-recreate app",
-    "build": "docker compose --project-directory docker --env-file .env up --build --force-recreate",
-    "test": "tsx --test \"src/tests/*.test.ts\" && npm run test:monitoring",
-    "test:monitoring": "node monitoring/tests/run-integration.mjs",
-    "test:discord-integration": "tsx --test monitoring/tests/discord-integration.test.ts",
-    "test:alert-rules-integration": "npm run test:monitoring",
-    "test:redis:integration": "tsx --test src/tests/session-rotation.test.ts",
-    "type-check": "tsc --noEmit"
+    "build": "docker compose --project-directory docker --env-file .env build app",
+    "lint": "eslint src prisma.config.ts docker monitoring",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck",
+    "test": "npm run test:unit && npm run test:integration:monitoring",
+    "test:unit": "tsx --test \"src/tests/*.test.ts\"",
+    "test:integration:monitoring": "node monitoring/tests/run-integration.mjs",
+    "test:integration:discord": "tsx --test monitoring/tests/discord-integration.test.ts",
+    "test:integration:redis": "node docker/run-redis-tests.mjs"
   },
   "dependencies": {
     "@auth0/auth0-fastify-api": "^1.3.0",
@@ -36,15 +38,15 @@
     "nodemailer": "^10.0.13",
     "pino": "^10.4.0",
     "redis": "^6.2.1",
+    "tsx": "^4.23.13",
     "uuid": "^14.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^26.0.0",
+    "@types/node": "^24.12.3",
     "@types/nodemailer": "^8.0.2",
     "prisma": "^7.9.1",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.23.13",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.2",
+    "yaml": "^2.8.1"
   }
 }

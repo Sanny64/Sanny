@@ -8,11 +8,11 @@ sidebar_position: 6
 
 ## Erfassung
 
-Beide Compose-Konfigurationen starten Prometheus, Grafana, Loki und Promtail neben Backend und NGINX. Prometheus fragt Fastify, Redis Exporter, NGINX Exporter, Node Exporter und sich selbst alle 15 Sekunden ab. Der Redis Exporter verbindet sich mit Redis über TLS, die konfigurierte CA und das Laufzeitpasswort; sein Endpunkt ist nur intern erreichbar.
+Beide Compose-Konfigurationen starten Prometheus, Grafana, Loki und Alloy neben Backend und NGINX. Die Produktionskonfiguration erbt gemeinsame Dienste aus der Entwicklungskonfiguration. Prometheus fragt Fastify, Redis Exporter, NGINX Exporter, Node Exporter und sich selbst alle 15 Sekunden ab. Der Redis Exporter verbindet sich mit Redis über TLS, die konfigurierte CA und das Laufzeitpasswort; sein Endpunkt ist nur intern erreichbar.
 
 Fastify `/metrics` stellt begrenzte HTTP-Anfragen- und Latenzmetriken, Prozessmetriken, Prisma-Operationsdauer und -Ergebnis, Status und Dauer der Datenbank-/Redis-Prüfungen, Redis-Fallback-Zähler, Refresh-Token-Ergebnisse und Auth0-Management-API-Ergebnisse bereit. Prisma-Labels verwenden ausschließlich feste Operationsnamen und Erfolg/Fehler; SQL, Parameter, Identitäten und Tokens werden nicht exportiert. Datenbank und Redis werden bei jedem Scrape geprüft.
 
-Promtail versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehlerlogs an Loki. Grafana ist mit Prometheus- und Loki-Datenquellen sowie den NGINX-Sicherheits- und Node-Exporter-Dashboards vorkonfiguriert.
+Alloy versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehlerlogs an Loki. Die Job-Labels bleiben unverändert. Die Konfiguration liegt in `backend/monitoring/config.alloy`; das alte Volume `promtail-data` muss für die Offset-Migration erhalten bleiben. Die Umstellung ist ein eigener, vom Betreiber kontrollierter Infrastruktur-Rollout. Grafana ist mit Prometheus- und Loki-Datenquellen sowie den NGINX-Sicherheits- und Node-Exporter-Dashboards vorkonfiguriert.
 
 ## Alarme und Benachrichtigungen
 
@@ -32,9 +32,9 @@ Lokale Verfahren für Kontaktpunkt-, Regel- und Rate-Limit-Tests sowie dokumenti
 
 ## Logs und Aufbewahrung
 
-Pino schreibt Anwendungslogs nach stdout und `/app/logs/app.log`; Promtail liest die Datei aus einem persistenten, schreibgeschützten Volume. Request-Serializer protokollieren nur normalisierte Routengruppe und begrenzte Methode, Response-Serializer nur den Statuscode. Error-Serializer lassen Nachricht und Stacktrace weg. Querystrings werden aus Security-Audit-Pfaden entfernt und dynamische Benutzerpfade normalisiert. NGINX-Zugriffslogs enthalten Zeit, Methode, URI-Pfad ohne Querystring, Status, Antwortgröße sowie Request-/Upstream-Zeiten; Client-IP, Referrer und User-Agent werden nicht gespeichert. Keine rohen Logs in Tickets oder Chats kopieren.
+Pino schreibt Anwendungslogs nach stdout und `/app/logs/app.log`; Alloy liest die Datei aus einem persistenten, schreibgeschützten Volume. Request-Serializer protokollieren nur normalisierte Routengruppe und begrenzte Methode, Response-Serializer nur den Statuscode. Error-Serializer lassen Nachricht und Stacktrace weg. Querystrings werden aus Security-Audit-Pfaden entfernt und dynamische Benutzerpfade normalisiert. NGINX-Zugriffslogs enthalten Zeit, Methode, URI-Pfad ohne Querystring, Status, Antwortgröße sowie Request-/Upstream-Zeiten; Client-IP, Referrer und User-Agent werden nicht gespeichert. Keine rohen Logs in Tickets oder Chats kopieren.
 
-Loki verwendet Dateisystemspeicher mit konfigurierter Aufbewahrung von sieben Tagen. Authentifizierung ist deaktiviert; Loki und seine Daten müssen im privaten Compose-Netz bleiben und auf Host und Volume geschützt werden. Prometheus-, Loki-, Grafana-, Anwendungs- und NGINX-Logs sowie Promtail-Positionen verwenden persistente Docker-Volumes. Backups und hostseitige Aufbewahrungs-/Zugriffskontrollen bleiben Deployment-Aufgaben.
+Loki verwendet Dateisystemspeicher mit konfigurierter Aufbewahrung von sieben Tagen. Authentifizierung ist deaktiviert; Loki und seine Daten müssen im privaten Compose-Netz bleiben und auf Host und Volume geschützt werden. Prometheus-, Loki-, Grafana-, Anwendungs- und NGINX-Logs sowie Alloy-Positionen verwenden persistente Docker-Volumes. Alte Promtail-Positionen bleiben für Migration und Rollback erhalten. Backups und hostseitige Aufbewahrungs-/Zugriffskontrollen bleiben Deployment-Aufgaben.
 
 Backend-Logs und Alarme dürfen keine Access-/Refresh-Tokens, Session-IDs, CSRF-Tokens, Autorisierungscodes, Client-Secrets, Datenbank-Zugangsdaten oder Request-Bodies offenlegen. Anwendungslogs nutzen explizite Redaktion; Metriklabels sind begrenzt und enthalten keine rohen URLs, Querystrings, Benutzerkennungen, Tokens oder beliebigen Request-Eingaben.
 

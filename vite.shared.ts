@@ -1,7 +1,8 @@
 /// <reference types="node" />
 
-import { resolve } from "node:path";
-import type { Plugin } from "vite";
+import { defineConfig, type Plugin } from "vite";
+import react from "@vitejs/plugin-react";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { themeStorageKey } from "./shared/packages/styles/theme.config.ts";
 
 export function createThemeBootstrap(): Plugin {
@@ -44,8 +45,8 @@ export function createThemeBootstrap(): Plugin {
   };
 }
 
-export function createStylesAlias(appDirectory: string) {
-  return {
-    "@sanny/styles": resolve(appDirectory, "../shared/packages/styles"), // AIKAIDO
-  };
+export function createFrontendViteConfig() {
+  return defineConfig({
+    plugins: [createThemeBootstrap(), react(), basicSsl()],
+  });
 }

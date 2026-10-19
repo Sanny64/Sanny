@@ -8,11 +8,11 @@ sidebar_position: 7
 
 ## Collection
 
-Both Compose configurations run Prometheus, Grafana, Loki, and Promtail alongside the backend and NGINX. Prometheus scrapes Fastify, Redis Exporter, NGINX Exporter, Node Exporter, and itself every 15 seconds. The Redis Exporter connects to Redis over TLS with the configured CA and password; its endpoint is internal-only.
+Both Compose configurations run Prometheus, Grafana, Loki, and Alloy alongside the backend and NGINX. Production inherits common services from the development file. Prometheus scrapes Fastify, Redis Exporter, NGINX Exporter, Node Exporter, and itself every 15 seconds. The Redis Exporter connects to Redis over TLS with the configured CA and password; its endpoint is internal-only.
 
 Fastify `/metrics` exports bounded HTTP request counts/latency, process metrics, Prisma operation duration and result, database/Redis probe status and duration, Redis fallback counts, refresh-token outcomes, and Auth0 Management API outcomes. Prisma labels are limited to a fixed operation name and success/failure; no SQL, parameters, identities, or tokens are exported. Database and Redis probes execute on each scrape.
 
-Promtail ships structured Pino application logs and NGINX access/error logs to Loki. Grafana is provisioned with Prometheus and Loki data sources and the NGINX security and Node Exporter dashboards.
+Alloy ships structured Pino application logs and NGINX access/error logs to Loki, preserving the existing job labels. Its configuration is `backend/monitoring/config.alloy`. Keep the old Promtail positions volume during the [operator-controlled migration](../general-info/workspace-tooling#breaking-changes-and-migration). Grafana is provisioned with Prometheus and Loki data sources and the NGINX security and Node Exporter dashboards.
 
 ---
 
@@ -38,9 +38,9 @@ The existing NGINX log-volume rules aggregate matching lines service-wide; they 
 
 ## Logs and retention
 
-Pino writes application logs to stdout and `/app/logs/app.log`; Promtail tails the file from a persistent, read-only volume. Request serializers keep only a normalized route group and bounded method, response serializers keep the status code, and error serializers omit messages and stacks. Security-audit paths have query strings removed and dynamic user routes normalized. NGINX access logs contain timestamp, method, URI path (without the query string), status, response size, and request/upstream response times; client IP, referrer, and user-agent are omitted. Do not paste raw logs into tickets or chat.
+Pino writes application logs to stdout and `/app/logs/app.log`; Alloy tails the file from a persistent, read-only volume. Request serializers keep only a normalized route group and bounded method, response serializers keep the status code, and error serializers omit messages and stacks. Security-audit paths have query strings removed and dynamic user routes normalized. NGINX access logs contain timestamp, method, URI path (without the query string), status, response size, and request/upstream response times; client IP, referrer, and user-agent are omitted. Do not paste raw logs into tickets or chat.
 
-Loki uses filesystem storage with a configured retention period of seven days. Loki authentication is disabled, and its storage is operational data: keep it on the private Compose network and protect its volume and host. Prometheus, Loki, Grafana, app logs, NGINX logs, and Promtail positions use persistent Docker volumes. Backups and host-level retention/access controls remain deployment work.
+Loki uses filesystem storage with a configured retention period of seven days. Loki authentication is disabled, and its storage is operational data: keep it on the private Compose network and protect its volume and host. Prometheus, Loki, Grafana, app logs, NGINX logs, and Alloy positions use persistent Docker volumes. Retain the legacy Promtail positions volume for migration and rollback. Backups and host-level retention/access controls remain deployment work.
 
 Backend logs and alerts must not expose access or refresh tokens, session IDs, CSRF tokens, authorization codes, client secrets, database credentials, or request bodies. Application logging uses explicit redaction; metric labels use bounded values and never include raw URLs, query strings, user identifiers, tokens, or arbitrary request input.
 

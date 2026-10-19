@@ -34,32 +34,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint the projects
+      - name: Check the projects
         run: |
-          npm run lint:auth
-          npm run lint:sanny
-          npm run lint:docs
-          npm run lint -w @sanny/i18n
-          npm run lint -w @sanny/styles
-          npm run lint -w @sanny/ui
+          npm run check:frontend
+          npm run check:docs
 
-      - name: Build shared packages
-        run: |
-          npm run build -w @sanny/i18n
-          npm run build -w @sanny/styles
-          npm run build -w @sanny/ui
+      - name: Check and test tooling
+        run: npm run check:tooling && npm run test:tooling
 
       - name: Build frontends for test subdomains
         run: |
-          if [ -z "$VITE_PROD_API_URL" ]; then
-            echo "Set the VITE_DEV_API_URL repository variable before deploying test."
+          if [ -z "$VITE_DEV_API_URL" ]; then
+            echo "Set the VITE_DEV_API_URL repository variable before deploying to the test environment."
             exit 1
           fi
           npm run build -w sanny -- --base=/
           npm run build -w auth -- --base=/
           npm run build:docs
         env:
-          VITE_PROD_API_URL: ${{ vars.VITE_DEV_API_URL }}
+          VITE_DEV_API_URL: ${{ vars.VITE_DEV_API_URL }}
           DOCUSAURUS_URL: https://test.docs.sanny64.de
           DOCUSAURUS_BASE_URL: /
 

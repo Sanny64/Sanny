@@ -18,8 +18,8 @@ services:
 
   app:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ../..
+      dockerfile: backend/docker/Dockerfile
     env_file:
       - ../.env
     environment:
@@ -74,7 +74,7 @@ services:
     restart: unless-stopped
 
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter@sha256:1b4e4438faca4dd7e001dd445d161a4a2091b0fededa84093b3a8dfeae1f1be0
     restart: unless-stopped
     networks:
       - app-network
@@ -89,7 +89,7 @@ services:
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
     volumes:
       - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -111,14 +111,18 @@ services:
       - app-network
     restart: unless-stopped
 
-  promtail:
-    image: grafana/promtail:2.9.8
+  alloy:
+    image: grafana/alloy:v1.21.0
     volumes:
-      - ../monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ../monitoring/config.alloy:/etc/alloy/config.alloy:ro
       - nginx-logs:/var/log/nginx:ro
       - application-logs:/var/log/app:ro
-      - promtail-data:/tmp
-    command: -config.file=/etc/promtail/config.yml
+      - promtail-data:/var/lib/promtail:ro
+      - alloy-data:/var/lib/alloy
+    command:
+      - run
+      - --storage.path=/var/lib/alloy
+      - /etc/alloy/config.alloy
     depends_on:
       - loki
     networks:
@@ -126,7 +130,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
@@ -170,6 +174,7 @@ volumes:
   nginx-logs:
   application-logs:
   promtail-data:
+  alloy-data:
   prometheus-data:
   loki-data:
   grafana-data:

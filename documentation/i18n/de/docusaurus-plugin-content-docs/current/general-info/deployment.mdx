@@ -30,7 +30,7 @@ Dies ist die dokumentierte Release-Konvention des Repositorys, keine von GitHub 
 - Feature-Arbeit landet zuerst hier.
 - Die Commit-Historie kann unaufgeräumt sein.
 - Die Commit-Historie wird niemals umgeschrieben.
-- Von `dev` wird keine Website deployed und es werden keine Backend-Images gebaut oder veröffentlicht. Änderungen gelten erst dann als releasebereit, wenn sie nach `test` übernommen wurden.
+- Pushes nach `dev` lösen derzeit keinen Deployment-Workflow aus. Änderungen gelten erst dann als releasebereit, wenn sie nach `test` übernommen wurden.
 
 ### `test`
 
@@ -60,7 +60,7 @@ Ein Push nach `test` stellt die im Internet erreichbare Testumgebung mit HTTP Ba
 - `auth` -> `/public_html/testing/auth/`, erreichbar unter `https://test.auth.sanny64.de/`.
 - `docs` -> `/public_html/testing/docs/`, erreichbar unter `https://test.docs.sanny64.de/`, einschließlich beider Sprachen.
 - `.github/workflows/deploy-to-test.yml` baut alle drei Frontends und lädt jede Website mit einer eigenen FTP-Synchronisationsdatei und den vorhandenen FTP-Secrets hoch. Manuelle Starts über `workflow_dispatch` sind auf `test` beschränkt.
-- Die verschachtelten Verzeichnisse sind Dokumentenwurzeln beim Hoster, keine URL-Präfixe; alle Builds verwenden `/`. Subdomains und HTTPS müssen bei Hetzner eingerichtet werden. Vorhandene Repository-Variablen `TEST_SANNY_SERVER_DIR`, `TEST_AUTH_SERVER_DIR` oder `TEST_DOCS_SERVER_DIR` überschreiben diese Verzeichnisse.
+- Die verschachtelten Verzeichnisse sind Dokumentenwurzeln beim Hoster, keine URL-Präfixe; alle Builds verwenden `/`. Subdomains und HTTPS müssen bei Hetzner eingerichtet werden. Der Workflow verwendet feste FTP-Ziele: `/public_html/testing/`, `/public_html/testing/auth/` und `/public_html/testing/docs/`.
 - `TEST_BASIC_AUTH_ENTRY` enthält eine oder mehrere durch Zeilenumbrüche getrennte Zeilen im Format `benutzername:passwort-hash`. Jede Zeile legt einen eigenen Zugang an; alle Zugänge funktionieren auf allen drei Websites. Leerzeilen sind nicht erlaubt. Der Workflow erzeugt `.htpasswd` aus diesem Secret und lädt die Datei zusammen mit der Sanny-Website per FTP hoch. `TEST_BASIC_AUTH_FILE_PATH` enthält den absoluten Server-Dateisystempfad zur Datei `/public_html/testing/.htpasswd`, nicht den FTP-sichtbaren Pfad. Alle drei Websites müssen diese gemeinsame Passwortdatei lesen dürfen.
   Test-Builds setzen Asset- und Router-Basispfade, ohne die Produktions-Defaults zu ändern. Apache-Rewrite-Regeln unterstützen das Neuladen verschachtelter React-Routen.
   Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
@@ -79,14 +79,14 @@ Der Workflow erstellt `.htpasswd` bei jedem Deployment neu aus `TEST_BASIC_AUTH_
 
 ### Produktion
 
-Ein Push nach `main` stellt die Produktionsumgebung bereit.
+Docs werden bei Änderungen an `documentation/**`, `shared/packages/**`, `package.json` oder `package-lock.json` von `main` deployed. Sanny und Auth werden von `main` nur bei Änderungen an ihren konfigurierten Pfaden deployed; der Backend-Workflow läuft bei Änderungen am Backend oder an seiner Workflow-Datei.
 
 - `sanny` -> Produktionsseite unter `https://sanny64.de/`.
 - `auth` -> Produktionsseite unter `https://auth.sanny64.de/`.
 - `docs` -> Produktionsseite unter `https://docs.sanny64.de/`.
 - Gemeinsam genutzte Pakete werden bei Bedarf als Teil der Frontend-Pipeline gebaut.
-- Ein Push nach `main` führt Backend-Prüfungen aus und baut/veröffentlicht das Backend-Image. Pushes nach `dev` bauen oder veröffentlichen keine Backend-Images.
-- Der VPS-Deployment-Job wird nur durch einen manuellen Start von `deploy-backend.yml` über `workflow_dispatch` ausgeführt.
+- Ein Push nach `main`, der `backend/**` oder `.github/workflows/deploy-backend.yml` ändert, führt Backend-Prüfungen aus und baut das Image einmal. Derselbe Image-Build wird mit den Tags `latest` und Commit-SHA nach GHCR und Docker Hub (`s4nny64/app`) veröffentlicht. Docker Hub bleibt die Image-Quelle für Gordons Analyse und das VPS-Deployment.
+- Ein manueller Start von `workflow_dispatch` auf `main` baut und veröffentlicht das Image und deployed anschließend genau diesen Commit-SHA-Tag von Docker Hub auf den VPS. Manuelle Starts von anderen Branches werden übersprungen. Docker-Hub-Zugangsdaten werden als GitHub-Actions-Secrets konfiguriert, nicht als Backend-Laufzeitvariablen.
 
 ---
 
@@ -318,8 +318,8 @@ Das Produktionsdeployment startet, nachdem der Release-Commit nach `main` gepush
 
 - `sanny`, `auth` und die Dokumentationsseite werden von `main` deployed, wenn ihre Workflow-Pfadfilter zutreffen.
 - Änderungen an gemeinsam genutzten Paketen lösen die Frontend-Workflows aus, die diese Pfade enthalten.
-- Ein Push nach `main` baut und veröffentlicht das Backend-Image.
-- Für das VPS-Deployment ist ein manueller Start per `workflow_dispatch` in Github erforderlich.
+- Ein Push nach `main`, der Backend-Dateien ändert, baut und veröffentlicht dasselbe Backend-Image nach GHCR und Docker Hub.
+- Für das VPS-Deployment ist ein manueller Start per `workflow_dispatch` auf `main` erforderlich; deployed wird der Commit-SHA-Tag von Docker Hub.
 
 Damit bleibt `main` die maßgebliche Quelle für Produktion und die eigentliche Release-Historie dennoch klein.
 
@@ -332,8 +332,8 @@ Das Backend-Deployment ist vom Frontend-Release-Ablauf getrennt.
 Das bedeutet:
 
 - Der Test-Workflow für `test` deployed das Backend nicht.
-- Ein Push nach `main` baut und veröffentlicht das Backend-Image, deployed es aber nicht auf den VPS.
-- Ein manueller Start von `deploy-backend.yml` über `workflow_dispatch` führt das VPS-Deployment aus und benötigt konfigurierte Secrets sowie einen eingerichteten Host.
+- Ein Push nach `main`, der Backend-Dateien ändert, baut und veröffentlicht das Image nach GHCR und Docker Hub, deployed es aber nicht auf den VPS.
+- Ein manueller Start von `deploy-backend.yml` über `workflow_dispatch` auf `main` deployed den exakten Docker-Hub-Commit-SHA auf den VPS und benötigt Docker-Hub- und VPS-Secrets sowie einen eingerichteten Host.
 - Frontend- und Docs-Releases sollten unabhängig vom Backend-Status weiterhin dem normalen Ablauf `dev -> test -> main` folgen.
 
 ---

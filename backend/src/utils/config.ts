@@ -75,16 +75,6 @@ export function requiredProductionUrl(name: string): string {
   return value;
 }
 
-function requiredUrl(name: string): string {
-  const value = requiredEnvironmentSpecificEnv(name);
-  try {
-    new URL(value);
-  } catch {
-    throw new Error(`${name} must be a valid URL`);
-  }
-  return value;
-}
-
 export function getCallbackUrl() {
   return isProduction()
     ? requiredProductionUrl("AUTH0_CALLBACK_URL")

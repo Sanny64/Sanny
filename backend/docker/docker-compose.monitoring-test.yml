@@ -12,7 +12,7 @@ services:
       - ../monitoring/tests/notification-sink.mjs:/app/notification-sink.mjs:ro
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
     environment:
       GF_SECURITY_ADMIN_USER: monitoring-test
       GF_SECURITY_ADMIN_PASSWORD: monitoring-test-only
@@ -29,9 +29,10 @@ services:
       - notification-sink
 
   monitoring-tests:
+    user: "0:0"
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: ../..
+      dockerfile: backend/docker/Dockerfile
     command:
       - node
       - --import=tsx
@@ -43,7 +44,29 @@ services:
       GRAFANA_URL: http://grafana:3000
       LOKI_URL: http://loki:3100
       NOTIFICATION_SINK_URL: http://notification-sink:9000
+    volumes:
+      - nginx-logs:/var/log/nginx
+      - application-logs:/var/log/app
     depends_on:
       - grafana
       - loki
       - notification-sink
+      - alloy
+
+  alloy:
+    image: grafana/alloy:v1.21.0
+    command: ["run", "--storage.path=/var/lib/alloy", "/etc/alloy/config.alloy"]
+    volumes:
+      - ../monitoring/config.alloy:/etc/alloy/config.alloy:ro
+      - nginx-logs:/var/log/nginx:ro
+      - application-logs:/var/log/app:ro
+      - alloy-data:/var/lib/alloy
+      - promtail-data:/var/lib/promtail:ro
+    depends_on:
+      - loki
+
+volumes:
+  nginx-logs:
+  application-logs:
+  alloy-data:
+  promtail-data:

@@ -1,4 +1,4 @@
-name: Deploy backend
+name: Build and deploy backend
 
 permissions: {}
 
@@ -9,15 +9,16 @@ on:
       - main
     paths:
       - "backend/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.base.json"
+      - ".dockerignore"
       - ".github/workflows/deploy-backend.yml"
 
 jobs:
-  test:
+  build-and-publish:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./backend
 
     permissions:
       contents: read
@@ -34,16 +35,30 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: backend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --workspace=backend --include-workspace-root=true
 
-      - name: Lint
-        run: npm run lint --if-present
+      - name: Lint and typecheck
+        run: npm run check:backend
 
       - name: Test
-        run: npm test --if-present
+        run: npm test -w backend
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: |
+            ghcr.io/sanny64/sanny/backend
+            docker.io/s4nny64/app
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=long
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -52,21 +67,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PAT }}
+
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: .
           file: ./backend/docker/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/backend:latest
-            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy:
-    needs: test
+    needs: build-and-publish
     runs-on: ubuntu-latest
 
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    env:
+      BACKEND_IMAGE_TAG: ${{ github.sha }}
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PAT: ${{ secrets.DOCKERHUB_PAT }}
     steps:
       - name: Deploy backend to VPS
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
@@ -74,8 +98,10 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          envs: BACKEND_IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_PAT
           script: |
+            echo "$DOCKERHUB_PAT" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
             cd /var/www/sanny/backend/docker
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml pull app
+            docker compose -f docker-compose.prod.yml up -d --no-build app
             docker image prune -f

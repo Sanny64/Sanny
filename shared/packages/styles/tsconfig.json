@@ -1,11 +1,4 @@
 {
-  "extends": "../../../tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["node"],
-    "noEmit": false,
-    "declaration": true,
-    "outDir": "dist",
-    "rootDir": "."
-  },
-  "include": ["index.ts", "../../../global.d.ts"]
+  "extends": "../../../tsconfig.frontend.base.json",
+  "include": ["*.ts", "*.tsx"]
 }
