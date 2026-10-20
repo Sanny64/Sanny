@@ -8,7 +8,7 @@ sidebar_position: 2
 
 Diese Anleitung richtet Auth0 passend zum bestehenden Sanny-Backend ein. Sie folgt den aktuellen OAuth-, Custom-Database-, Token-Claim-, Account-Linking- und MFA-Verträgen des Repositorys. Führe sie für jede betriebene Umgebung aus. Client-Secrets, Datenbankpasswörter, Zertifikate und API-Tokens gehören weder in diese Anleitung noch in den Quellcode oder Action-Logs.
 
-Auth0 hostet den Login und führt die Custom-Database-Skripte aus; die Sanny-Datenbank bleibt jedoch der Userspeicher. Das Auth0-`create`-Skript legt beim Signup den lokalen Datensatz an. Füge keinen zweiten Signup-Ablauf hinzu, der einen getrennten Auth0-Datenbanknutzer erstellt. Das Backend verantwortet den Authorization-Code-Flow, den PKCE-Austausch und die Session.
+Auth0 hostet den Login und führt die Custom-Database-Skripte aus; die Sanny-Datenbank bleibt jedoch der Userspeicher. Das Auth0-`create`-Skript legt beim Signup den lokalen Datensatz an. Füge keinen zweiten Signup-Ablauf hinzu, der einen getrennten Auth0-Datenbanknutzer erstellt.
 
 ## 1. URLs der Umgebung festlegen
 
@@ -27,9 +27,11 @@ Die Beispiele entsprechen den lokalen HTTPS-Diensten des Repositorys. Ersetze f�
 
 Die aktuellen Actions verwenden tenantweite Secrets, darunter einen einzelnen `NODE_ENV`-Wert. Auch jede Custom-Database-Connection besitzt nur einen Satz Datenbankeinstellungen. Ein Tenant mit einem Action-Flow ist daher jeweils für eine Umgebung konfiguriert; zwei Anwendungen im selben Tenant erhalten keine getrennten Action-Secrets. Verwende für gleichzeitig laufende Entwicklungs- und Produktionsumgebungen getrennte Tenants. Falls ein gemeinsamer Tenant erforderlich ist, müssen die Actions zuerst so angepasst werden, dass sie ihre Konfiguration anhand der Anwendung auswählen, und Datenbankverbindungen sowie Flows müssen nachweislich getrennt sein. Unterschiedliche Backend-`.env`-Werte isolieren die Auth0-Seite nicht.
 
+---
+
 ## 2. Anwendung anlegen
 
-Erstelle unter **Applications > Applications** für jede Backend-Umgebung eine **Regular Web Application**. Notiere Domain, Client ID und Client Secret im Secret Store der jeweiligen Umgebung.
+Erstelle unter **Applications > Applications** für jede Backend-Umgebung eine **Regular Web Application**. Notiere Domain, Client ID und Client Secret im Secret Store der jeweiligen Umgebung. Lege das Client Secret niemals in einer der Browser-Apps ab.
 
 Konfiguriere die Anwendung:
 
@@ -49,9 +51,9 @@ Konfiguriere die Anwendung:
 6. Aktiviere die unten erstellte Database- und Google-Connection für diese
    Anwendung.
 
-Das Backend verwendet Authorization Code mit PKCE (`S256`) und fordert die Scopes `openid profile email offline_access update:me delete:me` an. Den OAuth-Callback verarbeitet das Backend, nicht das Auth-Frontend. Füge Frontend-Origins nur dann zu **Allowed Web Origins** hinzu, wenn ein Browserclient in deiner Bereitstellung Auth0 direkt aufruft; diese Origins sind keine Callback-URLs.
+Das Backend verwendet Authorization Code mit PKCE (`S256`) und fordert die Scopes `openid profile email offline_access update:me delete:me` an. Den OAuth-Callback verarbeitet das Backend, nicht das Auth-Frontend. Füge Frontend-Origins nur dann zu **Allowed Web Origins** hinzu, wenn ein Browserclient in deiner Bereitstellung Auth0 direkt aufruft; diese Origins sind keine Callback-URLs. **Allowed Origins (CORS)** ist für den aktuellen, vom Backend gesteuerten Ablauf nicht erforderlich, außer ein Browserclient ruft Auth0 direkt auf.
 
-**Allowed Origins (CORS)** ist für den aktuellen, vom Backend gesteuerten Ablauf nicht erforderlich, außer ein Browserclient ruft Auth0 direkt auf.
+---
 
 ## 3. API anlegen
 
@@ -69,6 +71,8 @@ Lege die vom Backend verwendeten API-Berechtigungen an:
 | `delete:users` | Benutzer löschen (Admin)                       |
 
 Weise die Self-Service-Berechtigungen der normalen Rolle `user` und Admin-Berechtigungen ausschließlich der geprüften Rolle `admin` zu. Das Backend liest Berechtigungen aus dem Token-Claim `permissions` oder, falls dieser fehlt, aus `scope`. Claims für E-Mail oder Name dürfen niemals Zugriff gewähren.
+
+---
 
 ## 4. Custom-Database-Connection einrichten
 
@@ -94,13 +98,17 @@ Hinterlege für die Skripte diese Connection-Konfiguration:
 | `DB_NAME`               | Datenbank mit der Prisma-Tabelle `User`                                      |
 | `DB_SSL_CA`             | Vertrauenswürdiges CA-Zertifikat für die Datenbank-TLS-Verbindung            |
 
-Die Skripte erfordern eine TLS-Zertifikatsprüfung; deaktiviere sie nicht. Das Datenbankkonto benötigt nur SELECT-, INSERT-, UPDATE- und DELETE-Rechte auf der Tabelle `User`. Optionale Signup-Konfigurationswerte sind `EMAIL_MAX_LENGTH` (Standard `254`), `USERNAME_MIN_LENGTH` (Standard `3`), `USERNAME_MAX_LENGTH` (Standard `30`), `PASSWORD_MIN_LENGTH` (Standard `15`), `PASSWORD_MAX_BYTES` (Standard `72`) und `PASSWORD_MIN_CLASS_COUNT` (Standard `3`). Behalte dieselbe Richtlinie in den Create- und Change-Password-Skripten bei.
+Die Skripte erfordern eine TLS-Zertifikatsprüfung; deaktiviere sie nicht. Das Datenbankkonto benötigt nur SELECT-, INSERT-, UPDATE- und DELETE-Rechte auf der Tabelle `User`. `DB_SSL_CA` muss das vertrauenswürdige PEM-CA-Zertifikat enthalten. Optionale Signup-Konfigurationswerte sind `EMAIL_MAX_LENGTH` (Standard `254`), `USERNAME_MIN_LENGTH` (Standard `3`), `USERNAME_MAX_LENGTH` (Standard `30`), `PASSWORD_MIN_LENGTH` (Standard `15`), `PASSWORD_MAX_BYTES` (Standard `72`) und `PASSWORD_MIN_CLASS_COUNT` (Standard `3`). Behalte dieselbe Richtlinie in den Create- und Change-Password-Skripten bei.
 
 Aktiviere die Connection für die Regular Web Application. Notiere ihren Namen und ihre ID für `AUTH0_DATABASE_CONNECTION` und `AUTH0_DATABASE_CONNECTION_ID`. Teste jedes Skript über **Try** mit einem Testkonto, bevor du eine Produktionsdatenbank verbindest. Die erwarteten Eingaben und Callback-Ergebnisse stehen im [Skriptvertrag](/docs/backend/auth0-database-action-scripts).
+
+---
 
 ## 5. Google-Login konfigurieren
 
 Richte unter **Authentication > Social** die Google-Connection mit den Google-OAuth-Client-Credentials ein und aktiviere sie für dieselbe Regular Web Application. Die Account-Link-Action erkennt die Provider `google-oauth2` und `auth0` (Custom Database). Die Account-Verknüpfung muss eine Bestätigung erfordern: Nutzer müssen den Besitz des jeweils anderen Kontos nachweisen. Übereinstimmende E-Mail-Adressen allein reichen nicht aus.
+
+---
 
 ## 6. Management-API-Clients erstellen
 
@@ -110,7 +118,7 @@ Vergib dem Actions-Client die Scopes der tatsächlich eingesetzten Actions:
 
 | Scope                       | Vorgang der Action                                               |
 | --------------------------- | ---------------------------------------------------------------- |
-| `update:users`              | Standardrolle zuweisen und `email_verified` setzen               |
+| `update:users`              | Standardrolle zuweisen und E-Mail-Verifizierungsstatus setzen    |
 | `read:users`                | Mögliche Konten anhand der E-Mail-Adresse beim Verknüpfen finden |
 | `create:user_identities`    | Nachgewiesene sekundäre Identität verknüpfen                     |
 | `update:users_app_metadata` | Account-Link-Entscheidung speichern                              |
@@ -119,6 +127,10 @@ Vergib dem Actions-Client die Scopes der tatsächlich eingesetzten Actions:
 Die Post-User-Registration- und Role-Claims-Actions benötigen `update:users`. Vergib weitere Scopes nur, wenn eine eingesetzte Action sie benötigt.
 
 Der Backend-Management-API-Client benötigt `create:user_tickets` für Passwort-Reset-Tickets. Ergänze nur Scopes für aktivierte Backend-Funktionen. Wenn `AUTH0_ROLE_SYNC_ENABLED=true` gesetzt wird, sind außerdem die Lese- und Update-Scopes erforderlich, um Benutzerrollen aufzulisten und zu ersetzen. Lasse die Rollen-Synchronisierung deaktiviert, sofern sie nicht bewusst Teil der Bereitstellung ist. Verwende für diese Clients keine breit berechtigten Tenant-Administrator-Credentials.
+
+Setze `AUTH0_MGMT_AUDIENCE` einschließlich des abschließenden Schrägstrichs auf `https://<AUTH0_DOMAIN>/api/v2/`. Verwende innerhalb einer Auth0-Transaktion durchgehend dieselbe Tenant-Domain.
+
+---
 
 ## 7. Actions bereitstellen
 
@@ -147,15 +159,16 @@ Erforderliche Action-Secrets:
 
 Erforderliche Action-Secrets:
 
-| Secret                                                                        | Wert                                                       |
-| ----------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `AUTH0_DOMAIN`                                                                | Dieselbe Auth0-Domain wie bei der Anwendung                |
-| `AUTH0_M2M_CLIENT_ID`                                                         | Client ID des Actions-Management-API-Clients               |
-| `AUTH0_M2M_CLIENT_SECRET`                                                     | Client Secret des Actions-Management-API-Clients           |
-| `AUTH0_MGMT_AUDIENCE`                                                         | `https://<AUTH0_DOMAIN>/api/v2/`                           |
-| `NODE_ENV`                                                                    | Exakt `development` oder `production`                      |
-| `DEV_ACCOUNT_LINK_CONFIRMATION_URL` oder `PROD_ACCOUNT_LINK_CONFIRMATION_URL` | Passender Backend-Bestätigungsendpunkt aus der URL-Tabelle |
-| `ACCOUNT_LINK_ALLOWED_PROVIDERS`                                              | `auth0,google-oauth2`                                      |
+| Secret                                                                        | Wert                                                           |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `AUTH0_DOMAIN`                                                                | Dieselbe Auth0-Domain wie bei der Anwendung                    |
+| `AUTH0_M2M_CLIENT_ID`                                                         | Client ID des Actions-Management-API-Clients                   |
+| `AUTH0_M2M_CLIENT_SECRET`                                                     | Client Secret des Actions-Management-API-Clients               |
+| `AUTH0_MGMT_AUDIENCE`                                                         | `https://<AUTH0_DOMAIN>/api/v2/`                               |
+| `NODE_ENV`                                                                    | Exakt `development` oder `production`                          |
+| `DEV_ACCOUNT_LINK_CONFIRMATION_URL` oder `PROD_ACCOUNT_LINK_CONFIRMATION_URL` | Passender Backend-Bestätigungsendpunkt aus der URL-Tabelle     |
+| `ACCOUNT_LINK_ALLOWED_PROVIDERS`                                              | `auth0,google-oauth2`                                          |
+| `ACCOUNT_LINK_PROOF_SECRET`                                                   | Dasselbe hochentropische Secret in Action und Backend-Laufzeit |
 
 Setze passend zu `NODE_ENV` nur das Secret der verwendeten Umgebung. Konfiguriere denselben hochentropischen Wert für `ACCOUNT_LINK_PROOF_SECRET` im Action-Secret-Store und in der Backend-Laufzeit: Das Backend signiert Besitznachweise, die Action verifiziert sie. Committe dieses Secret niemals. Der Login-Flow gilt für den gesamten Tenant; eine bereitgestellte Action kann daher nicht je Anwendung eine andere Umgebung wählen. Eine gespeicherte Entscheidung `pending`, `confirmed` oder `cancelled` unterdrückt keinen erneuten Prompt, solange Identitäten unverknüpft sind. Google ist nach erfolgreicher Verknüpfung die kanonische Identität. Umgehe den Besitznachweis nicht und aktiviere keine automatische Verknüpfung.
 
@@ -198,6 +211,8 @@ Erforderliche Secrets für die Post-User-Registration-Action:
 
 Verwende dieselbe geprüfte Rollen-ID `user` wie für `roleClaims.js`. Diese Action weist Database-Nutzern die Rolle bei der Registrierung zu; `roleClaims.js` ergänzt sie beim Login für Nicht-Database-Nutzer, falls sie noch fehlt.
 
+---
+
 ## 8. Backend-Werte konfigurieren
 
 Hinterlege die gemeinsamen Backend-Werte im Secret- oder Konfigurations-Store der Bereitstellung:
@@ -223,6 +238,10 @@ Setze umgebungsspezifische Werte mit passendem Präfix:
 
 `DEV_CORS_ORIGINS` und `PROD_CORS_ORIGINS` enthalten kommaseparierte, exakte Origins der Frontends, die das Backend aufrufen. Produktionswerte müssen HTTPS verwenden. `NODE_ENV` muss exakt `development` oder `production` sein. Stelle sicher, dass nicht versehentlich die Produktionsdatenbank oder -Callbacks in beiden Umgebungen verwendet werden.
 
+`DEV_ACCOUNT_LINK_FRONTEND_URL` und `PROD_ACCOUNT_LINK_FRONTEND_URL` verweisen auf die Bestätigungsseite im Frontend. Die Post-Login-Action verwendet die separaten Secrets `DEV_ACCOUNT_LINK_CONFIRMATION_URL` oder `PROD_ACCOUNT_LINK_CONFIRMATION_URL`, die auf den Backend-Endpunkt `/api/v001/auth/confirm-account-linking` zeigen. Vertausche Frontend- und Backend-URLs nicht. Die vollständige Variablenreferenz steht in der [Umgebungskonfiguration](./environment-configuration).
+
+---
+
 ## 9. Tenant überprüfen
 
 Prüfe vor dem Aktivieren echter Nutzer jeden Punkt in der vorgesehenen Umgebung:
@@ -246,6 +265,8 @@ Prüfe vor dem Aktivieren echter Nutzer jeden Punkt in der vorgesehenen Umgebung
 7. Teste den Passwort-Reset vollständig einschließlich Auth0-Ticket,
    E-Mail-Zustellung und Application Login URI.
 
-Dokumentiere Tenant/Umgebung und Prüfdatum im Deployment-Protokoll. Weitere Quellcodeverträge findest du im [Auth0-Tenant-Vertrag](/docs/backend/auth0-tenant-contract), in der [Referenz der Database-Skripte](/docs/backend/auth0-database-action-scripts) und in der [Umgebungskonfiguration](/docs/backend/environment-configuration).
+Dokumentiere Tenant/Umgebung und Prüfdatum im Deployment-Protokoll. Weitere Quellcodeverträge findest du im [Auth0-Tenant-Vertrag](/docs/backend/auth0-tenant-contract), in der [Referenz der Database-Skripte](/docs/backend/auth0-database-action-scripts), in der [Umgebungskonfiguration](/docs/backend/environment-configuration) und im [Backend-Schnellstart](./local-testing/quickstart-testing). Halte Zugangsdaten, Zertifikate und tenantspezifische Secrets aus Quellcodeverwaltung und Dokumentation heraus.
 
-Letzte Bearbeitung: 17.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 17.10.2026

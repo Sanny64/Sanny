@@ -22,6 +22,8 @@ Die öffentliche API des Pakets exportiert gemeinsame UI-Komponenten sowie gemei
 - Toast-Hilfsfunktionen: `showToast`, `showErrorToast`, `dismissToast` und `retriggerToast`.
 - Komponenten-CSS liegt unter `src/styles/` des Pakets und wird von der konsumierenden App gebündelt.
 
+---
+
 ## Verwendung
 
 Importiere in einer Seite, für die du das Routing bereits eingerichtet hast, die benötigte Komponente, zum Beispiel `Button`:
@@ -88,6 +90,8 @@ onClick={() => {
 
 Grundsätzlich ist das Auslagern von Funktionen jedoch besser für Konsistenz und Wartbarkeit.
 
+---
+
 ## Hinweise für Entwickler:innen
 
 Bevorzuge sichtbaren Button-Text und zugeordnete Formularlabels; sie stellen bereits den barrierefreien Namen bereit. Verwende ein lokalisiertes `aria-label`, wenn ein Steuerelement keinen ausreichenden sichtbaren Text hat, zum Beispiel bei einem Button, der nur ein Symbol zeigt. Verwende kein `aria-label`, das sichtbarem Text oder einem zugeordneten Label widerspricht, da es den von assistiven Technologien angesagten Namen überschreibt.
@@ -147,4 +151,6 @@ export default function Layout() {
 
 Weitere Informationen zum Routenverhalten findest du [hier](/docs/frontend/projects/sanny#besonderes-verhalten).
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

@@ -12,9 +12,13 @@ Diese Anleitung beschreibt Schritt für Schritt, wie du Backend-Abläufe auf dei
 2. Docker Desktop für den lokalen Backend-Stack.
 3. Eine dedizierte Auth0-Entwicklungsanwendung und ausschließlich für Tests verwendete Identitäten. Verwende keine persönlichen Konten.
 
+---
+
 ## 1. Auth0-Anwendung konfigurieren
 
 Richte Auth0 wie unter [Auth0-Tenant einrichten](../auth0-tenant-setup) beschrieben ein.
+
+---
 
 ## 2. Dienste starten
 
@@ -43,6 +47,8 @@ npm run dev:sanny
 ```
 
 Die Haupt-App ist unter `https://localhost:5173` erreichbar.
+
+---
 
 ## Fehlerbehebung
 
@@ -78,11 +84,15 @@ Die Haupt-App ist unter `https://localhost:5173` erreichbar.
 ### Fehler bei der Datenbankverbindung
 
 - **Ursache**: MySQL läuft nicht oder die Zugangsdaten in `backend/.env` sind falsch.
-- **Lösung**: Prüfe, ob die Entwicklungsdatenbank läuft und `DATABASE_URL` korrekt gesetzt ist.
+- **Lösung**: Prüfe, ob MySQL läuft und `DATABASE_URL` in `backend/.env` korrekt ist.
 - **Prüfung**: Verwende keine Zugangsdaten der Produktionsdatenbank.
+
+---
 
 ## Weiter
 
 Führe [automatisierte Backend-Tests](./automated-testing.mdx) und [automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx) als getrennte Prüfschritte aus. Zusammensetzung und Voraussetzungen der Root-Gates, einschließlich Live-Auth0-Integration mit `npm run test:e2e:real`, stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

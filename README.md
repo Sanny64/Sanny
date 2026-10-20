@@ -42,9 +42,9 @@ Sanny runs at `https://localhost:5173`, Auth at `https://localhost:5174`, and En
 
 Run `npm run check` before manual builds. `npm run test:ci` is the Docker-backed CI-compatible gate; `npm run test` additionally runs live Auth0 and invokes the opt-in 429 spike scenario, which skips unless `RUN_429_SPIKE_E2E=true`. Live Auth0 needs a reachable development API/tenant and dedicated test credentials; enabling the spike scenario also requires Grafana credentials and may trigger alerts. See the [local testing guide](https://docs.sanny64.de/docs/general-info/testing) for prerequisites and coverage.
 
-For backend containers and restart commands, see [Backend Setup](https://docs.sanny64.de/docs/backend/backend-setup). Shared package and tooling ownership is documented in the [workspace tooling guide](https://docs.sanny64.de/docs/general-info/workspace-tooling).
+For backend containers and restart commands, see [Backend Setup](https://docs.sanny64.de/docs/backend/backend-setup). Shared package and tooling ownership is documented in the [tooling guide](https://docs.sanny64.de/docs/general-info/tooling).
 
-Detailed browser, Redis, and visual-test procedures live in the [frontend](https://docs.sanny64.de/docs/frontend/local-testing/automated-testing), [backend](https://docs.sanny64.de/docs/backend/local-testing/automated-testing), and [workspace tooling](https://docs.sanny64.de/docs/general-info/workspace-tooling) guides.
+Detailed browser, Redis, and visual-test procedures live in the [frontend](https://docs.sanny64.de/docs/frontend/local-testing/automated-testing), [backend](https://docs.sanny64.de/docs/backend/local-testing/automated-testing), and [tooling](https://docs.sanny64.de/docs/general-info/tooling) guides.
 
 ### Branches and Releases
 

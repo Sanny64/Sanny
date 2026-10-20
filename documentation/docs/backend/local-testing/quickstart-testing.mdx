@@ -66,9 +66,9 @@ The main app is available at `https://localhost:5173`.
 
 ### "CORS Error" in Console
 
-- **Cause**: Request origin not in `DEV_CORS_ORIGINS` in backend/.env
+- **Cause**: Request origin not in `DEV_CORS_ORIGINS` in `backend/.env`
 - **Fix**: Verify `DEV_CORS_ORIGINS` includes `https://localhost:5174` and `https://localhost:5173`.
-- **Note**: Requires backend restart after .env changes
+- **Note**: Requires backend restart after `.env` changes
 
 ### "Redis Connection Error"
 
@@ -77,8 +77,8 @@ The main app is available at `https://localhost:5173`.
 
 ### Database Connection Errors
 
-- **Cause**: MySQL not running or credentials wrong in backend/.env
-- **Fix**: Verify MySQL is running and `DATABASE_URL` in backend/.env is correct
+- **Cause**: MySQL not running or credentials wrong in `backend/.env`
+- **Fix**: Verify MySQL is running and `DATABASE_URL` in `backend/.env` is correct
 - **Check**: Confirm the development database URL is configured; do not use production database credentials.
 
 ## Continue

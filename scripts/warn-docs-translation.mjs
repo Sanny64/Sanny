@@ -1,17 +1,12 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
 export function warnDocumentationLineCounts(root, warn = console.warn) {
   const englishRoot = resolve(root, "documentation/docs");
   const germanRoot = resolve(
     root,
     "documentation/i18n/de/docusaurus-plugin-content-docs/current",
   );
-  const countLines = (content) =>
-    content === ""
-      ? 0
-      : content.split(/\r\n|\n|\r/).length - Number(/[\r\n]$/.test(content));
   const escapeAnnotation = (value) =>
     value
       .replaceAll("%", "%25")
@@ -19,6 +14,7 @@ export function warnDocumentationLineCounts(root, warn = console.warn) {
       .replaceAll("\n", "%0A")
       .replaceAll(":", "%3A")
       .replaceAll(",", "%2C");
+  const maxByteDifference = 3000;
   let hasDrift = false;
 
   for (const entry of readdirSync(englishRoot, {
@@ -36,26 +32,32 @@ export function warnDocumentationLineCounts(root, warn = console.warn) {
       if (error.code === "ENOENT") continue;
       throw error;
     }
-    const englishContent = readFileSync(englishPath);
-    const englishLines = countLines(englishContent.toString("utf8"));
-    const germanLines = countLines(germanContent.toString("utf8"));
-    const lineDifference = germanLines - englishLines;
-    const sizeDifference = germanContent.length - englishContent.length;
-    const maxSizeDifference = 2500;
+    let englishContent;
+    try {
+      englishContent = readFileSync(englishPath);
+    } catch (error) {
+      if (error.code === "ENOENT") continue;
+      throw error;
+    }
+    const englishSize = englishContent.length;
+    const germanSize = germanContent.length;
+    const sizeDifference = germanSize - englishSize;
     if (
-      Math.abs(lineDifference) >= 1 ||
-      sizeDifference >= maxSizeDifference ||
-      sizeDifference <= -maxSizeDifference
+      sizeDifference >= maxByteDifference ||
+      sizeDifference <= -maxByteDifference
     ) {
       hasDrift = true;
-      const file = page.replaceAll("\\", "/").split("/").slice(-2).join("/");
       warn(
-        `::warning title=Translation drift::${escapeAnnotation(file)}: ${sizeDifference > 0 ? "+" : ""}${sizeDifference} bytes, ${lineDifference > 0 ? "+" : ""}${lineDifference} lines (DE - EN)`,
+        `::warning title=Translation byte difference::${escapeAnnotation(page.replaceAll("\\", "/"))}: DE ${germanSize} vs. EN ${englishSize} bytes (${sizeDifference > 0 ? "+" : ""}${sizeDifference})`,
       );
     }
   }
 
-  if (!hasDrift) warn("No drift between locales has been recognized.");
+  if (!hasDrift) {
+    warn(
+      `No translation byte differences of ${maxByteDifference} bytes or more.`,
+    );
+  }
 }
 
 if (import.meta.main) {

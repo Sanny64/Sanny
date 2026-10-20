@@ -1,7 +1,7 @@
 ---
 title: Bereitstellung
 description: Bereitstellungs-/Release-Ablauf und Git-Anleitung
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 # Bereitstellung
@@ -14,7 +14,7 @@ Dieses Projekt verwendet einen einfachen Release-Zug für ein Monorepo mit:
 - Fastify-Backend.
 - Gemeinsam genutzten Paketen unter `shared/packages/**`.
 
-Ziel ist es, `main` übersichtlich zu halten, eine echte Web-Testumgebung zu unterstützen und den Ablauf für eine einzelne entwickelnde Person einfach ausführbar zu machen.
+Ziel ist es, `main` sehr übersichtlich zu halten (ein Commit pro Release), eine echte Web-Testumgebung zu unterstützen und den Ablauf für eine einzelne entwickelnde Person einfach ausführbar zu machen.
 
 ## Branch-Modell
 
@@ -26,9 +26,9 @@ Dies ist die dokumentierte Release-Konvention des Repositorys, keine von GitHub 
 
 - Täglicher Entwicklungs-Branch.
 - Feature-Arbeit landet zuerst hier.
-- Die Commit-Historie kann unaufgeräumt sein.
-- Die Commit-Historie wird niemals umgeschrieben.
-- Pushes nach `dev` lösen derzeit keinen Deployment-Workflow aus. Änderungen gelten erst dann als releasebereit, wenn sie nach `test` übernommen wurden.
+- Die Commit-Historie kann unaufgeräumt sein und wird niemals umgeschrieben.
+- Von `dev` wird keine Website deployed, und nichts darin gilt als releasebereit, bevor es nach `test` übernommen wurde.
+- Pushes nach `dev` lösen keinen Deployment-Workflow aus.
 
 ### `test`
 
@@ -46,13 +46,15 @@ Dies ist die dokumentierte Release-Konvention des Repositorys, keine von GitHub 
 - Jeder Release-Commit erhält einen Tag im Format `release-1.0.0.x`.
 - `main` und `test` teilen absichtlich keine Commit-Historie. Zum Release-Zeitpunkt haben sie lediglich identische Datei-Inhalte.
 
+---
+
 ## Zuordnung der Deployments
 
-Der Workflow **Release workspace** (`.github/workflows/release.yml`) ist der einzige Push-/manuelle Einstiegspunkt für Releases auf `main` und `test`. Sein geheimnisfreier Planner wählt die Ziele anhand geänderter Pfade und ruft vor wiederverwendbaren Deployment-Workflows einmalig `verify.yml` auf. Pull Requests rufen die Verifikation weiterhin separat auf. Änderungen an einer App wählen deren Ziel; Änderungen an gemeinsamem Tooling wählen konservativ alle Produktionsziele. GitHub-Branch-Protection muss die Verifikation separat voraussetzen.
+Der Workflow **Release workspace** (`.github/workflows/release.yml`) ist der einzige Push-/manuelle Einstiegspunkt für Releases auf `main` und `test`. Sein geheimnisfreier Planner wählt die Ziele anhand geänderter Pfade und ruft vor wiederverwendbaren Deployment-Workflows einmalig `verify.yml` auf. Pull Requests rufen die Verifikation weiterhin separat auf. App-spezifische Änderungen wählen die jeweilige App, Backend-Änderungen das Image, und Änderungen an Shared-/Tooling-/Workflow-Pfaden wählen konservativ alle Produktionsziele. GitHub-Branch-Protection muss die Verifikation separat voraussetzen. Actions bleiben per SHA gepinnt, und FTPS prüft vertrauenswürdige Zertifikate mit passendem Hostnamen.
 
-Die Workflows `deploy-*.yml` sind nur über `workflow_call` aufrufbar. Verwende für manuelle Starts **Release workspace**: Ein manueller Lauf auf `main` wählt alle Produktionsziele; aktiviere `deploy-backend` nur, wenn das VPS-Deployment beabsichtigt ist. Ein manueller Lauf auf `test` deployed nur die Testseiten. Andere Branches werden übersprungen.
+**Migration für Betreiber:** Die Workflows `deploy-*.yml` stellen nur noch `workflow_call` bereit. Verwende für manuelle Starts **Release workspace**. Ein manueller Lauf auf `main` baut alle Produktionsziele neu; aktiviere **deploy-backend** nur, wenn das VPS-Deployment beabsichtigt ist. Ein manueller Lauf auf `test` deployed unabhängig von dieser Eingabe nur die Testseiten. Andere Branches werden übersprungen. Jeder Unterworkflow erhält nur die von ihm benötigten Secrets, die Verifikation erhält keine. Die CI verwendet `.nvmrc` und npm 11.6.3.
 
-Die Repository-Variablen `VITE_DEV_API_URL` und `VITE_PROD_API_URL` müssen erreichbare HTTPS-API-Origins enthalten. Test- und Produktionsworkflows übergeben den ausgewählten Wert als `VITE_API_URL`; Browser-Code verwendet nur diese kanonische Variable. Lokal kann Vite im Entwicklungs-/Testmodus den Entwicklungswert und im Produktionsmodus den Produktionswert verwenden; ein explizites `VITE_API_URL` hat Vorrang. Die CI verwendet Node.js aus `.nvmrc` und npm 11.6.3.
+Die Repository-Variablen `VITE_DEV_API_URL` und `VITE_PROD_API_URL` müssen die jeweils erreichbaren HTTPS-API-Origins enthalten. Test- und Produktionsworkflows übergeben den ausgewählten Wert als `VITE_API_URL`; Browser-Code verwendet nur diesen kanonischen Wert. Lokal kann Vite im Entwicklungs-/Testmodus weiterhin den Entwicklungswert und im Produktionsmodus den Produktionswert verwenden; ein explizites `VITE_API_URL` hat Vorrang. Builds lehnen fehlende oder ungültige Origins ab.
 
 ### Testumgebung
 
@@ -89,8 +91,10 @@ Auf `main` wählen App-Pfade Auth oder Sanny, Dokumentationspfade die Docs und B
 - `auth` -> Produktionsseite unter `https://auth.sanny64.de/`.
 - `docs` -> Produktionsseite unter `https://docs.sanny64.de/`, mit der deutschen Website unter `/de/`.
 - Quellcodeexportierte Shared Packages werden in die betroffenen App-Builds gebündelt; sie haben keinen eigenständigen Build-Output.
-- Ein Push nach `main`, der Backend- oder gemeinsame Tooling-Dateien ändert, führt nach der gemeinsamen Verifikation zum Build und zur Veröffentlichung identischer `latest`- und Commit-SHA-Tags nach GHCR und Docker Hub (`sanny64/backend`). Docker Hub bleibt die Image-Quelle für Gordons Analyse und das VPS-Deployment.
-- Ein manueller **Release workspace**-Lauf auf `main` wählt alle Ziele. Nur wenn `deploy-backend` aktiviert ist, wird zusätzlich genau der Commit-SHA-Tag von Docker Hub auf dem VPS deployed. Ohne diese Eingabe wird das Image veröffentlicht, der VPS bleibt unverändert. Docker-Hub- und VPS-Zugangsdaten sind GitHub-Actions-Secrets, keine Backend-Laufzeitvariablen.
+- Ein Push nach `main`, der das Backend-Ziel auswählt, führt die gemeinsame Verifikation aus und veröffentlicht dieselben `latest`- und Commit-SHA-Tags nach GHCR und Docker Hub (`sanny64/backend`). Backend-, Shared-/Tooling- und Workflow-Änderungen können dieses Ziel auswählen. Docker Hub bleibt die Image-Quelle für Gordons Analyse und das VPS-Deployment.
+- Ein manueller **Release workspace**-Lauf auf `main` mit aktiviertem **deploy-backend** veröffentlicht und deployed genau diesen Commit-SHA-Tag von Docker Hub. Ohne diese Eingabe wird das Image veröffentlicht, der VPS bleibt unverändert. Docker-Hub-Zugangsdaten sind GitHub-Actions-Secrets, keine Backend-Laufzeitvariablen.
+
+---
 
 ## Regel für gemeinsam genutzte Pakete
 
@@ -103,6 +107,8 @@ Das bedeutet:
 - Ändert sich ein gemeinsam genutztes Paket, müssen die davon abhängigen Frontends in Test- und Produktionsumgebung neu gebaut werden.
 
 So bleibt gemeinsam genutzter Code mit den Apps synchron, die ihn verwenden.
+
+---
 
 ## Release-Ablauf
 
@@ -136,15 +142,15 @@ So bleibt gemeinsam genutzter Code mit den Apps synchron, die ihn verwenden.
 
 ### 5. `test` nach `main` übernehmen
 
-- Sobald die Testumgebung freigegeben und `test` zurück nach `dev` gemerged wurde, erstelle den Release-Commit auf `main` aus dem Dateibaum von `test`.
-- Das ist kein Merge: Es entstehen keine Merge-Konflikte und keine Commits aus `test` werden nach `main` übernommen.
-- Versehe den Release-Commit mit einem Tag im Format `release-1.0.0.x` und pushe beides zusammen.
+- Sobald die Testumgebung freigegeben und `test` zurück nach `dev` gemerged wurde, erstelle den Release-Commit auf `main`.
+- Der Commit wird mit `git commit-tree` aus dem Dateibaum von `test` erstellt. Das ist kein Merge: Es können keine Merge-Konflikte entstehen, und keine Commits aus `test` landen in `main`.
+- Der Commit erhält den Tag `release-1.0.0.x` und wird zusammen mit `main` gepusht.
 
 ### 6. Produktionsdeployment
 
 - Nach dem Push des Release-Commits wird die Produktion von `main` aus deployed.
 - Frontends und Docs werden automatisch deployed.
-- Das Backend-Image wird bei passenden Änderungen automatisch veröffentlicht. Das VPS-Deployment erfordert einen manuellen **Release workspace**-Lauf auf `main` mit aktivierter Eingabe `deploy-backend`.
+- Das Backend-Deployment erfordert einen manuellen **Release workspace**-Lauf auf `main` mit aktiviertem **deploy-backend**.
 
 ### Übersicht
 
@@ -155,6 +161,8 @@ So bleibt gemeinsam genutzter Code mit den Apps synchron, die ihn verwenden.
     alt="Release-Ablauf: Feature-Branches werden nach dev und anschließend nach test gemergt; Fixes durchlaufen eine Schleife. Der Release-Commit auf main wird aus dem Dateibaum von test erstellt und zusammen mit seinem Tag gepusht; das VPS-Deployment wird über Release workspace mit deploy-backend aktiviert."
   />
 </center>
+
+---
 
 ## Schritt-für-Schritt-Git-Anleitung
 
@@ -242,7 +250,7 @@ git push origin dev
 
 ### Für die Produktion freigeben
 
-Wenn `test` freigegeben und zurück nach `dev` gemerged ist, erstelle den Release-Commit auf `main` aus dem Dateibaum von `test`.
+Wenn `test` freigegeben und zurück nach `dev` gemerged ist, erstelle den Release-Commit auf `main`.
 
 Ersetze `1.0.0.x` in allen drei Stellen durch die neue Version (Bash / Git Bash):
 
@@ -302,7 +310,9 @@ dev:   A -- a1 -- ... -- a70 -- d1 -- ...  (vollständige Historie, nie umgeschr
 
 #### Hotfixes
 
-Ändere `main` niemals direkt. Jede Änderung auf `main`, die nicht in `test` enthalten ist, wird beim nächsten Release-Commit überschrieben. Hotfixes folgen dem normalen Ablauf: Fehler auf `test` beheben, nach `dev` zurückmergen und anschließend den nächsten Release-Commit erstellen.
+Ändere `main` niemals direkt. Jede Änderung auf `main`, die nicht in `test` enthalten ist, wird beim nächsten Release-Commit überschrieben. Hotfixes folgen dem normalen Ablauf: Fehler auf `test` beheben (Branch `fix/<name>`), nach `dev` zurückmergen und anschließend den nächsten Release-Commit erstellen.
+
+---
 
 ## Feature-Branches synchronisieren
 
@@ -315,16 +325,19 @@ Wenn Feature-Branches auseinanderlaufen und wieder denselben Arbeitsstand verwen
 
 Dies ist ein Wiederherstellungsschritt über den normalen Integrations-Branch `dev`. Er ist hilfreich, wenn mehrere Branches von denselben Änderungen an gemeinsam genutzten Paketen oder Workspaces abhängen und lokale Entwicklungsserver deshalb wieder konsistent laufen müssen.
 
+---
+
 ## Verhalten des Produktionsdeployments
 
 Das Produktionsdeployment startet, nachdem der Release-Commit nach `main` gepusht wurde.
 
 - Der Planner in `release.yml` wählt Sanny-, Auth- und Dokumentations-Deployments auf `main` anhand der geänderten Pfade aus; die wiederverwendbaren Deployment-Workflows definieren keine Pfadfilter.
 - Änderungen an gemeinsam genutzten Paketen lösen die Frontend-Workflows aus, die diese Pfade enthalten.
-- Ein Push nach `main`, der Backend-Dateien ändert, baut und veröffentlicht dasselbe Backend-Image nach GHCR und Docker Hub.
-- Für das VPS-Deployment muss **Release workspace** manuell auf `main` mit `deploy-backend` gestartet werden; deployed wird der Commit-SHA-Tag von Docker Hub.
+- Ein Push nach `main`, der Backend-Dateien ändert, baut und veröffentlicht dasselbe Backend-Image nach GHCR und Docker Hub; das VPS-Deployment erfordert einen manuellen **Release workspace**-Lauf auf `main` mit aktiviertem **deploy-backend**.
 
 Damit bleibt `main` die maßgebliche Quelle für Produktion und die eigentliche Release-Historie dennoch klein.
+
+---
 
 ## Hinweis zum Backend
 
@@ -333,7 +346,10 @@ Das Backend-Deployment ist vom Frontend-Release-Ablauf getrennt.
 Das bedeutet:
 
 - Der Test-Workflow für `test` deployed das Backend nicht.
-- Ein Push nach `main`, der Backend-Dateien ändert, baut und veröffentlicht das Image nach GHCR und Docker Hub, deployed es aber nicht auf den VPS. Ein manueller **Release workspace**-Lauf auf `main` mit `deploy-backend` aktiviert den VPS-Deploy des exakten Docker-Hub-Commit-SHA. `deploy-backend.yml` ist ein wiederverwendbarer Workflow ohne eigenen manuellen oder Push-Trigger.
+- Ein Push nach `main`, der Backend-Dateien ändert, baut und veröffentlicht das Image nach GHCR und Docker Hub, deployed es aber nicht auf den VPS.
+- Ein manueller **Release workspace**-Lauf auf `main` mit aktiviertem **deploy-backend** deployed das exakte Docker-Hub-Commit-SHA-Image und erfordert Docker-Hub- und VPS-Secrets sowie einen konfigurierten Host. `deploy-backend.yml` ist ein wiederverwendbarer Unterworkflow, kein eigenständiger manueller Workflow.
 - Frontend- und Docs-Releases sollten unabhängig vom Backend-Status weiterhin dem normalen Ablauf `dev -> test -> main` folgen.
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

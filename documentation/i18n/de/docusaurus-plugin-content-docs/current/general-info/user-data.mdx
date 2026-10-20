@@ -1,7 +1,7 @@
 ---
 title: Benutzerdaten
 description: Informationen zu Nutzerprofilen, Web-Cookies und mehr
-sidebar_position: 3
+sidebar_position: 4
 ---
 
 # Benutzerdaten
@@ -14,11 +14,15 @@ Die Authentifizierung übernimmt Auth0. Du kannst dich mit E-Mail-Adresse und Pa
 
 Das Backend stellt außerdem `POST /api/v001/users/link-account` zum separaten Zusammenführen lokaler Datensätze bereit. Der Endpunkt erfordert eine Session und kürzlich erfolgte Authentifizierung und prüft, ob der Session-Subject einem der beiden übermittelten Auth0-Subjects entspricht. Er prüft weder den Besitz des anderen Subjects noch, ob die Auth0-Identitäten verknüpft sind. Er verknüpft keine Identitäten in Auth0: Er führt lokale Zeilen zusammen, übernimmt einen Passwort-Hash der sekundären Zeile nur dann, wenn der primären Zeile keiner zugeordnet ist, übernimmt den E-Mail-Verifizierungsstatus und löscht die sekundäre Zeile. Die aktuelle Auth0-Account-Linking-Oberfläche ruft diesen Endpunkt nicht auf; sie verwendet einen signierten Besitznachweis und gleicht den kanonischen Subject im OAuth-Callback ab.
 
+---
+
 ## Speicherung im Browser
 
 Die Website speichert die ausgewählte Sprache (`language`) und das Theme (`theme`) in Erstanbieter-Cookies und im `localStorage` des Browsers. Die Einstellungs-Cookies können bis zu einem Jahr bestehen bleiben; der `localStorage` bleibt erhalten, bis du oder dein Browser ihn löscht. Wenn du keine Sprache oder kein Theme ausgewählt hast, kann die Website die Browsersprache und die Theme-Einstellung des Betriebssystems verwenden. Barrierefreiheitseinstellungen werden derzeit nicht dauerhaft gespeichert.
 
 Für die Anmeldung verwendet die Website außerdem notwendige Authentifizierungs-Cookies. Die Sitzung selbst wird serverseitig gespeichert und nach 30 Minuten Inaktivität, spätestens jedoch nach acht Stunden, beendet. Ein separates CSRF-Cookie schützt kontoverändernde Anfragen.
+
+---
 
 ## Kontoverwaltung und Betrieb
 
@@ -26,4 +30,6 @@ In den Kontoeinstellungen kannst du deinen Benutzernamen ändern oder die Lösch
 
 Für Betrieb und Sicherheit erfasst das Backend begrenzte Anfragemetriken, zum Beispiel Routenkategorie, Methode, Antwortstatus und Dauer. Anwendungsprotokolle sind so konfiguriert, dass Konto-IDs, E-Mail-Adressen, IP-Adressen, Anfrage- und Antwortinhalte, Cookies und Zugangsdaten geschwärzt werden.
 
-Letzte Bearbeitung: 18.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 18.10.2026

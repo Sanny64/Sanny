@@ -8,6 +8,8 @@ sidebar_position: 3
 
 Die folgenden Schritte betreffen Backend und gehostete Umgebungen. Gemeinsame Regeln zu Testdaten und Nachweisen, zur Aussagekraft der Root-Gates und zum letzten vollständigen Lauf stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
+---
+
 ## Vor dem Staging
 
 - [ ] Backend-Unit-, Monitoring-, Redis- und Discord-Tests mit `npm run test:backend` ausführen und Ergebnisse festhalten. [Frontend-Prüfungen](../../frontend/local-testing/automated-testing.mdx) separat durchführen. Die Zusammensetzung der Root-Gates steht im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
@@ -16,10 +18,14 @@ Die folgenden Schritte betreffen Backend und gehostete Umgebungen. Gemeinsame Re
 - [ ] Profiländerung, Kontolöschung, Admin-Suche und -Paginierung, Rollenänderungen, Passwort-Reset sowie abgelehnten Nicht-Admin-Zugriff prüfen. Persistenz und Bereinigung in der isolierten Umgebung bestätigen.
 - [ ] Live-MFA und E-Mail-OTP-Step-up einschließlich Abbruch, Wiederherstellung, Ablauf und Wiederholung bei sensiblen Aktionen prüfen.
 
+---
+
 ## Gehostetes Staging
 
 - [ ] Alle Punkte unter [Bereitstellung und Wiederherstellung](../deployment.mdx) prüfen, einschließlich Umgebungsisolation, Proxy-/Direktzugriffsgrenzen, HTTPS/Security-Header, Rate-Limits, PKCE-Replay-Ablehnung, Refresh-/Reuse-Behandlung, Sitzungsablauf und Backup-/Restore-Bereitschaft.
 - [ ] Echte Discord-/E-Mail-Kontaktpunktzustellung in Entwicklungs- oder Staging-Umgebung prüfen. Der isolierte automatisierte Test belegt Regel-Auslösung und Zustellung an einen Test-Sink, nicht externe Zustellung; siehe [Monitoring](../monitoring.mdx) und den datierten Monitoring-Nachweis.
 - [ ] Logs und Metriken auf Secrets, personenbezogene Daten, unbeschränkte Labels oder Query-Leaks prüfen; sicherstellen, dass geschützte Monitoring-Endpunkte nicht öffentlich erreichbar sind.
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

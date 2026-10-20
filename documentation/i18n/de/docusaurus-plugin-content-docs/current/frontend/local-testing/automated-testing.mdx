@@ -9,17 +9,15 @@ Live-E2E-Tests öffnen sichtbare Browserfenster (`--headed`) und können flacker
 
 ## Befehle
 
-Alle Befehle im Repository-Stammverzeichnis ausführen.
-
-Versions- und gemeinsame Root-Gate-Anforderungen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx). Installiere Chromium, Firefox, WebKit und Edge mit `npx playwright install chromium firefox webkit msedge`. Gemockte Accessibility- und Routing-Smoke-Tests laufen in `npm run test:e2e:mocked` zusätzlich auf WebKit; Live-Auth0 verwendet weiterhin Chromium, Firefox und Edge. Direkte Live-Aufrufe benötigen `--config=tests/e2e/playwright.real.config.ts`; `npm run test:e2e:real` enthält diese Konfiguration bereits. Linux verwendet eigene Chromium-Screenshot-Baselines statt der Windows-Bilder. `npm run test:visual:linux` vergleicht sie im offiziellen, an die Lockfile angepassten Playwright-Container; `npm run test:visual:linux -- --update` erzeugt sie zur Prüfung neu. Sowohl PR-`test:ci` als auch das vollständige lokale `npm run test` enthalten diese Prüfung. Docker ist erforderlich; in den temporären Arbeitsbereich werden nur geheimefreie Quelldateien kopiert. Der erste Lauf baut ein lokales Docker-Image namens `sanny64-visual-deps` mit npm und Linux-Abhängigkeiten. Weitere Läufe verwenden es ohne Neuinstallation. Änderungen an kopierten Paketmanifesten, der Lockfile (einschließlich Playwright-Version) oder `scripts/Dockerfile.visual` wählen automatisch ein neues Image. Jeder Lauf kopiert aktuelle Quelldateien in einen kurzlebigen Container; normale Vergleiche binden den temporären Quellordner schreibgeschützt ein. Nur `--update` schreibt Linux-Snapshots zurück. Der Build-Kontext enthält ausschließlich Paketmanifeste, Lockfile und Dockerfile, keine Anwendungsquellen oder Umgebungsdateien. Der Cache gilt nur für den lokalen Docker-Daemon; neue CI-Runner benötigen weiterhin den ersten Build. `docker image ls sanny64-visual-deps` zeigt die Images; ungenutzte Versionen lassen sich mit `docker image rm <image-id>` entfernen. Fehlende Images werden beim nächsten Lauf neu gebaut.
+Alle Befehle im Repository-Stammverzeichnis ausführen. Laufzeitversionen und gemeinsame Root-Gate-Voraussetzungen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx). Installiere Chromium, Firefox, WebKit und Edge mit `npx playwright install chromium firefox webkit msedge`. Gemockte Accessibility- und Routing-Smoke-Tests sind in `npm run test:e2e:mocked` enthalten und laufen zusätzlich auf WebKit; Live-Auth0 verwendet weiterhin Chromium, Firefox und Edge. Linux verwendet eigene neun Chromium-Screenshot-Baselines statt der Windows-Bilder. `npm run test:visual:linux` vergleicht sie im offiziellen, an die Lockfile angepassten Playwright-Container; `npm run test:visual:linux -- --update` erzeugt sie zur Prüfung neu. Sowohl PR-`test:ci` als auch das vollständige lokale `npm run test` enthalten diese Prüfung. Docker ist erforderlich; in den temporären Arbeitsbereich werden nur geheimefreie Quelldateien kopiert. Der erste Lauf baut ein lokales Docker-Image namens `sanny64-visual-deps` mit npm und Linux-Abhängigkeiten. Weitere Läufe verwenden es ohne Neuinstallation. Änderungen an kopierten Paketmanifesten, der Lockfile (einschließlich Playwright-Version) oder `scripts/Dockerfile.visual` wählen automatisch ein neues Image. Jeder Lauf kopiert aktuelle Quelldateien in einen kurzlebigen Container; normale Vergleiche binden den temporären Quellordner schreibgeschützt ein. Nur `--update` schreibt Linux-Snapshots zurück. Der Build-Kontext enthält ausschließlich Paketmanifeste, Lockfile und Dockerfile, keine Anwendungsquellen oder Umgebungsdateien. Der Cache gilt nur für den lokalen Docker-Daemon; neue CI-Runner benötigen weiterhin den ersten Build. `docker image ls sanny64-visual-deps` zeigt die Images; ungenutzte Versionen lassen sich mit `docker image rm <image-id>` entfernen. Fehlende Images werden beim nächsten Lauf neu gebaut.
 
 | Befehl                                                           | Zweck                                                                                                              |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `npm run test:e2e:mocked`                                        | Mock-Suite in Chromium, Firefox und Edge; ausgewählte Accessibility- und Sanny-Routing-Tests zusätzlich in WebKit. |
+| `npm run test:visual:linux`                                      | Linux-Chromium-Visual-Baselines in Docker vergleichen.                                                             |
 | `npx playwright test tests/e2e/mock/auth-accessibility.spec.ts`  | Nur Auth-Accessibility-Tests ausführen.                                                                            |
 | `npx playwright test tests/e2e/mock/sanny-accessibility.spec.ts` | Nur Sanny-Accessibility-Tests ausführen.                                                                           |
 | `npx playwright test tests/e2e/mock/accessibility.spec.ts`       | Nur gemeinsame Accessibility-Tests ausführen.                                                                      |
-| `npm run test:visual:linux`                                      | Linux-Chromium-Visual-Baselines in Docker vergleichen.                                                             |
 | `npm run test:e2e:real`                                          | Live-Auth0-Tests in Chromium, Firefox und Edge in einem Playwright-Aufruf.                                         |
 | `npm run test:components`                                        | Vitest-Komponententests für das gemeinsame UI-Paket.                                                               |
 | `npm run check -w auth`                                          | Auth-Lint und Typprüfung über die Workspace-Basisskripte ausführen.                                                |
@@ -32,24 +30,34 @@ Versions- und gemeinsame Root-Gate-Anforderungen stehen im [Leitfaden zu lokalen
 | `npm run build:auth`                                             | Auth bauen; statische Prüfungen vorher separat ausführen.                                                          |
 | `npm run build:sanny`                                            | Sanny bauen; statische Prüfungen vorher separat ausführen.                                                         |
 
-Das Workspace-`check`-Skript jeder App ruft `lint` und `typecheck` auf. Accessibility-Tests sind in `npm run test:e2e:mocked` enthalten; die direkten Playwright-Befehle oben führen einzelne Suites aus. Gemeinsame Root-Gate-Abläufe und Ergebnisgrenzen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx). Die Tooling-Verträge prüfen außerdem deutsche Übersetzungen und ihre Quellmarker. Backend-Abdeckung steht unter [Automatisierte Backend-Tests](../../backend/local-testing/automated-testing.mdx).
+Das Workspace-`check`-Skript jeder App setzt sich aus den Basisskripten `lint` und `typecheck` zusammen; keine der Apps bietet einen Test-Alias für Lint. Die gemockte Browser-Suite enthält die Accessibility-Specs; die direkten Playwright-Befehle oben sind nützlich, wenn an einer einzelnen Suite gearbeitet wird. Gemeinsames Test-Gate-Verhalten und Ergebnisgrenzen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx). Backend-Testabdeckung steht unter [Automatisierte Backend-Tests](../../backend/local-testing/automated-testing.mdx).
+
+---
 
 ## Komponentenabdeckung
 
 `shared/packages/ui/src/tests/ui-components.test.tsx` prüft Tastaturbedienung und Deaktivierung von Buttons, Checkbox-Beschriftungen und Feedback, Toast-Status-/Fehlermeldungen und Aktionen, Theme-/Sprachpersistenz sowie Fehlerseiteninhalt. Nicht jede Prop- oder Zustandskombination ist abgedeckt.
 
+---
+
 ## Browserabdeckung
+
+Die Standard-Playwright-Konfiguration wählt nur gemockte Tests aus. Direkte Live-Aufrufe benötigen `--config=tests/e2e/playwright.real.config.ts`; die vorhandenen Live-npm-Skripte enthalten diese Option bereits. CI lehnt fokussierte Tests ab und kann keine laufenden Entwicklungsserver wiederverwenden. Bei gemockten Fehlschlägen bleiben Traces/Screenshots erhalten; Artefakte für Live-Authentifizierung bleiben deaktiviert. Siehe [Tooling](../../general-info/tooling).
 
 Gemockte Playwright-Tests liegen in `tests/e2e/mock/`. Die Accessibility-Tests sind auf `auth-accessibility.spec.ts` und `sanny-accessibility.spec.ts` verteilt und mit den app-spezifischen Befehlen oben einzeln ausführbar. Weitere Specs prüfen Routen/Lokalisierung, Login/Logout, Settings/Admin und Account-Linking. Öffentliche Inhaltsseiten zeigen derzeit übersetzte Platzhalter ohne interaktive Steuerelemente; die eigenständigen Spiele Guess-the-Number und Blockrunner sind von den Interaktionstests dieses Projekts ausgenommen. Gemockte API-Antworten belegen nur Frontend-Verhalten und API-Verträge, nicht Backend-Persistenz oder Live-Auth0-Verhalten.
 
 Axe prüft mit WCAG-2.2-AA-Tags alle registrierten öffentlichen Sanny-Routen und die getesteten Settings-/Admin-Zustände sowie die Auth-Hilfsrouten. Die app-eigenen Accessibility-Specs decken englische/deutsche Spracheinstellungen und helle/dunkle Themes in Chromium, Firefox und Edge ab. `accessibility.spec.ts` prüft zusätzlich die Initialisierung von Sprache und Theme in beiden Apps sowie System-Theme-Wechsel mit gespeicherter manueller Auswahl in den Sanny-Settings. Diese automatisierten Prüfungen ersetzen weder Screenreader-Prüfungen noch Tests bei 200% Zoom.
+
+---
 
 ## Aussagekraft eines erfolgreichen Testlaufs
 
 - Frontend-Lint/Build prüft den aktuellen App- und Shared-Package-Quellcode mit den konfigurierten Werkzeugen. Komponenten- und gemockte Browsertests prüfen die erfassten UI-Zustände sowie Request-/Response-Verträge in den konfigurierten Browsern.
 - Axe prüft automatisierte WCAG-2.2-AA-Regeln nur für die in der Suite enthaltenen Routen, Zustände, Sprachen und Themes. Bestimmte Tastaturabläufe sind abgedeckt, jedoch kein vollständiges Tastatur-Audit.
 
-Axe- und Browsertests sind auf geprüfte Regeln und UI-Zustände begrenzt; sie belegen weder vollständige WCAG-Konformität noch Screenreader-Kompatibilität. Visuelle Baselines werden nur in Chromium erstellt. Gemeinsame Grenzen und weitere manuelle Prüfungen beschreibt der [Leitfaden zu lokalen Tests](../../general-info/testing.mdx); Backend- und Integrationsabdeckung steht unter [Automatisierte Backend-Tests](../../backend/local-testing/automated-testing.mdx).
+Axe- und Browsertests sind auf geprüfte Regeln und UI-Zustände begrenzt; sie belegen weder vollständige WCAG-Konformität noch Screenreader-Kompatibilität. Visuelle Baselines werden nur in Chromium erstellt. Gemeinsame Grenzen von Testergebnissen und Hinweise zu Nachweisen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
+
+---
 
 ## Offene Prüfungen
 
@@ -57,11 +65,13 @@ Axe- und Browsertests sind auf geprüfte Regeln und UI-Zustände begrenzt; sie b
 - [x] System-Light/Dark-Initialisierung und -Wechsel, gespeicherte manuelle Theme-Auswahl und Axe-Prüfungen der Settings in Chromium testen.
 - [x] Axe-Abdeckung auf unterstützte Routen/Zustände und helle/dunkle Themes erweitern. Alle registrierten öffentlichen Sanny-Routen und getesteten Settings-/Admin-Zustände sowie Auth-Hilfsrouten laufen mit englischen/deutschen Spracheinstellungen in Chromium, Firefox und Edge.
 - [ ] Tastaturabläufe für Login, Settings, Admin und Account-Linking auf Englisch und Deutsch abschließen.
-- [ ] Screenreader, 200%-Zoom und Reduced Motion manuell prüfen. Forced Colors/hohen Kontrast als unterstützt oder nicht unterstützt dokumentieren.
+- [ ] Mit einem Screenreader und bei 200% Zoom manuell testen; Reduced-Motion-Verhalten prüfen. Entscheiden, ob Forced Colors/hoher Kontrast unterstützt wird, und dies prüfen, falls es zum Umfang gehört.
 - [ ] Chromium-Desktop-/Mobil-Baselines nach beabsichtigten Änderungen prüfen; sie belegen keine visuelle Parität mit Firefox oder Edge.
 - [x] Frontend-Lint/Build, gemeinsame Komponenten sowie Login-/Sanny-Accessibility-Tests liefen lokal am 2026-10-09.
 - [ ] Dieselben Frontend-Prüfungen in CI auf der exakten Deployment-Revision verifizieren und offene Befunde dokumentieren.
 
-Tastatur-, Screenreader-, Zoom-, Responsive- und Reduced-Motion-Prüfungen stehen unter [Manuelle Frontend-Tests](./manual-testing.mdx). Backend- und gehostete Umgebungsprüfungen stehen unter [Manuelle Backend-Tests](../../backend/local-testing/manual-testing.mdx).
+Tastatur-, Screenreader-, Zoom-, Responsive- und Reduced-Motion-Prüfungen stehen unter [Manuelle Frontend-Tests](./manual-testing.mdx).
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

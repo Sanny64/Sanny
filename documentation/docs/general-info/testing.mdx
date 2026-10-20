@@ -1,7 +1,7 @@
 ---
 title: Local Testing
 description: Shared test gates, result boundaries, and evidence-handling guidance.
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 ## Root Test Gates
@@ -10,12 +10,14 @@ Run commands from the repository root with Node.js 24 and npm 11.6.3.
 
 - `npm run test:ci` runs formatting and static checks, contracts, backend and component tests, mocked browser tests, frontend and documentation builds, and Linux visual baselines. Docker and installed Playwright browsers are required; live Auth0 credentials are not.
 - `npm run test` adds live Auth0 to `test:ci` and invokes the 429 spike scenario. That scenario skips unless `RUN_429_SPIKE_E2E=true`; enabling it also requires Grafana credentials and may trigger alerts. The gate requires a reachable development API/Auth0 tenant and dedicated test credentials. Google automation is intentionally skipped because Google may block controlled browsers.
+- Before the live tests, `npm run test` checks `/healthcheck` on the API URL (`SANNY_E2E_API_URL`, `VITE_API_URL`, or `https://localhost:8443`). A running backend is reused; a stopped local backend is started with `npm run start:backend` and left running. Create a missing stack with `npm run restart:stack`.
+- Docker test stacks (`sanny-monitoring-tests-<pid>` and `sanny-redis-tests-<pid>`) are removed when their runner finishes or is interrupted. Stacks left by a hard-killed runner are removed at the next start of that runner.
 
 ## Latest full run
 
-2026-10-20, Node 24/npm 11.6.3:
+### 2026-10-20, Node 24/npm 11.6.3
 
-- passed in an uninterrupted isolated run completed at 12:04 UTC. The backend was stopped afterward with `npm run stop:backend`.
+- passed in an uninterrupted isolated run completed at 9:10 pm within 18 minutes and 31 seconds.
 - Formatting and static checks, 38 tooling contracts, 11 UI component tests, 166 backend unit tests, backend integration tests, and the Auth, documentation, and Sanny builds passed. One Redis-dependent unit test was intentionally skipped.
 - Mocked browser tests: 798 passed and 15 intentional skips. Documentation browser tests: 2 passed. Linux visual tests: 5 passed.
 - Live Auth0 password login passed in Chromium, Firefox, and Edge. Google automation was skipped in all three browsers, and the 429 spike test was skipped by its conditions; this run does not establish rate-limit-spike behavior or hosted sign-off.

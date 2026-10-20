@@ -87,10 +87,10 @@
     "test:e2e:real": "playwright test --config=tests/e2e/playwright.real.config.ts --headed",
     "test:e2e:429-spike": "playwright test --config=tests/e2e/playwright.monitoring.config.ts --project=chromium",
     "test:e2e": "npm run test:e2e:mocked && npm run test:e2e:real && npm run test:e2e:429-spike && npm run test:e2e:docs",
-    "test:visual:linux": "node scripts/run-linux-visual-tests.mjs",
+    "test:visual:linux": "node scripts/run-test-linux-visual.mjs",
     "docs:translation:review": "node scripts/record-doc-translation-review.mjs",
     "test:tooling": "node --test tests/contracts/config.test.mjs",
-    "test:ci": "npm run format:check && npm run check && npm run test:tooling && npm run test:components && npm run test:backend && npm run test:e2e:mocked && npm run test:e2e:docs && npm run build:frontend && npm run test:visual:linux",
+    "test:ci": "npm run format:check && npm run check && npm run compare:docs && npm run test:tooling && npm run test:components && npm run test:backend && npm run test:e2e:mocked && npm run test:e2e:docs && npm run build:frontend && npm run test:visual:linux",
     "test": "node scripts/run-test-with-stopwatch.mjs"
   },
   "overrides": {

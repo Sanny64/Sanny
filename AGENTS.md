@@ -26,13 +26,13 @@ Use `npm run test:ci` for the local CI gate. `npm run test` adds live Auth0 and 
 - `shared/packages/`: shared localization, theme/styles, and UI. `tooling/`, `tests/`, and `scripts/` own common configuration, checks, and automation.
 - `documentation/`: English/German developer docs. `games/`: standalone projects.
 
-Root scripts and `.github/workflows/` define runnable checks and deployment behavior. Read `documentation/docs/general-info/workspace-tooling.mdx` or the deployment guide instead of duplicating their operational details here.
+Root scripts and `.github/workflows/` define runnable checks and deployment behavior. Read `documentation/docs/general-info/tooling.mdx` or the deployment guide instead of duplicating their operational details here.
 
 ## Verification And Documentation
 
 Run the narrowest relevant workspace check and test, then `npm run format:check`. Wire new tests into the owning package script; do not replace actual test commands with lint/typecheck aliases. Record full-gate results in `documentation/docs/general-info/testing.mdx`.
 
-Document breaking changes in English and German, then refresh reviewed-source hashes with `npm run docs:translation:review -- <docs-relative-path>`. See the testing, setup, workspace-tooling, and deployment guides for detailed procedures.
+Document breaking changes in English and German, then refresh reviewed-source hashes with `npm run docs:translation:review -- <docs-relative-path>`. See the testing, setup, tooling, and deployment guides for detailed procedures.
 
 ## Security And Releases
 

@@ -1,7 +1,7 @@
 ---
-title: Workspace Tooling
+title: Tooling
 description: Configuration ownership, verification, and migration of the npm monorepo.
-sidebar_position: 4
+sidebar_position: 3
 ---
 
 ## Installation And Ownership
@@ -75,7 +75,7 @@ Backend `lint` covers source, tests, Prisma configuration, Docker runners, and m
 
 `format:check` runs Prettier. `check` runs ESLint and TypeScript. They are separate gates; `test:ci` invokes each once.
 
-The shared CI workflow also runs `node scripts/warn-docs-translation.mjs` (`npm run compare:docs` locally). It compares physical line counts and raw UTF-8 file sizes of English Markdown/MDX documents with their German counterparts, including blank lines and front matter. LF and CRLF are equivalent for line counts but contribute their actual bytes to file sizes. A page produces one non-blocking warning when its line-count difference is at least one, or its byte-size difference is at least 2,500 bytes. Output shows only the immediate parent directory and filename plus signed byte and line differences (German minus English), for example `shared-packages/ui.mdx: +120 bytes, +2 lines (DE - EN)`. The step uses `continue-on-error` so checker errors cannot block verification. Warnings are drift hints, not completeness checks; document-presence contracts remain blocking.
+`npm run test:ci` runs the documentation comparison through `npm run compare:docs`. The checker compares raw UTF-8 byte sizes of English Markdown/MDX pages with their German counterparts, including front matter and line endings. It emits one warning when the size difference is at least 3,000 bytes, showing the page and signed difference (German minus English), for example `shared-packages/ui.mdx: DE 12500 vs. EN 9500 bytes (+3000)`. Line-count differences do not produce warnings. Comparison errors fail `test:ci`; byte-size warnings are drift hints, not completeness checks. Document-presence contracts remain blocking.
 
 The configuration contract separately requires a German counterpart for every English page, preserves inline technical references, and checks the reviewed English-source hash. After reviewing the German translation of an English page, update its recorded source hash with `npm run docs:translation:review -- <path-relative-to-documentation/docs>`. CI rejects missing or stale review hashes. The size/line warnings are drift hints, not a translation-completeness check.
 

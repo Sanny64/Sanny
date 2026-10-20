@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Klone dieses Repository, um Zugriff auf alle Anwendungen im Workspace zu erhalten. Du benötigst Node.js 24, npm 11.6.3 und Git.
 
-### Installation und Einrichtung
+## Installation und Einrichtung
 
 Installiere alle Workspace-Abhängigkeiten im Repository-Stammverzeichnis:
 
@@ -25,14 +25,18 @@ Starte jede benötigte App in einem eigenen Terminal:
 
 Sanny läuft unter `https://localhost:5173`, Auth unter `https://localhost:5174` und die englische Dokumentation unter `http://localhost:3000`. Der deutsche Root-Befehl verwendet `http://localhost:3000/de/`; für einen separaten Port starte `npm run dev:de -w documentation`, das `http://localhost:3001/de/` bereitstellt. Frontend-Dev-Server verwenden ein lokales HTTPS-Zertifikat. Beende den Backend-Stack nach der Arbeit mit `npm run stop:backend`.
 
-### Qualitätsprüfungen
+---
+
+## Qualitätsprüfungen
 
 - `npm run format:check`
 - `npm run check`
 - `npm run test:ci`
 - `npm run test` für das vollständige Gate einschließlich Live-Auth0-Prüfungen
 
-### Builds
+---
+
+## Builds
 
 Führe vor manuellen Builds `npm run check` aus; Build-Befehle führen keine statischen Prüfungen aus.
 
@@ -43,7 +47,9 @@ Führe vor manuellen Builds `npm run check` aus; Build-Befehle führen keine sta
 
 Das Backend benötigt vor dem Start eine lokale Umgebungskonfiguration und Zertifikate; siehe [Backend-Setup](../backend/backend-setup.mdx).
 
-### Workspace-Übersicht
+---
+
+## Workspace-Übersicht
 
 - `sanny/`: öffentliche React-/Vite-Website und ihre gerouteten Seiten.
 - `auth/`: Frontend für Account-Link-Bestätigung und Besitznachweis.
@@ -52,6 +58,86 @@ Das Backend benötigt vor dem Start eine lokale Umgebungskonfiguration und Zerti
 - `documentation/`: Docusaurus-Quellen auf Englisch und Deutsch.
 - `games/`: eigenständige Spieleprojekte.
 
+### Vollständiges Arbeitsverzeichnis
+
+```
+Sanny/                               # Monorepo-Stammverzeichnis und npm-Workspace
+├── .agents/                         # Projektspezifische Agent-Skills
+├── .github/                         # CI-Workflows und Repository-Automatisierung
+├── .vscode/                         # Gemeinsame Editor-Einstellungen und Tasks
+│
+├── auth/                            # Authentifizierungsfrontend (React und Vite)
+│   ├── public/                      # Unverändert bereitgestellte statische Assets
+│   └── src/                         # Quellcode der Frontend-Anwendung
+│       ├── pages/                   # Authentifizierungsseiten
+│       ├── styles/                  # Frontend-Styles
+│       └── utils/                   # Frontend-Hilfsfunktionen
+│
+├── backend/                         # Fastify-API und Backend-Infrastruktur
+│   ├── auth0/                       # Auth0-Datenbank- und Login-Action-Skripte
+│   ├── docker/                      # Compose-Dateien und Docker-Hilfsskripte
+│   ├── monitoring/                  # Konfiguration für Prometheus, Grafana, Loki und Alloy
+│   │   ├── alerting/                # Alarmierungsregeln für das Monitoring
+│   │   ├── dashboards/              # Grafana-Dashboards
+│   │   └── tests/                   # Tests der Monitoring-Konfiguration
+│   │
+│   ├── nginx/                       # Reverse-Proxy-Konfiguration
+│   │   └── certs/                   # Lokale TLS-Zertifikate für den Proxy
+│   │
+│   ├── prisma/                      # Prisma-Schema und Migrationen
+│   ├── redis/                       # Redis-Konfiguration und Zertifikate
+│   │   └── certs/                   # Lokale TLS-Zertifikate für den Redis
+│   │
+│   └── src/                         # Backend-Anwendungsquellcode
+│       ├── controllers/             # HTTP-Request-Controller
+│       ├── generated/               # Generierter Backend-Code
+│       ├── routes/                  # Registrierung der API-Routen
+│       ├── schemas/                 # Request- und Response-Schemas
+│       ├── services/                # Fachlogik des Backends
+│       ├── tests/                   # Backend-Tests
+│       └── utils/                   # Backend-Hilfsfunktionen
+│
+├── documentation/                   # Docusaurus-Dokumentationsprojekt
+│   ├── build/                       # Generierte statische Dokumentationsausgabe
+│   ├── docs/                        # Englische Dokumentationsquellen
+│   ├── i18n/de/                     # Deutsche Übersetzungen
+│   ├── src/                         # Dokumentationskomponenten, Seiten und Theme
+│   └── static/                      # Statische Dokumentationsressourcen
+│
+├── games/                           # Eigenständige Spieleprojekte
+│   ├── blockrunner/                 # Blockrunner-Spiel
+│   └── first/                       # Erstes Spieleprojekt und zugehörige Assets
+│
+├── sanny/                           # Öffentliches Website-Frontend (React und Vite)
+│   ├── assets/                      # Quelldateien für Assets
+│   ├── public/                      # Unverändert bereitgestellte statische Assets
+│   └── src/                         # App-Einstiegspunkt, Komponenten, Seiten und Styles
+│
+├── scripts/                         # Workspaceweite Build-, Test- und Doku-Skripte
+│
+├── shared/                          # Gemeinsame Workspace-Konfiguration und Pakete
+│   ├── config/                      # Gemeinsame Konfiguration
+│   ├── packages/                    # Gemeinsame npm-Pakete
+│   │   ├── i18n/                    # Paket für Lokalisierung
+│   │   ├── styles/                  # Paket für Theme und Styles
+│   │   └── ui/                      # Gemeinsame UI-Komponenten
+│   │
+│   └── types/                       # Gemeinsame TypeScript-Deklarationen
+│
+├── tests/                           # Workspaceübergreifende Tests
+│   ├── contracts/                   # Konfigurations- und Vertragstests
+│   └── e2e/                         # End-to-End- und Browsertests
+│
+├── tooling/                         # Gemeinsame Entwicklerwerkzeuge
+│   └── config/                      # Tool-Konfiguration
+│
+├── package.json                     # Root-Skripte und npm-Workspace-Definitionen
+├── package-lock.json                # Root-Abhängigkeitssperrdatei
+├── playwright.config.ts             # Playwright-Konfiguration des Repositorys
+├── eslint.config.js                 # ESLint-Konfiguration des Repositorys
+└── tsconfig.json                    # TypeScript-Konfiguration des Repositorys
+```
+
 ---
 
-Letzte Bearbeitung: 20.10.2026
+Letzte Bearbeitung / Last edit: 20.10.2026

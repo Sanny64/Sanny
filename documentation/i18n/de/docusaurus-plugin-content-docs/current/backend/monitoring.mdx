@@ -1,7 +1,7 @@
 ---
 title: Monitoring
 description: Backend-Metriken, sichere Logs, Alarme und Netzwerkzugriff.
-sidebar_position: 6
+sidebar_position: 7
 ---
 
 # Monitoring
@@ -12,7 +12,9 @@ Beide Compose-Konfigurationen starten Prometheus, Grafana, Loki und Alloy neben 
 
 Fastify `/metrics` stellt begrenzte HTTP-Anfragen- und Latenzmetriken, Prozessmetriken, Prisma-Operationsdauer und -Ergebnis, Status und Dauer der Datenbank-/Redis-Prüfungen, Redis-Fallback-Zähler, Refresh-Token-Ergebnisse und Auth0-Management-API-Ergebnisse bereit. Prisma-Labels verwenden ausschließlich feste Operationsnamen und Erfolg/Fehler; SQL, Parameter, Identitäten und Tokens werden nicht exportiert. Datenbank und Redis werden bei jedem Scrape geprüft.
 
-Alloy versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehlerlogs an Loki. Die Job-Labels bleiben unverändert. Die Konfiguration liegt in `backend/monitoring/config.alloy`; das alte Volume `promtail-data` muss für die Offset-Migration erhalten bleiben. Die Umstellung ist ein eigener, vom Betreiber kontrollierter Infrastruktur-Rollout. Grafana ist mit Prometheus- und Loki-Datenquellen sowie den NGINX-Sicherheits- und Node-Exporter-Dashboards vorkonfiguriert.
+Alloy versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehlerlogs an Loki und behält dabei die bestehenden Job-Labels bei. Die Konfiguration liegt in `backend/monitoring/config.alloy`. Das alte Promtail-Positions-Volume muss während der [vom Betreiber kontrollierten Migration](../general-info/tooling#breaking-changes-und-migration) erhalten bleiben. Grafana ist mit Prometheus- und Loki-Datenquellen sowie den NGINX-Sicherheits- und Node-Exporter-Dashboards vorkonfiguriert.
+
+---
 
 ## Alarme und Benachrichtigungen
 
@@ -32,6 +34,8 @@ Zusätzliche Prometheus-Alarme decken ausgefallene oder neu gestartete Backend-P
 
 Die bestehenden NGINX-Logregeln summieren passende Zeilen über den gesamten Dienst. Sie sind grobe Volumenindikatoren, keine Erkennung einzelner Clients und kein Beweis für einen Angriff. Keine Client-Kennungen als Metriklabels ergänzen.
 
+---
+
 ## Logs und Aufbewahrung
 
 Pino schreibt Anwendungslogs nach stdout und `/app/logs/app.log`; Alloy liest die Datei aus einem persistenten, schreibgeschützten Volume. Request-Serializer protokollieren nur normalisierte Routengruppe und begrenzte Methode, Response-Serializer nur den Statuscode. Error-Serializer lassen Nachricht und Stacktrace weg. Querystrings werden aus Security-Audit-Pfaden entfernt und dynamische Benutzerpfade normalisiert. NGINX-Zugriffslogs enthalten Zeit, Methode, URI-Pfad ohne Querystring, Status, Antwortgröße sowie Request-/Upstream-Zeiten; Client-IP, Referrer und User-Agent werden nicht gespeichert. Keine rohen Logs in Tickets oder Chats kopieren.
@@ -39,6 +43,8 @@ Pino schreibt Anwendungslogs nach stdout und `/app/logs/app.log`; Alloy liest di
 Loki verwendet Dateisystemspeicher mit konfigurierter Aufbewahrung von sieben Tagen. Authentifizierung ist deaktiviert; Loki und seine Daten müssen im privaten Compose-Netz bleiben und auf Host und Volume geschützt werden. Prometheus-, Loki-, Grafana-, Anwendungs- und NGINX-Logs sowie Alloy-Positionen verwenden persistente Docker-Volumes. Alte Promtail-Positionen bleiben für Migration und Rollback erhalten. Backups und hostseitige Aufbewahrungs-/Zugriffskontrollen bleiben Deployment-Aufgaben.
 
 Backend-Logs und Alarme dürfen keine Access-/Refresh-Tokens, Session-IDs, CSRF-Tokens, Autorisierungscodes, Client-Secrets, Datenbank-Zugangsdaten oder Request-Bodies offenlegen. Anwendungslogs nutzen explizite Redaktion; Metriklabels sind begrenzt und enthalten keine rohen URLs, Querystrings, Benutzerkennungen, Tokens oder beliebigen Request-Eingaben.
+
+---
 
 ## Netzwerkzugriff
 
@@ -48,4 +54,6 @@ Backend-Logs und Alarme dürfen keine Access-/Refresh-Tokens, Session-IDs, CSRF-
 - Beide Compose-Dateien ordnen HTTP/HTTPS den Host-Ports `8080`/`8443` zu. Host-Firewall und externe Proxys für die Zielumgebung bewusst konfigurieren; diese Ports nicht ungeprüft als öffentliche Standardports behandeln.
 - Loki, Prometheus, Exporter, Grafana und Monitoring-Volumes auf vertrauenswürdige Betreiber und das private Compose-Netz beschränken. Endpunkt-Authentifizierung ersetzt keine Host-/Netzwerkkontrollen.
 
-Letzte Bearbeitung: 08.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 08.10.2026

@@ -1,7 +1,7 @@
 ---
 title: Backend-Setup
 description: Das Sanny-Backend lokal vorbereiten und ausführen.
-sidebar_position: 2
+sidebar_position: 1
 ---
 
 Das Backend läuft als Docker-Compose-Stack und stellt die Fastify-API hinter NGINX bereit.
@@ -21,6 +21,8 @@ Installiere die Workspace-Abhängigkeiten im Repository-Stammverzeichnis:
 npm ci
 ```
 
+---
+
 ## Umgebung konfigurieren
 
 Erstelle `backend/.env` aus der Vorlage ohne Zugangsdaten. Überschreibe keine vorhandene `.env`-Datei; sie kann lokale Zugangsdaten oder Einstellungen enthalten.
@@ -32,6 +34,8 @@ Copy-Item backend/.env.template backend/.env
 Verwende unter macOS oder Linux `cp -n backend/.env.template backend/.env`, damit keine vorhandene Datei überschrieben wird. Bearbeite `backend/.env` und ersetze jeden verwendeten Beispielwert durch Einstellungen deiner Entwicklungsumgebung. Setze insbesondere `NODE_ENV="development"`, eine Entwicklungs-`DATABASE_URL`, ein Redis-Passwort sowie die Auth0-Anwendung und die umgebungsspezifischen URLs. Die vollständige Variablenreferenz findest du unter [Umgebungskonfiguration](./environment-configuration); die Auth0-seitige Konfiguration ist unter [Auth0-Tenant einrichten](./auth0-tenant-setup) beschrieben.
 
 Der Compose-Stack erwartet außerdem die NGINX-TLS-Dateien und das Redis-CA-Zertifikat an den eingebundenen Pfaden `backend/nginx/certs/` und `backend/redis/certs/`. Halte Zertifikate und private Schlüssel aus der Versionsverwaltung heraus.
+
+---
 
 ## Backend starten
 
@@ -59,8 +63,12 @@ Stoppe den Stack mit `npm run stop:backend` im Repository-Stammverzeichnis.
 
 **Wichtig:** Führe diesen Befehl immer aus, wenn du deine Arbeit am Projekt beendet hast, damit die Container nicht weiterlaufen.
 
+---
+
 ## Weitere Informationen
 
 Die Grenzen des Produktionsdeployments und die Release-Prüfungen sind unter [Deployment und Wiederherstellung](./deployment) beschrieben.
 
-Letzte Bearbeitung: 17.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 17.10.2026

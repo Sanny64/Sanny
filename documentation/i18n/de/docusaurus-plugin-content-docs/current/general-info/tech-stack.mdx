@@ -1,7 +1,7 @@
 ---
 title: Technologie-Stack
 description: Technologien und Infrastruktur des Sanny64-Workspaces.
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Technologie-Stack
@@ -16,6 +16,8 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 - Gemeinsame Pakete `@sanny/i18n`, `@sanny/styles` und `@sanny/ui` für Lokalisierung, Themes und UI
 - Die Browser-Apps rufen die Fastify-API auf; das Backend verarbeitet Auth0 Authorization Code, PKCE und serverseitige Sessions
 
+---
+
 ## Backend
 
 - Fastify 5 und TypeScript stellen die REST-API bereit
@@ -25,6 +27,8 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 - Zod validiert API-Daten, Pino erstellt strukturierte Anwendungslogs
 - NGINX dient in der Docker-Compose-Umgebung als Reverse-Proxy
 
+---
+
 ## Monitoring und Laufzeit
 
 - Docker Compose startet das Backend und unterstützende Dienste
@@ -32,11 +36,15 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 - Loki und Alloy bündeln Anwendungs- und NGINX-Logs
 - Redis-, NGINX- und Host-Exporter stellen interne Metriken für Prometheus bereit
 
+---
+
 ## Authentifizierung
 
 - Der Workspace `auth/` enthält Routen für Account-Linking-Bestätigung, Besitznachweis, Anfragestatus und Einstellungen; er ist kein eigenständiges Login-Formular
 - Das Backend startet und verarbeitet die Auth0-Authentifizierung und schützt API-Routen mit Sessions und Autorisierungsprüfungen
 - Auth0 Database Actions und Post-Login Actions unterstützen Registrierung, Verifizierung und Identitätsverknüpfung
+
+---
 
 ## Dokumentation und Werkzeuge
 
@@ -46,4 +54,4 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 
 ---
 
-Letzte Bearbeitung: 18.10.2026
+Letzte Bearbeitung / Last edit: 18.10.2026

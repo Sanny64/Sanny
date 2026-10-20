@@ -1,7 +1,7 @@
 ---
-title: Workspace-Tooling
+title: Tooling
 description: Zuständigkeiten für Konfiguration, Prüfungen und Migration im npm-Monorepo.
-sidebar_position: 4
+sidebar_position: 3
 ---
 
 ## Installation und Zuständigkeiten
@@ -19,6 +19,8 @@ Verwende Node.js 24 (`.nvmrc`) und npm 11.6.3 (`packageManager`). `preinstall` u
 | TypeScript-Paketkonfigurationen                         | Grenzen der Quellbereiche; das Backend behält NodeNext-Auflösung und strengere Prüfungen optionaler/indexierter Eigenschaften.                                                     |
 | `tooling/config/vite.shared.ts`                         | Gemeinsame React-/HTTPS-Plugins und das vorgerenderte Theme-Bootstrap.                                                                                                             |
 
+---
+
 ## Tooling- und Teststruktur
 
 Wiederverwendbare Compiler-Standards, die Vite-Factory und die ESLint-Regeln liegen in `tooling/config/`. Sie sind Repository-Tooling und keine Laufzeit-NPM-Pakete. Frontend-Ambient-Declarations liegen in `shared/types/frontend-env.d.ts`, nicht in einem Utilities-Paket. Workspace-eigene Compiler- und Vite-Einstiegspunkte behalten ihre Zuständigkeit.
@@ -35,6 +37,8 @@ Die Root-Datei `eslint.config.js` exportiert `tooling/config/eslint.shared.js`; 
 
 **Pfad-Migration:** Passe Imports der Compiler-Basen und von `vite.shared.ts` an ihre neuen Pfade unter `tooling/config/` an. Konfigurationsverträge wechselten von `scripts/config.test.mjs` nach `tests/contracts/config.test.mjs`; E2E-Specs und Screenshots wurden gemeinsam von `e2e/` nach `tests/e2e/` verschoben. Direkte Live-/Monitoring-Aufrufe müssen die Konfigurationen unter `tests/e2e/` verwenden. Bestehende NPM-Befehlsnamen bleiben unverändert, einschließlich separat verwalteter Accessibility-Befehle und des Linux-Runners. Änderungen an `tooling/` und `tests/` gelten bei der Release-Planung als gemeinsame Tooling-Änderungen. Backend-Docker-Images kopieren die verschobene neutrale Compiler-Basis; Build-Kontext bleibt das Repository-Root.
 
+---
+
 ## Gemeinsame Pakete
 
 `shared/frontend-env.d.ts` wird von der Browser-Basis eingebunden und deklariert strikt `VITE_API_URL`; unbekannte Umgebungsvariablen führen zu TypeScript-Fehlern. Die Vite-Konfigurationen übergeben der gemeinsamen Factory jeweils ihr eigenes App-Verzeichnis, sodass Root- und Umgebungsauflösung nicht vom aktuellen Arbeitsverzeichnis abhängen. Eine explizite Node-Typreferenz in der gemeinsamen Factory ist nicht nötig, da der Tooling-Compiler diese Typen bereitstellt.
@@ -44,6 +48,8 @@ Die Root-Datei `eslint.config.js` exportiert `tooling/config/eslint.shared.js`; 
 Für alle gemeinsamen Pakete: `npm run typecheck:shared`; für ein einzelnes Paket: `npm run typecheck -w @sanny/ui`. Builds erzeugen nur Ausgabe; führe vor einem manuellen App-Build `npm run check` aus. UI-Tests verwenden eine separate Vitest-Konfiguration.
 
 Die Quellcode-`exports` sind der einzige moderne Package-Einstiegspunkt; doppelte `main`- und oberste `types`-Felder wurden entfernt. Das Backend ist eine von Docker gestartete Anwendung ohne Package-Einstiegspunkt. Behalte die TypeScript-Paketkonfigurationen, beide Vite-Einstiegspunkt-Konfigurationen, separate Playwright-Konfigurationen und die UI-Vitest-Konfiguration bei: Jede gehört zu einer echten Erkennungs- oder Isolationsgrenze. Prettier-Standards plus `.editorconfig` genügen; zusätzliche Formatter-Plugins oder Konfigurationen sind nicht erforderlich. Workspace-Ignore-Dateien behalten nur spezielle Regeln für erzeugte Dateien/Zertifikate.
+
+---
 
 ## Prüfung
 
@@ -75,7 +81,7 @@ Das Backend-`lint` prüft Source, Tests, Prisma-Konfiguration, Docker-Runner und
 
 `format:check` führt Prettier aus. `check` führt ESLint und TypeScript aus. Das sind getrennte Gates; `test:ci` ruft jedes einmal auf.
 
-Der gemeinsame CI-Workflow führt außerdem `node scripts/warn-docs-translation.mjs` aus (lokal `npm run compare:docs`). Das Skript vergleicht physische Zeilenzahlen und rohe UTF-8-Dateigrößen englischer Markdown-/MDX-Dokumente mit ihren deutschen Gegenstücken, einschließlich Leerzeilen und Front Matter. LF und CRLF sind für Zeilenzahlen gleichwertig, tragen aber ihre tatsächlichen Bytes zur Dateigröße bei. Eine Seite erzeugt eine nicht blockierende Warnung, wenn sich die Zeilenzahl um mindestens eine Zeile unterscheidet oder die Dateigröße um mindestens 2.500 Bytes abweicht. Die Ausgabe zeigt nur das direkte Elternverzeichnis und den Dateinamen sowie vorzeichenbehaftete Byte- und Zeilendifferenzen (Deutsch minus Englisch), zum Beispiel `shared-packages/ui.mdx: +120 bytes, +2 lines (DE - EN)`. Der Schritt verwendet `continue-on-error`, damit Prüfungsfehler die Verifikation nicht blockieren. Warnungen sind Abweichungshinweise, keine Vollständigkeitsprüfungen; Verträge zur Dokumentpräsenz bleiben blockierend.
+`npm run test:ci` führt den Dokumentationsvergleich über `npm run compare:docs` aus. Der Checker vergleicht die rohen UTF-8-Dateigrößen englischer Markdown-/MDX-Seiten mit ihren deutschen Gegenstücken, einschließlich Front Matter und Zeilenenden. Bei einer Größenabweichung von mindestens 3.000 Bytes gibt er eine Warnung mit Seite und vorzeichenbehafteter Differenz aus (Deutsch minus Englisch), zum Beispiel `shared-packages/ui.mdx: DE 12500 vs. EN 9500 bytes (+3000)`. Unterschiede bei der Zeilenzahl erzeugen keine Warnung. Fehler beim Vergleich lassen `test:ci` fehlschlagen; Warnungen zur Dateigröße sind Abweichungshinweise, keine Vollständigkeitsprüfungen. Verträge zur Dokumentpräsenz bleiben blockierend.
 
 Der Konfigurationsvertrag verlangt für jede englische Seite eine deutsche Übersetzung, erhält technische Inline-Referenzen und prüft den Hash der geprüften englischen Quelle. Nachdem du die deutsche Übersetzung einer englischen Seite geprüft hast, aktualisiere den gespeicherten Quell-Hash mit `npm run docs:translation:review -- <path-relative-to-documentation/docs>`. CI weist fehlende oder veraltete Review-Hashes zurück. Größen- und Zeilenwarnungen sind Abweichungshinweise, keine Vollständigkeitsprüfung.
 
@@ -84,6 +90,8 @@ Die Standard-Playwright-Konfiguration wählt ausschließlich `tests/e2e/mock`. `
 `npm run test:e2e:real` führt die sichtbare Live-Suite in einer Playwright-Invocation für Chromium, Firefox und Edge aus. Direkte Live-Aufrufe benötigen `--config=tests/e2e/playwright.real.config.ts`; ein Live-Verzeichnis an die Standardkonfiguration zu übergeben wählt diese Tests nicht mehr aus.
 
 Mock-Projekte laufen in einer Playwright-Invocation mit global höchstens zwei Workern und einem Frontend-Server-Lebenszyklus. Die synthetische API-Konfiguration wird nicht an Live-Frontend-Server vererbt. Browser-Source erhält React-/Browser-Lintregeln; Node-Konfigurationen keine Browser-Globals. Frontend- und Backend-Produktionscode verwenden den TypeScript Project Service mit Prüfungen für `await-thenable` und `no-floating-promises`.
+
+---
 
 ## Konfigurationsmigration
 
@@ -106,11 +114,15 @@ Root-Skripte verwenden bestehende Test-Runner-Namen direkt: Live-Authentifizieru
 - Alle Action-Abhängigkeiten sind durch unveränderliche SHAs festgelegt; FTPS prüft Zertifikatskette und Hostname. Bei nicht vertrauenswürdigen oder nicht passenden Hosting-Zertifikaten muss das Zertifikat korrigiert werden, nicht die Prüfung umgangen. Produktions-Deployments sind je Ziel serialisiert.
 - Monitoring-Tests erstellen aus den Produktions-Loki-Alarmregeln temporäre private YAML-Dateien und ändern nur Auswertungsintervall und Pending-Dauer. Abfragen, Grenzwerte, Labels und Annotationen bleiben identisch. Der Runner stellt den Compose-Mount bereit und löscht die temporäre Datei nach dem Teardown. Produktionsregeln, isoliertes Benachrichtigungsrouting und bestehende Alloy-Offset-Volumes bleiben unverändert.
 
+---
+
 ## Backend-Container
 
 Baue aus dem Repository-Root mit `docker build -f backend/docker/Dockerfile .`. Docker installiert den Backend-Workspace anhand der Root-Lockdatei mit `npm ci`, generiert Prisma und entfernt anschließend Entwicklungsabhängigkeiten. Beide Stages verwenden Debian-kompatible Node-24-Images. `tsx` bleibt eine Laufzeitabhängigkeit. Das Root-`.dockerignore` schließt Umgebungsdateien, Zertifikate, lokale Abhängigkeiten und erzeugte Ausgaben aus.
 
 Production Compose erbt gemeinsame Services aus der Entwicklungsdatei; deploye beide Dateien gemeinsam. Die App verwendet weiterhin ausschließlich Images, expliziten Production-Modus und festgelegtes Proxy-Trust. Monitoring-Integration nutzt dedizierte Testkonfiguration und keine Backend-Runtime-Zugangsdaten. Redis-Integration baut ein wegwerfbares Backend-Testimage und einen Redis-Service mit Testumgebungswerten. Der Runner erzeugt eine ein Tag gültige Test-CA und ein Redis-Zertifikat in einem temporären Verzeichnis, mountet nur diese temporären Dateien und entfernt sie bei der Bereinigung; Repository- oder Entwicklerzertifikate werden nicht verwendet. Die Regeln für geänderte Pfade im Release-Planner umfassen relevantes Root-Tooling. Dependabot überwacht den Root-NPM-Workspace, das Backend-Dockerfile-Verzeichnis und GitHub Actions.
+
+---
 
 ## Breaking Changes und Migration
 
@@ -128,3 +140,7 @@ Backend-Integrationsbefehle sind `test:integration:monitoring`, `test:integratio
 6. Ein Operator führt in `backend/docker` `docker compose --env-file ../.env -f docker-compose.prod.yml up -d --remove-orphans alloy` aus und prüft anschließend beide Log-Jobs in Loki. Dadurch wird das verwaiste Promtail entfernt, ohne Volumes zu löschen. Alloy-Offsets werden nicht zu Promtail zurückkopiert; ein Rollback kann Logs erneut einlesen. Das Backend-Deployment führt diese Infrastrukturmigration nicht aus.
 
 Alloy behält `job="nginx"`, `job="backend"`, Logpfade und privaten Loki-Zugriff bei. Ohne Legacy-Offsets liest es vorhandene passende Dateien von Anfang an. Vor einem Rollback zu Promtail Alloy anhalten. Monitoring-Digests sind gepinnt und dürfen nur nach bewusster Prüfung aktualisiert werden.
+
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

@@ -1,6 +1,6 @@
 # Backend
 
-Install with root `npm ci` using Node 24/npm 11 and the root lockfile. Build from the repository root with `docker build -f backend/docker/Dockerfile .`; `npm run build:backend` builds only. Production Compose inherits common services from the development file, and Alloy replaces Promtail. Follow the [workspace migration guide](../documentation/docs/general-info/workspace-tooling.mdx) before deployment.
+Install with root `npm ci` using Node 24/npm 11 and the root lockfile. Build from the repository root with `docker build -f backend/docker/Dockerfile .`; `npm run build:backend` builds only. Production Compose inherits common services from the development file, and Alloy replaces Promtail. Follow the [workspace migration guide](../documentation/docs/general-info/tooling.mdx) before deployment.
 
 ## Docker naming
 

@@ -26,7 +26,7 @@ If a certain configuration is unclear, ask before you assume.
 
 Development Compose explicitly builds image `sanny64-backend:latest`; runtime containers are named `sanny64-backend`. Production keeps its registry image. Do not propagate fixed runtime names or image tags into disposable test projects. Fixed runtime names permit one instance per Docker host. Root `npm run restart:stack` delegates to backend `restart:stack` to rebuild buildable images and recreate the full development stack; `npm run restart:backend` applies local naming changes by rebuilding/recreating only the backend service. Both preserve volumes; building alone does not rename an existing container.
 
-Install from the repository root with `npm ci`; do not create a backend lockfile. Build Docker from the repository-root context with `docker build -f backend/docker/Dockerfile .`. `npm run build:backend` builds only. Deploy both Compose files because production inherits common services. Alloy replaces Promtail; preserve the old positions volume during migration as documented in `documentation/docs/general-info/workspace-tooling.mdx`.
+Install from the repository root with `npm ci`; do not create a backend lockfile. Build Docker from the repository-root context with `docker build -f backend/docker/Dockerfile .`. `npm run build:backend` builds only. Deploy both Compose files because production inherits common services. Alloy replaces Promtail; preserve the old positions volume during migration as documented in `documentation/docs/general-info/tooling.mdx`.
 
 Once you have implemented functionality make sure it works.
 If it's a function use dummy data to verify its functionality

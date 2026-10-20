@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { generate } from "selfsigned";
+import { removeStaleTestProjects } from "./stale-test-projects.mjs";
 
 export async function createRedisTestCertificates() {
   const directory = await mkdtemp(join(tmpdir(), "sanny-redis-tls-"));
@@ -49,28 +50,30 @@ export async function createRedisTestCertificates() {
   }
 }
 
-const composeArgs = [
+const projectPrefix = "sanny-redis-tests-";
+const composeArgs = (projectName) => [
   "compose",
   "--project-directory",
   "docker",
   "--project-name",
-  `sanny-redis-tests-${pid}`,
+  projectName,
   "--file",
   "docker/docker-compose.test.redis.yml",
 ];
+const downArgs = ["down", "--timeout", "0", "--volumes", "--remove-orphans"];
 
 let activeComposeChild;
 let receivedSignal;
 let cleanupStarted = false;
 let certificatesDirectory;
 
-function runDocker(args) {
+function runDocker(args, projectName = `${projectPrefix}${pid}`) {
   return new Promise((resolve) => {
-    const command = `docker compose ${args.join(" ")}`;
+    const command = `docker compose -p ${projectName} ${args.join(" ")}`;
     const startedAt = performance.now();
     const timestamp = () => new Date().toISOString();
     console.log(`[${timestamp()}] Starting ${command}`);
-    const child = spawn("docker", [...composeArgs, ...args], {
+    const child = spawn("docker", [...composeArgs(projectName), ...args], {
       cwd: fileURLToPath(new URL("../", import.meta.url)),
       stdio: ["inherit", "pipe", "pipe"],
       env: {
@@ -114,6 +117,9 @@ function handleSignal(signal) {
 
 async function main() {
   certificatesDirectory = await createRedisTestCertificates();
+  await removeStaleTestProjects(projectPrefix, (projectName) =>
+    runDocker(downArgs, projectName),
+  );
   process.on("SIGINT", handleSignal);
   process.on("SIGTERM", handleSignal);
   let testExitCode;
@@ -131,13 +137,7 @@ async function main() {
   } finally {
     cleanupStarted = true;
     try {
-      cleanupExitCode = await runDocker([
-        "down",
-        "--timeout",
-        "0",
-        "--volumes",
-        "--remove-orphans",
-      ]);
+      cleanupExitCode = await runDocker(downArgs);
     } finally {
       await rm(certificatesDirectory, { recursive: true, force: true });
       process.off("SIGINT", handleSignal);

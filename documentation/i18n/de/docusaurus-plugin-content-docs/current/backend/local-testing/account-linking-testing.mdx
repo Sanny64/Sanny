@@ -15,6 +15,8 @@ Diese Anleitung beschreibt, wie du den Account-Verknüpfungsablauf lokal mit Loc
 - Prüfe die aktuelle Login-Action und Backend-Konfiguration anhand des [Auth0-Tenant-Vertrags](../auth0-tenant-contract). Die im Repository gespeicherten Auth0-Action-Dateien werden nicht automatisch zusammen mit dem Backend deployed.
 - Gib Access-, ID- und Refresh-Tokens, Cookies sowie Autorisierungscodes nicht in Browserkonsolen, Online-Tools, Tickets oder Chats weiter.
 
+---
+
 ## Beide Richtungen prüfen
 
 Verwende für jede Richtung eigene dedizierte Testidentitäten. Die Google- und Passwortidentität müssen innerhalb des jeweiligen Tests dieselbe verifizierte E-Mail-Adresse haben. Der Einstieg in den Ablauf hängt davon ab, welches Konto bereits existiert.
@@ -57,6 +59,8 @@ Starte für den Abbruch den Ablauf erneut, wähle **Return to login** und prüfe
 
 Nach erfolgreicher Verknüpfung gibt es in Auth0 einen Google-primären Benutzer mit der Datenbankidentität unter den verknüpften Identitäten. Der Backend-OAuth-Callback gleicht `auth0Sub` des lokalen Benutzers an diesen kanonischen Subject an. Prüfe mit der nicht geheimen Abfrage oben, dass eine lokale Benutzerzeile verbleibt. Erwarte kein `account_linking_completed`-Metadatenfeld und lies den Passwort-Hash niemals aus.
 
+---
+
 ## Übergang zur Produktion
 
 Wenn du für ein Produktionsdeployment bereit bist:
@@ -80,6 +84,8 @@ Wenn du für ein Produktionsdeployment bereit bist:
    - Prüfe vor dem Deployment Prisma-Schemaänderungen und das freigegebene Migrationsverfahren.
    - Verifiziere, dass die Custom-Database-Connection-Skripte im vorgesehenen Auth0-Tenant aktiv sind.
 
+---
+
 ## Wichtige Test-URLs
 
 | Komponente     | Entwicklungs-URL                              | Produktions-URL                                |
@@ -89,10 +95,14 @@ Wenn du für ein Produktionsdeployment bereit bist:
 | Backend        | https://localhost:8443                        | https://api.example.com                        |
 | Auth0-Callback | https://localhost:8443/api/v001/auth/callback | https://api.example.com/api/v001/auth/callback |
 
+---
+
 ## Referenzdokumentation
 
 - [Auth0 Account Linking](https://auth0.com/docs/manage-users/user-accounts/user-account-linking)
 - [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
 - [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

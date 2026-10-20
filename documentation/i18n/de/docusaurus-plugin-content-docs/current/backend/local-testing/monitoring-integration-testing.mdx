@@ -11,10 +11,12 @@ Diese Tests richten sich an den lokalen Entwicklungs-Compose-Stack. Sie können 
 ## Voraussetzungen
 
 - Entwicklungs-Stack im Repository-Stammverzeichnis mit `npm run start:backend` starten.
-- Prüfen, ob Grafanas Alarmregeln geladen sind. In Grafana **Alerting → Alert rules** öffnen; Alarmregeln sind nicht unter **Dashboards → Browse** aufgeführt.
-- Vor einem Trigger-Test warten, bis vorhandene `429`-, Auth-Volumen- oder Callback-Flood-Alarme beendet sind.
+- In Grafana prüfen, ob die Alarmregeln unter **Alerting > Alert rules** geladen sind.
+- Vor einem Trigger-Test warten, bis vorhandene 429-, Auth-Volumen- oder Callback-Flood-Alarme beendet sind.
 
 Das Grafana-Image ist ein minimales Laufzeit-Image ohne npm. Container-Tests werden direkt mit Node und `--import=tsx` ausgeführt.
+
+---
 
 ## E-Mail-Kontaktpunkt testen
 
@@ -27,6 +29,8 @@ Grafanas integrierten Kontaktpunkttest verwenden:
 
 Dabei wird eine echte E-Mail versendet. Zustellung und Benachrichtigungshistorie in Grafana sind der Nachweis; eine SMTP-Konfiguration allein beweist keine erfolgreiche Zustellung.
 
+---
+
 ## Direkter Discord-Webhook
 
 Den explizit aktivierten Webhooktest im Repository-Stammverzeichnis ausführen:
@@ -35,7 +39,9 @@ Den explizit aktivierten Webhooktest im Repository-Stammverzeichnis ausführen:
 docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.dev.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/discord-integration.test.ts
 ```
 
-Der Test versendet eine synthetische Nachricht über `DISCORD_WEBHOOK` des Backend-Containers und erwartet HTTP `204`. Er prüft den Webhook selbst, nicht Grafanas Alarmweiterleitung. Nur ausführen, wenn eine sichtbare Testnachricht im konfigurierten Discord-Ziel in Ordnung ist.
+Der Test versendet eine synthetische Nachricht über die konfigurierte Webhook des Backend-Containers und erwartet HTTP `204`. Er prüft den Webhook selbst, nicht Grafanas Alarmweiterleitung. Nur ausführen, wenn eine sichtbare Testnachricht im konfigurierten Discord-Ziel in Ordnung ist.
+
+---
 
 ## Grafana-Regeln auslösen
 
@@ -48,6 +54,8 @@ docker compose --project-directory backend/docker --env-file backend/.env -f bac
 Dabei können Discord-Warnungen und eine kritische E-Mail versendet werden. Nur ausführen, wenn diese Nebenwirkungen beabsichtigt sind. Grafanas API-Abfrage benötigt `GRAFANA_ADMIN_USER` und `GRAFANA_ADMIN_PASSWORD`, passend zum gespeicherten Grafana-Konto. Eine Änderung der Compose-Umgebungswerte ändert kein bestehendes Grafana-Passwort; wiederholte fehlgeschlagene Basic-Authentifizierungen können das Konto vorübergehend sperren. Vor einem erneuten Versuch zuerst die Authentifizierung korrigieren.
 
 Die synthetischen Loki-Einträge verwenden `source="integration-test"` und bleiben bis zum Ablauf der konfigurierten Aufbewahrung von sieben Tagen erhalten.
+
+---
 
 ## Echten NGINX-429-Anstieg testen
 
@@ -62,6 +70,8 @@ npm run test:e2e:429-spike
 
 Der Test verwendet `tests/e2e/playwright.monitoring.config.ts` und nur Chromium. Er wird von normalen E2E- und vollständigen Testläufen aufgerufen, aber übersprungen, sofern `RUN_429_SPIKE_E2E=true` nicht gesetzt ist. Setze die Variable nur, wenn der Alarm-Nebeneffekt beabsichtigt ist; zur Prüfung des ausgelösten Alarms benötigt der Test außerdem Grafana-Zugangsdaten.
 
+---
+
 ## Lokale Testergebnisse
 
 | Datum      | Szenario                           | Ergebnis                                                                                                                                                 |
@@ -73,4 +83,6 @@ Der Test verwendet `tests/e2e/playwright.monitoring.config.ts` und nur Chromium.
 | 2026-10-08 | Grafana-E-Mail-Kontaktpunkttest    | Nicht ausgeführt.                                                                                                                                        |
 | 2026-10-08 | Echter 429-Playwright-Test         | Als optionales Szenario hinzugefügt; nicht ausgeführt.                                                                                                   |
 
-Letzte Bearbeitung: 08.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 08.10.2026

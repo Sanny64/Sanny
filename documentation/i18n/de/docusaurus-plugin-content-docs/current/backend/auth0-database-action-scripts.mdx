@@ -16,9 +16,9 @@ Quellverzeichnis:
 
 Im Auth0-Dashboard:
 
-1. Öffne **Authentication -> Database**.
+1. Öffne Authentication -> Database.
 2. Öffne deine Custom-Database-Verbindung.
-3. Aktiviere **Custom Database**.
+3. Aktiviere Custom Database.
 4. Konfiguriere jedes Skript unter der passenden Aktion:
    - Login
    - Get User
@@ -31,6 +31,8 @@ Auth0 führt diese Funktionen mit bestimmten Argumenten aus und erwartet den unt
 
 Die Skripte verbinden sich direkt mit MariaDB/MySQL. Ihre Werte stehen in Auth0 in der Konfiguration der Custom-Database-Verbindung, getrennt von `backend/.env`, auf die Auth0 nicht zugreifen kann. Verwende für `User` ein eigenes Datenbankkonto mit minimalen Rechten und aktiviere die TLS-Zertifikatsprüfung.
 
+---
+
 ## Löschumfang und Benutzer von Social Connections
 
 `delete.js` wird nur für Benutzer dieser Custom-Database-Verbindung aufgerufen.
@@ -38,6 +40,8 @@ Das Löschen eines `google-oauth2|...`-Benutzers im Auth0-Dashboard ruft es nich
 auf; lokale Zeilen bleiben daher bestehen. `backend/src/utils/orphaned-social-user-cleanup.ts`
 prüft sie stündlich über die Auth0 Management API und entfernt Datensätze ohne
 zugehörige Auth0-Identität.
+
+---
 
 ## Zusammenfassung des Skriptvertrags
 
@@ -49,6 +53,8 @@ zugehörige Auth0-Identität.
 | `changePassword.js` | `changePassword(email, newPassword, callback)` | Passwort-Hash eines Benutzers ändern                                 | `callback(null, true)`                                                                                | `ValidationError` bei ungültiger Eingabe, fehlendem Benutzer, Wiederverwendung oder fehlgeschlagener Aktualisierung |
 | `delete.js`         | `remove(id, callback)`                         | Lokale Zeile anhand einer numerischen Datenbank-ID löschen           | `callback(null)`                                                                                      | `Error("Invalid id")` bei einer nicht positiven oder nicht numerischen ID                                           |
 | `getUser.js`        | `getByEmail(email, callback)`                  | Benutzerprofil anhand der E-Mail-Adresse suchen                      | `callback(null, { id, email, email_verified, username, name })`                                       | `callback(null)`, wenn kein Benutzer existiert                                                                      |
+
+---
 
 ## Erforderliche Umgebungsvariablen
 
@@ -78,17 +84,19 @@ Die Skripte `create.js` und `changePassword.js` akzeptieren außerdem optionale 
 
 Beide Skripte weisen Passwörter zurück, die drei wiederholte oder aufeinanderfolgende Zeichen enthalten. Stimme die Passwort-Richtlinie der Auth0-Verbindung auf diese Prüfungen in den Skripten ab.
 
+---
+
 ## Details zu den einzelnen Skripten
 
 ### Login.js
 
 - SSL-Zertifikat normalisieren.
-- `emailInput` trimmen und in Kleinbuchstaben umwandeln.
-- `passwordInput` trimmen.
+- emailInput trimmen und in Kleinbuchstaben umwandeln.
+- passwordInput trimmen.
 - Eine Transaktion starten.
 - Das Benutzerobjekt abrufen.
 - Prüfen, ob der Benutzer existiert.
-- `passwordInput` mit dem aktuellen Hash vergleichen.
+- passwordInput mit currentHash vergleichen.
 
 Erwarteter Erfolgs-Callback (das Skript gibt `id`, nicht `user_id`, zurück):
 
@@ -124,7 +132,7 @@ callback(
 ### Create.js
 
 - SSL-Zertifikat normalisieren.
-- `emailInput` trimmen und in Kleinbuchstaben umwandeln.
+- emailInput trimmen und in Kleinbuchstaben umwandeln.
 - Eine Transaktion starten.
 - Vorhandene Benutzer anhand der E-Mail-Adresse suchen (`SELECT ... FOR UPDATE`), um die Zeile zu sperren.
 - `user.password` (oder unabhängig vom Ergebnis einen zufälligen Ersatzwert) mit bcrypt hashen, um Timing-Side-Channel-Angriffe zu vermeiden.
@@ -210,14 +218,16 @@ Ist die E-Mail-Adresse unbekannt oder bereits verifiziert, rollt das Skript die 
 
 Fehler bei Abfragen, Verbindungen, Transaktionen und Hashing werden als Fehler an den Callback weitergegeben. Transaktionale Vorgänge werden bei Fehlern zurückgerollt; die Verbindung wird vor dem Aufruf des Callbacks geschlossen.
 
+---
+
 ## Skripte in Auth0 testen
 
-Verwende für jedes Skript die integrierte Schaltfläche **Try** im Editor der Auth0-Custom-Database-Verbindung und gib die passenden Eingaben an.
+Verwende für jedes Skript die integrierte Schaltfläche Try im Editor der Auth0-Custom-Database-Verbindung und gib die passenden Eingaben an.
 
 Beispiele für Eingaben je Aktion:
 
-- Login: `email` (`emailInput`), `password` (`passwordInput`)
-- Create: `user`-Objekt mit mindestens `email` und `password` oder `oauth2-sub`
+- Login: `email` (emailInput), `password` (passwordInput)
+- Create: `user`-Objekt mit mindestens `email` und `password` oder oauth2-sub
 - Verify: `email`
 - Get User: `email`
 - Change Password: `email`, `newPassword`
@@ -228,9 +238,13 @@ Das Skript muss immer über den bereitgestellten `callback` beendet werden:
 - Erfolg: `callback(null, ...)`
 - Fehler: `callback(error)`
 
+---
+
 ## Hinweise zur lokalen Entwicklung
 
 - Die Skripte benötigen Auth0-Laufzeit-Globals wie `configuration`, `ValidationError` und `WrongUsernameOrPasswordError`.
 - Committe keine Secrets oder `.env`-Werte in Dokumentation oder Quellcode.
 
-Letzte Bearbeitung: 09.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 09.10.2026

@@ -12,7 +12,7 @@ Both Compose configurations run Prometheus, Grafana, Loki, and Alloy alongside t
 
 Fastify `/metrics` exports bounded HTTP request counts/latency, process metrics, Prisma operation duration and result, database/Redis probe status and duration, Redis fallback counts, refresh-token outcomes, and Auth0 Management API outcomes. Prisma labels are limited to a fixed operation name and success/failure; no SQL, parameters, identities, or tokens are exported. Database and Redis probes execute on each scrape.
 
-Alloy ships structured Pino application logs and NGINX access/error logs to Loki, preserving the existing job labels. Its configuration is `backend/monitoring/config.alloy`. Keep the old Promtail positions volume during the [operator-controlled migration](../general-info/workspace-tooling#breaking-changes-and-migration). Grafana is provisioned with Prometheus and Loki data sources and the NGINX security and Node Exporter dashboards.
+Alloy ships structured Pino application logs and NGINX access/error logs to Loki, preserving the existing job labels. Its configuration is `backend/monitoring/config.alloy`. Keep the old Promtail positions volume during the [operator-controlled migration](../general-info/tooling#breaking-changes-and-migration). Grafana is provisioned with Prometheus and Loki data sources and the NGINX security and Node Exporter dashboards.
 
 ## Alerts and notifications
 

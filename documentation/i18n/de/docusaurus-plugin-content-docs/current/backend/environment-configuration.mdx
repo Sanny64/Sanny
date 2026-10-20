@@ -10,9 +10,13 @@ Das Backend liest seine lokale Konfiguration aus `backend/.env`. Beginne mit `ba
 
 `NODE_ENV` muss exakt `development` oder `production` sein. Das Backend verwendet den Wert, um die passenden Werte mit dem Präfix `DEV_` oder `PROD_` auszuwählen. Richte für jede Umgebung eigene Auth0-, Datenbank- und Redis-Ressourcen ein; verwende in der Entwicklung keine Produktionsdaten. Die Produktions-Compose- Konfiguration setzt `NODE_ENV` auf `production`.
 
+---
+
 ## Auth0
 
 Ausführliche Anweisungen zur Auth0-Umgebungskonfiguration stehen unter [Einrichtung des Auth0-Tenants](./auth0-tenant-setup#7-actions-bereitstellen).
+
+---
 
 ## Backend
 
@@ -99,6 +103,8 @@ DISCORD_WEBHOOK="deine Discord-Webhook-URL"
 
 `REDIS_CONNECT_TIMEOUT_MS` begrenzt den gesamten ersten Redis-Verbindungsversuch, einschließlich Wiederholungen. Der Standardwert beträgt 10000 Millisekunden; zulässig sind Ganzzahlen von 1 bis 2147483647. Wird das Limit erreicht, schlägt der Start fehl und der Client wird geschlossen. Der automatische Neuverbindungsversuch nach einem erfolgreichen Start bleibt unverändert.
 
+---
+
 ## GitHub-Actions-Secrets
 
 Docker-Hub-Zugangsdaten sind keine Backend-Laufzeitkonfiguration und dürfen nicht in `backend/.env` oder `.env.template` gespeichert werden. Lege sie als Repository- Secrets für den Workflow **Release workspace** an. `deploy-backend.yml` ist kein eigenständiger Push- oder manueller Einstiegspunkt. `DOCKERHUB_USERNAME` und `DOCKERHUB_PAT` werden beim Veröffentlichen des Backend-Images benötigt; VPS-Secrets kommen nur zum Einsatz, wenn ein manueller `main`-Release `deploy-backend` aktiviert.
@@ -111,6 +117,8 @@ Docker-Hub-Zugangsdaten sind keine Backend-Laufzeitkonfiguration und dürfen nic
 
 Der Release-Koordinator übergibt diese Secrets an den Backend-Workflow, wenn der Planner das Backend auswählt. Dieser veröffentlicht das Image auf Docker Hub; für GHCR wird das `GITHUB_TOKEN` des Workflows verwendet, ein separates Registry-Secret ist nicht nötig. Für das VPS-Deployment werden zusätzlich `VPS_HOST`, `VPS_USERNAME` und `VPS_SSH_KEY` benötigt.
 
+---
+
 ## Auth-Frontend (`auth/.env.local`)
 
 Konfiguriere den Ursprung der Backend-API für die ausgewählte Umgebung. Der Browser-Code verwendet ausschließlich `VITE_API_URL`; ein expliziter Wert hat Vorrang vor `VITE_DEV_API_URL` im Entwicklungs-/Testmodus und `VITE_PROD_API_URL` in anderen Modi. Deployment-Workflows übergeben die passende Repository-Variable als `VITE_API_URL`. Werte müssen HTTPS-Origins ohne Pfad, Zugangsdaten, Query oder Fragment sein. Das Auth-Frontend verwendet keine Auth0-Client-Zugangsdaten; OAuth wird vom Backend gestartet und abgeschlossen.
@@ -121,6 +129,8 @@ VITE_PROD_API_URL=https://api.example.com
 ```
 
 Die API-Ursprünge müssen zur Backend-Umgebung und deren CORS-Konfiguration passen.
+
+---
 
 ## Öffentliches Frontend (`sanny/.env.local`)
 
@@ -135,4 +145,6 @@ VITE_PROD_API_URL=https://api.example.com
 
 Die Werte müssen zur ausgewählten Backend-Umgebung und deren CORS-Konfiguration passen.
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

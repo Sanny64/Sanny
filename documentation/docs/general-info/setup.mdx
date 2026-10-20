@@ -6,7 +6,7 @@ sidebar_position: 1
 
 Clone this repository to access all applications in the workspace. You need Node.js 24, npm 11.6.3, and Git.
 
-### Installation and Setup
+## Installation and Setup
 
 Install all workspace dependencies from the repository root:
 
@@ -25,14 +25,14 @@ Run each app you need in its own terminal:
 
 Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and English docs at `http://localhost:3000`. The German docs command serves `http://localhost:3000/de/`; to use a separate port, run `npm run dev:de -w documentation` for `http://localhost:3001/de/`. Frontend development servers use a local HTTPS certificate. Stop the backend stack with `npm run stop:backend` when finished.
 
-### Quality Checks
+## Quality Checks
 
 - `npm run format:check`
 - `npm run check`
 - `npm run test:ci`
 - `npm run test` for the full gate, including live Auth0 checks
 
-### Builds
+## Builds
 
 Run `npm run check` before manual builds; build commands do not run static checks.
 
@@ -43,7 +43,7 @@ Run `npm run check` before manual builds; build commands do not run static check
 
 The backend needs local environment configuration and certificates before it can start; see [Backend Setup](../backend/backend-setup.mdx).
 
-### Workspace Map
+## Workspace Map
 
 - `sanny/`: public React/Vite site and routed pages.
 - `auth/`: account-link confirmation and ownership-proof frontend.
@@ -51,6 +51,86 @@ The backend needs local environment configuration and certificates before it can
 - `shared/packages/`: `@sanny/i18n`, `@sanny/styles`, and `@sanny/ui`.
 - `documentation/`: Docusaurus source in English and German.
 - `games/`: standalone game projects.
+
+### Full worktree
+
+```
+Sanny/                               # Monorepo root and npm workspace
+├── .agents/                         # Repository-specific agent skills
+├── .github/                         # CI workflows and repository automation
+├── .vscode/                         # Shared editor settings and tasks
+│
+├── auth/                            # Authentication frontend (React and Vite)
+│   ├── public/                      # Static assets served as-is
+│   └── src/                         # Frontend application source
+│       ├── pages/                   # Authentication pages
+│       ├── styles/                  # Frontend styles
+│       └── utils/                   # Frontend utilities
+│
+├── backend/                         # Fastify API and backend infrastructure
+│   ├── auth0/                       # Auth0 database and login action scripts
+│   ├── docker/                      # Compose files and Docker helper scripts
+│   ├── monitoring/                  # Prometheus, Grafana, Loki, and Alloy setup
+│   │   ├── alerting/                # Monitoring alert rules
+│   │   ├── dashboards/              # Grafana dashboards
+│   │   └── tests/                   # Monitoring configuration tests
+│   │
+│   ├── nginx/                       # Reverse proxy configuration
+│   │   └── certs/                   # Local TLS certificates for the proxy
+│   │
+│   ├── prisma/                      # Prisma schema and migrations
+│   ├── redis/                       # Redis configuration and certificates
+│   │   └── certs/                   # Local TLS certificates for the redis
+│   │
+│   └── src/                         # Backend application source
+│       ├── controllers/             # HTTP request controllers
+│       ├── generated/               # Generated backend code
+│       ├── routes/                  # API route registration
+│       ├── schemas/                 # Request and response schemas
+│       ├── services/                # Backend business logic
+│       ├── tests/                   # Backend tests
+│       └── utils/                   # Backend utilities
+│
+├── documentation/                   # Docusaurus documentation project
+│   ├── build/                       # Generated static documentation output
+│   ├── docs/                        # English documentation source
+│   ├── i18n/de/                     # German translations
+│   ├── src/                         # Documentation components, pages, and theme
+│   └── static/                      # Static documentation assets
+│
+├── games/                           # Standalone game projects
+│   ├── blockrunner/                 # Blockrunner game
+│   └── first/                       # First game project and its assets
+│
+├── sanny/                           # Public website frontend (React and Vite)
+│   ├── assets/                      # Source assets
+│   ├── public/                      # Static assets served as-is
+│   └── src/                         # App entry point, components, pages, and styles
+│
+├── scripts/                         # Repository-wide build, test, and docs scripts
+│
+├── shared/                          # Shared workspace configuration and packages
+│   ├── config/                      # Shared configuration
+│   ├── packages/                    # Shared npm packages
+│   │   ├── i18n/                    # Localization package
+│   │   ├── styles/                  # Theme and styling package
+│   │   └── ui/                      # Shared UI components
+│   │
+│   └── types/                       # Shared TypeScript declarations
+│
+├── tests/                           # Cross-workspace tests
+│   ├── contracts/                   # Configuration and contract tests
+│   └── e2e/                         # End-to-end and browser tests
+│
+├── tooling/                         # Shared developer tooling
+│   └── config/                      # Tool configuration
+│
+├── package.json                     # Root scripts and npm workspace definitions
+├── package-lock.json                # Root dependency lockfile
+├── playwright.config.ts             # Root Playwright configuration
+├── eslint.config.js                 # Root ESLint configuration
+└── tsconfig.json                    # Root TypeScript configuration
+```
 
 ---
 

@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parse, stringify } from "yaml";
+import { removeStaleTestProjects } from "../../docker/stale-test-projects.mjs";
 
 export function createTestRules(documents) {
   const groups = structuredClone(
@@ -30,26 +31,28 @@ export function createTestRules(documents) {
   };
 }
 
-const composeArgs = [
+const projectPrefix = "sanny-monitoring-tests-";
+const composeArgs = (projectName) => [
   "compose",
   "--project-name",
-  `sanny-monitoring-tests-${pid}`,
+  projectName,
   "--file",
   "docker/docker-compose.test.monitoring.yml",
 ];
+const downArgs = ["down", "--timeout", "0", "--volumes", "--remove-orphans"];
 
 let activeComposeChild;
 let receivedSignal;
 let cleanupStarted = false;
 let testRulesPath;
 
-function runDocker(args) {
+function runDocker(args, projectName = `${projectPrefix}${pid}`) {
   return new Promise((resolve) => {
-    const command = `docker compose ${args.join(" ")}`;
+    const command = `docker compose -p ${projectName} ${args.join(" ")}`;
     const startedAt = performance.now();
     const timestamp = () => new Date().toISOString();
     console.log(`[${timestamp()}] Starting ${command}`);
-    const child = spawn("docker", [...composeArgs, ...args], {
+    const child = spawn("docker", [...composeArgs(projectName), ...args], {
       stdio: ["inherit", "pipe", "pipe"],
       env: { ...process.env, SANNY_MONITORING_TEST_RULES: testRulesPath },
     });
@@ -104,6 +107,9 @@ async function main() {
     await writeFile(testRulesPath, stringify(createTestRules(documents)), {
       mode: 0o644,
     });
+    await removeStaleTestProjects(projectPrefix, (projectName) =>
+      runDocker(downArgs, projectName),
+    );
     process.on("SIGINT", handleSignal);
     process.on("SIGTERM", handleSignal);
     let testExitCode;
@@ -120,13 +126,7 @@ async function main() {
       ]);
     } finally {
       cleanupStarted = true;
-      cleanupExitCode = await runDocker([
-        "down",
-        "--timeout",
-        "0",
-        "--volumes",
-        "--remove-orphans",
-      ]);
+      cleanupExitCode = await runDocker(downArgs);
       process.off("SIGINT", handleSignal);
       process.off("SIGTERM", handleSignal);
     }

@@ -20,6 +20,8 @@ Der Redis-Test startet ein isoliertes Docker-Compose-Projekt mit `backend/docker
 
 Das Root-Gate benötigt außerdem installierte Playwright-Browser und eine erreichbare Entwicklungs-API sowie einen Auth0-Tenant für Live-Integrationstests. Die Live-Playwright-Suite deckt Chromium, Firefox und Edge in einem Aufruf ab. Verwende dafür dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`, niemals persönliche Konten.
 
+---
+
 ## Testgrenzen
 
 - **Backend:** `npm run check:backend` führt Lint und Typprüfung aus; `npm run test:backend` führt Unit-, Monitoring-, Redis- und Discord-Integrationstests aus. Die Redis-Suite verwendet einen isolierten echten Redis-Dienst.
@@ -28,8 +30,12 @@ Das Root-Gate benötigt außerdem installierte Playwright-Browser und eine errei
 
 Erfolgreiche Backend-Unit-, Monitoring- und Redis-Tests belegen nicht jeden Codepfad, Produktionslastfall oder Fehlerzustand. Monitoring-Testregeln werden temporär aus den Produktionsdefinitionen abgeleitet; nur das Timing wird beschleunigt. Gemeinsame Aussagekraft und Grenzen der Root-Gates stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
+---
+
 ## Weiter
 
 Nutze [Manuelle Backend-Tests](./manual-testing.mdx) für Backend- und gehostete Umgebungsprüfungen. Tastatur-, Screenreader-, Zoom- und weitere Frontend-Prüfungen stehen unter [Manuelle Frontend-Tests](../../frontend/local-testing/manual-testing.mdx). Gemeinsame Regeln zu Nachweisen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx); gehostete Monitoring-Nachweise gehören zu [Monitoring und Überprüfung](../monitoring.mdx).
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

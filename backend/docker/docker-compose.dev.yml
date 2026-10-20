@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
 
   sanny64-backend:
-    image: sanny64-backend:latest
+    image: sanny64/backend:latest
     container_name: sanny64-backend
     pull_policy: build
     build:

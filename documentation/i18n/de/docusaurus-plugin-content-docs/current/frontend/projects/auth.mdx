@@ -15,6 +15,8 @@ Der Workspace `auth/` ist das Authentifizierungs-Frontend des Monorepos. Er verw
 - Sprache, Theme und UI-Verhalten mit dem Rest des Workspaces teilen
 - Durch Shared Packages klein und wartbar bleiben
 
+---
+
 ## Gemeinsame Abhängigkeiten
 
 Die Auth-App nutzt die gemeinsamen Workspace-Packages, um mit dem Rest des Projekts konsistent zu bleiben:
@@ -23,12 +25,16 @@ Die Auth-App nutzt die gemeinsamen Workspace-Packages, um mit dem Rest des Proje
 - `@sanny/styles` für Theme und globalen Styling-Zustand
 - `@sanny/ui` für wiederverwendbare Komponenten und gemeinsame UI-Muster
 
-Auth und Sanny verwenden `AppShell`, semantische Farbvariablen für helle und dunkle Oberflächen, lokal eingebundene Manrope-Schrift und Framer-Motion-Vorgaben mit `reducedMotion="user"`. Die gemeinsamen Styles werden in `src/main.tsx` importiert und gelten auch für eigenständige Fehler- und Proof-Routen.
+Auth und Sanny verwenden `AppShell`, semantische Oberflächen-Tokens für Hell und Dunkel, lokal gebündelte Manrope-Schrift und Framer-Motion-Vorgaben, die reduzierte Bewegung berücksichtigen. Gemeinsames CSS wird von `src/main.tsx` importiert, sodass auch eigenständige Proof- und Fehlerrouten dasselbe Theme erhalten.
+
+---
 
 ## Entwicklung und Deployment
 
 Die Befehle im Repository-Stamm sind `npm run dev:auth`, `npm run lint:auth` und `npm run build:auth`. Gezielte Accessibility-Tests laufen mit `npx playwright test tests/e2e/mock/auth-accessibility.spec.ts`. Die App läuft unter `https://localhost:5174`.
 
-Der Workflow `release.yml` ruft `deploy-auth.yml` als wiederverwendbaren Deployment-Workflow auf und veröffentlicht `auth/dist/` unter `/public_html/auth/`. Der Document Root der Auth-Subdomain muss darauf zeigen. Laufzeitkonfigurationen werden mit dem Build-Artefakt übertragen.
+Der Workflow `deploy-auth.yml` übergibt das gebaute Artefakt an den Deploy-Job und veröffentlicht `auth/dist/` unter `/public_html/auth/`. Der Document Root der Auth-Subdomain muss darauf zeigen. Vorhandene Laufzeitkonfigurationsdateien werden mit dem Verzeichnis übertragen; Endpunkt-URLs ändern sich nicht allein dadurch, dass der Workspace umbenannt wurde.
 
-Letzte Bearbeitung: 20.10.2026
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026
