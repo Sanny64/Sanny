@@ -9,57 +9,38 @@ Live E2E tests open visible browser windows (`--headed`) and may display flashin
 
 ## Commands
 
-Run commands from the repository root.
+Run commands from the repository root. For runtime versions and shared root-gate prerequisites, see the [Local Testing guide](../../general-info/testing.mdx). Install Chromium, Firefox, WebKit, and Edge with `npx playwright install chromium firefox webkit msedge`. Mocked accessibility and route smoke tests are included in `npm run test:e2e:mocked` and additionally run WebKit; live Auth0 remains Chromium, Firefox, and Edge. Linux has its own nine Chromium screenshot baselines rather than reusing Windows images. `npm run test:visual:linux` compares them in the lockfile-matched official Playwright container; `npm run test:visual:linux -- --update` regenerates them for review. Both PR `test:ci` and the full local `npm run test` gate include this check. Docker is required. Only secret-free source is copied into the disposable workspace. The first run builds a local `sanny64-visual-deps` Docker image containing npm and Linux dependencies. Later runs reuse that image without reinstalling dependencies; changes to any copied package manifest, the lockfile (including the Playwright version), or `scripts/Dockerfile.visual` automatically select a new image. Each run still copies fresh source into a disposable container, and normal comparisons mount the temporary source read-only. Only `--update` writes Linux snapshots back. The image build context contains only package manifests, the lockfile, and the Dockerfile, never application source or environment files. This cache is local to the Docker daemon, so fresh CI runners still perform the initial build. List cached images with `docker image ls sanny64-visual-deps` and remove unused versions with `docker image rm <image-id>`; the next run rebuilds a missing image.
 
-| Command                                      | Purpose                                                                                    |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `npm run test:frontend`                      | Run app lint/build, shared package lint, UI components, and mocked frontend browser tests. |
-| `npm run test:frontend:accessibility:auth`   | Run Auth accessibility browser tests only.                                                 |
-| `npm run test:frontend:accessibility:sanny`  | Run Sanny accessibility browser tests only.                                                |
-| `npm run test:frontend:accessibility:shared` | Run shared accessibility checks across Chromium, Firefox, and Edge.                        |
-| `npm run test:frontend:accessibility`        | Run shared and app accessibility suites across Chromium, Firefox, and Edge.                |
-| `npm run test:e2e:mocked`                    | Run all mocked frontend browser tests in Chromium, Firefox, and Edge.                      |
-| `npm run test:e2e:real`                      | Run live Auth0 tests in Chromium, Firefox, and Edge in one Playwright invocation.          |
-| `npm run test:components`                    | Run the shared UI Vitest component suite.                                                  |
-| `npm run check -w auth`                      | Run Auth lint and typechecking through its base scripts.                                   |
-| `npm run check -w sanny`                     | Run Sanny lint and typechecking through its base scripts.                                  |
-| `npm run lint:auth`                          | Lint the Auth frontend.                                                                    |
-| `npm run lint:sanny`                         | Lint the public frontend.                                                                  |
-| `npm run lint -w @sanny/i18n`                | Lint the shared localization package.                                                      |
-| `npm run lint -w @sanny/styles`              | Lint the shared styles package.                                                            |
-| `npm run lint -w @sanny/ui`                  | Lint the shared UI package.                                                                |
-| `npm run build:auth`                         | Build Auth; run static checks separately.                                                  |
-| `npm run build:sanny`                        | Build Sanny; run static checks separately.                                                 |
+| Command                                                          | Purpose                                                                                                               |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `npm run test:e2e:mocked`                                        | Run the mocked suite in Chromium, Firefox, and Edge; selected accessibility and Sanny route tests also run in WebKit. |
+| `npm run test:visual:linux`                                      | Compare Linux Chromium visual baselines in Docker.                                                                    |
+| `npx playwright test tests/e2e/mock/auth-accessibility.spec.ts`  | Run only Auth accessibility specs.                                                                                    |
+| `npx playwright test tests/e2e/mock/sanny-accessibility.spec.ts` | Run only Sanny accessibility specs.                                                                                   |
+| `npx playwright test tests/e2e/mock/accessibility.spec.ts`       | Run only shared accessibility specs.                                                                                  |
+| `npm run test:e2e:real`                                          | Run live Auth0 tests in Chromium, Firefox, and Edge in one Playwright invocation.                                     |
+| `npm run test:components`                                        | Run the shared UI Vitest component suite.                                                                             |
+| `npm run check -w auth`                                          | Run Auth lint and typechecking through its base scripts.                                                              |
+| `npm run check -w sanny`                                         | Run Sanny lint and typechecking through its base scripts.                                                             |
+| `npm run lint:auth`                                              | Lint the Auth frontend.                                                                                               |
+| `npm run lint:sanny`                                             | Lint the public frontend.                                                                                             |
+| `npm run lint -w @sanny/i18n`                                    | Lint the shared localization package.                                                                                 |
+| `npm run lint -w @sanny/styles`                                  | Lint the shared styles package.                                                                                       |
+| `npm run lint -w @sanny/ui`                                      | Lint the shared UI package.                                                                                           |
+| `npm run build:auth`                                             | Build Auth; run static checks separately.                                                                             |
+| `npm run build:sanny`                                            | Build Sanny; run static checks separately.                                                                            |
 
-Each app's workspace `check` script composes its `lint` and `typecheck` base scripts; neither app exposes a test alias for lint. `npm run test:frontend` runs frontend static checks, builds, components, and mocked browsers, including accessibility specs. The complete gate runs all static checks once. Mocked tests stub API responses and do not verify backend persistence. `npm run test:ci` adds backend unit/monitoring/Redis checks and one docs build for both locales without live credentials; `npm run test` additionally runs live Auth0 integration without repeating prior suites. Mocked and live Playwright suites each cover Chromium, Firefox, and Edge in one invocation. See [Backend Local Testing](../../backend/local-testing/automated-testing.mdx).
-
----
-
-## Latest Full Suite Run
-
-- Latest CI verification (2026-10-19, Node 24.22.0): `npm run test:ci` passed in 14:02 after script reconciliation. This includes all static checks, 18 configuration contracts, backend unit/monitoring checks, app builds/components, 644 mocked browser tests (10 intentional skips), and both docs locales. Real Redis passed in the preceding full attempt. Live Auth0 remains failing; this CI result is not a successful full gate or hosted sign-off.
-
-- Configuration-normalization attempt (2026-10-19, Node 24.22.0): the root command exited 1 after 15:19. CI/static checks, production-derived monitoring, frontend builds/components/mocked browsers, docs builds, and real Redis passed. A concurrently removed script alias prevented the final stage; the script graph was repaired and all 18 configuration contracts passed afterward. Independent live Chromium, Firefox, and Edge checks reached Auth0 but failed with `invalid_authentication_state`; Google was intentionally skipped. This is not a successful full run or hosted sign-off.
-
-- Latest attempt: 2026-10-19, Node 24, normalized `npm run test`; runtime 12:25, exit code 1. Formatting, all workspace/tooling checks, 7 config contracts, backend/monitoring/Redis checks, app builds, 11 components, and mocked browsers passed (Chromium 218; Firefox/Edge 213 each plus 5 visual skips). Live Chromium failed with connection refused because the development backend was stopped. After starting it with `npm run start:backend`, a separate `npm run test:integration` passed password-user login/logout in Chromium, Firefox, and Edge (1 passed and 1 intentional Google skip each). This verifies recovery but does not turn the original root invocation into a successful run.
-- Previous successful full run:
-- Completed: 2026-10-18 22:38:36 UTC (`npm run test`, isolated `cmd`).
-- Total runtime: 14:23; exit code: 0.
-- Frontend app lint/build, shared lint, component tests (11 passed), and mocked browser tests passed (Chromium: 218; Firefox and Edge: 213 each, with 5 visual-baseline skips in each browser).
-- Formatting, backend type/unit/monitoring checks, and Redis integration passed (155 backend unit tests passed, 1 skipped; monitoring integration: 1 passed).
-- Live Auth0 password-user login/logout passed in Chromium, Firefox, and Edge (1 passed and 1 intentionally skipped in each browser; Google automation is skipped).
+Each app's workspace `check` script composes its `lint` and `typecheck` base scripts; neither app exposes a test alias for lint. The mocked browser suite includes the accessibility specs; the direct Playwright commands above are useful when iterating on one suite. For shared test-gate behavior and result boundaries, see the [Local Testing guide](../../general-info/testing.mdx). See [Backend Automated Testing](../../backend/local-testing/automated-testing.mdx) for backend test coverage.
 
 ## Component Coverage
 
 `shared/packages/ui/src/tests/ui-components.test.tsx` verifies shared button keyboard operation and disabled state, checkbox labeling and feedback, toast alert/status announcements and actions, language/theme persistence, and not-found content. These focused tests do not cover every prop or state combination.
 
----
-
 ## Browser Coverage
 
-The default Playwright config selects mocked tests only. Direct live runs require `--config=playwright.real.config.ts`; the existing live npm scripts include it. CI rejects focused tests and cannot reuse existing dev servers. Mocked failures retain traces/screenshots; live authentication artifacts remain disabled. See [Workspace Tooling](../../general-info/workspace-tooling).
+The default Playwright config selects mocked tests only. Direct live runs require `--config=tests/e2e/playwright.real.config.ts`; the existing live npm scripts include it. CI rejects focused tests and cannot reuse existing dev servers. Mocked failures retain traces/screenshots; live authentication artifacts remain disabled. See [Workspace Tooling](../../general-info/workspace-tooling).
 
-Mocked Playwright tests live in `e2e/mock/`. Accessibility ownership is split between `auth-accessibility.spec.ts` and `sanny-accessibility.spec.ts` and can be run with the app-specific commands above. Other specs cover route rendering/localization, auth/logout controls, settings/admin UI flows, and account linking. Routed public content pages currently render translated placeholders without interactive controls; standalone Guess-the-Number and Blockrunner games are out of scope for this project's interaction tests. Mocked API responses verify frontend behavior and request/response contracts only; they do not prove backend persistence or live Auth0 behavior.
+Mocked Playwright tests live in `tests/e2e/mock/`. Accessibility ownership is split between `auth-accessibility.spec.ts` and `sanny-accessibility.spec.ts` and can be run with the app-specific commands above. Other specs cover route rendering/localization, auth/logout controls, settings/admin UI flows, and account linking. Routed public content pages currently render translated placeholders without interactive controls; standalone Guess-the-Number and Blockrunner games are out of scope for this project's interaction tests. Mocked API responses verify frontend behavior and request/response contracts only; they do not prove backend persistence or live Auth0 behavior.
 
 The axe tests use WCAG 2.2 AA tags across all registered Sanny public routes and the tested settings/admin states, plus Auth helper routes. App-owned accessibility specs cover English/German preference and light/dark theme combinations in Chromium, Firefox, and Edge. The shared `accessibility.spec.ts` also checks language/theme initialization in both apps and system color-scheme changes with a persisted override on Sanny Settings. These automated checks do not substitute for screen-reader testing or 200% zoom checks.
 
@@ -67,11 +48,8 @@ The axe tests use WCAG 2.2 AA tags across all registered Sanny public routes and
 
 - Frontend lint/build checks the current app and shared-package source with the configured tooling; component and mocked browser tests verify the tested UI states and request/response contracts in the configured browsers.
 - Axe checks automated WCAG 2.2 AA rules only for the routes, states, languages, and themes included in the suite. Specific keyboard flows are tested, but this is not a complete keyboard audit.
-- The root `npm run test` also runs a live password-user Auth0 flow against the configured local/development API and tenant. This adds evidence for that test identity and path, not every identity provider or account lifecycle.
 
-Mocked frontend tests do not exercise backend persistence or live Auth0. A passing suite does not prove behavior on every browser/device, every WCAG success criterion, screen-reader compatibility, production/staging configuration, or all possible inputs and states. Visual baselines are captured in Chromium only. Both root gates now build documentation. Use manual and hosted-environment checks for the remaining assurance; see [Backend Local Testing](../../backend/local-testing/automated-testing.mdx).
-
----
+Axe and browser coverage is limited to the tested rules and UI states; it does not establish complete WCAG conformance or screen-reader compatibility. Visual baselines are captured in Chromium only. See the [Local Testing guide](../../general-info/testing.mdx) for shared test-result limits and evidence guidance.
 
 ## Remaining Verification
 
@@ -86,6 +64,4 @@ Mocked frontend tests do not exercise backend persistence or live Auth0. A passi
 
 Use [Frontend Manual Testing](./manual-testing.mdx) for keyboard, screen-reader, zoom, responsive, and reduced-motion checks.
 
----
-
-Last edit: 18.10.2026
+Last edit: 20.10.2026

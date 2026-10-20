@@ -14,8 +14,6 @@ Fastify `/metrics` exports bounded HTTP request counts/latency, process metrics,
 
 Alloy ships structured Pino application logs and NGINX access/error logs to Loki, preserving the existing job labels. Its configuration is `backend/monitoring/config.alloy`. Keep the old Promtail positions volume during the [operator-controlled migration](../general-info/workspace-tooling#breaking-changes-and-migration). Grafana is provisioned with Prometheus and Loki data sources and the NGINX security and Node Exporter dashboards.
 
----
-
 ## Alerts and notifications
 
 Grafana alert rules are provisioned from `backend/monitoring/alerting/rules/` and evaluated every minute.
@@ -34,8 +32,6 @@ Grafana also provisions Prometheus alerts for backend target failures/restarts, 
 
 The existing NGINX log-volume rules aggregate matching lines service-wide; they are coarse volume indicators, not normalized per-client attack detection or proof of an attack. Do not add client identifiers to metric labels.
 
----
-
 ## Logs and retention
 
 Pino writes application logs to stdout and `/app/logs/app.log`; Alloy tails the file from a persistent, read-only volume. Request serializers keep only a normalized route group and bounded method, response serializers keep the status code, and error serializers omit messages and stacks. Security-audit paths have query strings removed and dynamic user routes normalized. NGINX access logs contain timestamp, method, URI path (without the query string), status, response size, and request/upstream response times; client IP, referrer, and user-agent are omitted. Do not paste raw logs into tickets or chat.
@@ -44,8 +40,6 @@ Loki uses filesystem storage with a configured retention period of seven days. L
 
 Backend logs and alerts must not expose access or refresh tokens, session IDs, CSRF tokens, authorization codes, client secrets, database credentials, or request bodies. Application logging uses explicit redaction; metric labels use bounded values and never include raw URLs, query strings, user identifiers, tokens, or arbitrary request input.
 
----
-
 ## Network access
 
 - NGINX stub status listens on port `8081` and allows only the Compose subnet. The NGINX Exporter scrapes `http://nginx:8081/nginx_status` over the internal network. Do not publish the status endpoint or expose it through the public listener.
@@ -53,7 +47,5 @@ Backend logs and alerts must not expose access or refresh tokens, session IDs, C
 - Grafana and Prometheus have no host-published ports. NGINX proxies `/grafana/` and `/prometheus/` over TLS and protects both paths with HTTP Basic Authentication.
 - Both Compose files map NGINX HTTP/HTTPS to host ports `8080`/`8443`. Configure the host firewall and any external proxy deliberately for the target environment; do not assume these are standard public ports.
 - Keep Loki, Prometheus, exporters, Grafana, and monitoring volumes restricted to trusted operators and the private Compose network. Monitoring endpoint authentication does not replace host/network controls.
-
----
 
 Last edit: 08.10.2026

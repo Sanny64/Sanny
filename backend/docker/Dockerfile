@@ -5,7 +5,7 @@ USER root
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-COPY tsconfig.base.json ./
+COPY tooling/config/tsconfig.base.json ./tooling/config/tsconfig.base.json
 COPY backend/package.json ./backend/package.json
 COPY auth/package.json ./auth/package.json
 COPY sanny/package.json ./sanny/package.json
@@ -29,7 +29,7 @@ FROM dhi.io/node:24-debian12@sha256:7f480846df997cc986a0accdd55cd2649548fdbd9545
 WORKDIR /app/backend
 
 COPY --from=builder --chown=1001:1001 /app/node_modules /app/node_modules
-COPY --from=builder --chown=1001:1001 /app/tsconfig.base.json /app/tsconfig.base.json
+COPY --from=builder --chown=1001:1001 /app/tooling/config/tsconfig.base.json /app/tooling/config/tsconfig.base.json
 COPY --from=builder --chown=1001:1001 /app/backend /app/backend
 COPY --from=builder --chown=1001:1001 /app/logs /app/logs
 

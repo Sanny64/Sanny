@@ -16,3 +16,5 @@ exports.onExecutePostLogin = async (event, api) => {
 
   api.multifactor.enable("any", { allowRememberBrowser: false });
 };
+
+// This script is a mirror of it's original counterpart used within the Auth0 platform. It is not used within this backend and only provided as context.

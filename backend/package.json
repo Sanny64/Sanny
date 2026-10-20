@@ -5,20 +5,20 @@
   "license": "ISC",
   "author": "Sanny64",
   "type": "module",
-  "main": "server.ts",
   "scripts": {
-    "build": "docker compose --project-directory docker --env-file .env build sanny64-backend",
-    "restart": "docker compose --project-directory docker --env-file .env up -d --build --force-recreate sanny64-backend",
-    "start": "docker compose --project-directory docker --env-file .env start",
-    "stop": "docker compose --project-directory docker --env-file .env stop",
-    "lint": "eslint src prisma.config.ts docker monitoring",
+    "build": "docker compose --project-directory docker --env-file .env -f docker/docker-compose.dev.yml build --no-cache sanny64-backend",
+    "restart": "docker compose --project-directory docker --env-file .env -f docker/docker-compose.dev.yml up -d --build --force-recreate sanny64-backend",
+    "restart:stack": "docker compose --project-directory docker --env-file .env -f docker/docker-compose.dev.yml up -d --build --force-recreate --remove-orphans",
+    "start": "docker compose --project-directory docker --env-file .env -f docker/docker-compose.dev.yml start",
+    "stop": "docker compose --project-directory docker --env-file .env -f docker/docker-compose.dev.yml stop",
+    "lint": "eslint src auth0 prisma.config.ts docker monitoring",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck",
     "test:integration:discord": "tsx --test monitoring/tests/discord-integration.test.ts",
     "test:integration:monitoring": "node monitoring/tests/run-integration.mjs",
     "test:integration:redis": "node docker/run-redis-tests.mjs",
     "test:unit": "tsx --test \"src/tests/*.test.ts\"",
-    "test": "npm run test:unit && npm run test:integration:monitoring && npm run test:integration:redis"
+    "test": "npm run test:unit && npm run test:integration:monitoring && npm run test:integration:redis && npm run test:integration:discord"
   },
   "dependencies": {
     "@auth0/auth0-fastify-api": "^1.3.0",

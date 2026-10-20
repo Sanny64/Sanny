@@ -1,14 +1,15 @@
 {
-  "extends": "./tsconfig.node.base.json",
+  "extends": "./tooling/config/tsconfig.node.base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": [
-    "vite.shared.ts",
+    "tooling/**/*.ts",
     "playwright*.ts",
-    "e2e/**/*.ts",
+    "tests/**/*.ts",
     "auth/vite.config.ts",
     "sanny/vite.config.ts",
+    "shared/types/frontend-env.d.ts",
     "shared/packages/ui/vitest.config.ts"
   ]
 }

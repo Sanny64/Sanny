@@ -12,18 +12,15 @@ The routes below are implemented, but their page bodies currently render transla
 
 ### Portfolio
 
-(/home, /portfolio, /projects)<br/>
-Its main purpose is to showcase my programming skills and architecture knowledge in setting up full stack applications.
+(/, /portfolio, /projects; `/home` redirects to `/`)<br/> Its main purpose is to showcase my programming skills and architecture knowledge in setting up full stack applications.
 
 ### Games Archive
 
-(/games, game.sanny64.de)<br/>
-I also program a game for fun here and there and therefore it's used as a games archive as well.
+(/games, blockrunner.sanny64.de)<br/> I also program a game for fun here and there and therefore it's used as a games archive as well.
 
 ### Event Organization Helper
 
-(/party, /comfort, /refreshments)<br/>
-As a private event host, it's my mission to have everyone feel as safe and welcome as possible.<br/>Which is why I introduced care kits at my parties, which will be organized through here.
+(/party, /party/comfort, /party/refreshments)<br/> As a private event host, it's my mission to have everyone feel as safe and welcome as possible.<br/>Which is why I introduced care kits at my parties, which will be organized through here.
 
 ---
 
@@ -41,7 +38,7 @@ The difference is intentionally color-only for auxiliary routes:
 - `auxiliary.css` exposes route-scoped variables for background and text.
 - route styles provide values for those variables.
 
-Current auxiliary layout pattern:
+Example of mapping auxiliary routes to layout classes:
 
 ```typescript
 {/* Example Auxiliary.tsx */}
@@ -94,15 +91,6 @@ Example `/auxiliary-page-1` route-scoped color pattern:
 		radial-gradient(circle at top, rgba(0, 0, 0, 0.04), transparent 42%),
 		linear-gradient(180deg, #eaf9ec 0%, #d5f3d9 100%);
 	--auxiliary-layout-text: #0d5b00;
-	--component1-primary-bg: #0d5b00;
-	--component1-primary-text: #ebf8e8;
-	--component1-secondary-bg: rgba(13, 91, 0, 0.08);
-	--component1-secondary-text: #0d5b00;
-  --component2-primary-bg: rgba(255,255,255,0.02);
-	--component2-primary-text: #cfe8d0;
-	--component2-secondary-bg: rgba(10, 79, 4, 0.12);
-	--component2-secondary-text: #cfe8d0;
-  ...
 } // light mode green
 
 html[data-theme='dark'] .auxiliary-layout--1,
@@ -111,15 +99,6 @@ html.dark .auxiliary-layout--1 {
 		radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
 		linear-gradient(180deg, #0f2b0c 0%, #163a0f 100%);
 	--auxiliary-layout-text: #cfe8d0;
-	--component1-primary-bg: rgba(255,255,255,0.03);
-	--component1-primary-text: #cfe8d0;
-	--component1-secondary-bg: rgba(10, 79, 4, 0.22);
-	--component1-secondary-text: #cfe8d0;
-	--component2-primary-bg: rgba(255,255,255,0.02);
-	--component2-primary-text: #cfe8d0;
-	--component2-secondary-bg: rgba(10, 79, 4, 0.12);
-	--component2-secondary-text: #cfe8d0;
-  ...
 } // dark mode green
 
 @media (prefers-color-scheme: dark) {
@@ -128,15 +107,6 @@ html.dark .auxiliary-layout--1 {
 			radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
 			linear-gradient(180deg, #1e381b 0%, #163a0f 100%);
 		--auxiliary-layout-text: #cfe8d0;
-		--component1-primary-bg: rgba(255,255,255,0.03);
-		--component1-primary-text: #cfe8d0;
-		--component1-secondary-bg: rgba(10, 79, 4, 0.22);
-		--component1-secondary-text: #cfe8d0;
-		--component2-primary-bg: rgba(255,255,255,0.02);
-		--component2-primary-text: #cfe8d0;
-		--component2-secondary-bg: rgba(10, 79, 4, 0.12);
-		--component2-secondary-text: #cfe8d0;
-    ...
 	} // mirrored dark mode values in case dark mode is not set manually, but `prefers-color-scheme: dark`
 }
 ```

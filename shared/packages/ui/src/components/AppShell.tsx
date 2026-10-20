@@ -23,13 +23,14 @@ export function AppShell({
 
   return (
     <div className={`layout layout--${variant}`}>
-      <a href="#main-content" className="skip-link">
+      <a href="#main-content" className="skip-link" tabIndex={0}>
         {language === "de" ? "Zum Hauptinhalt" : "Skip to main content"}
       </a>
       <header className="app-header">
         <MotionLink
           className="app-brand"
           to="/"
+          tabIndex={0}
           whileHover={reducedMotion ? undefined : { scale: 1.05 }}
         >
           <img src={brandMark} alt="" width={28} height={28} />

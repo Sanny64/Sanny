@@ -2,7 +2,7 @@ name: sanny64
 services:
   nginx:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: nginx
     networks:
       app-network:
@@ -10,6 +10,7 @@ services:
 
   sanny64-backend:
     image: sanny64/backend:${BACKEND_IMAGE_TAG:-latest}
+    container_name: sanny64-backend
     env_file:
       - ../.env
     environment:
@@ -28,42 +29,42 @@ services:
 
   redis:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: redis
 
   redis-exporter:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: redis-exporter
 
   nginx-exporter:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: nginx-exporter
 
   node-exporter:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: node-exporter
 
   prometheus:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: prometheus
 
   loki:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: loki
 
   alloy:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: alloy
 
   grafana:
     extends:
-      file: docker-compose.yml
+      file: docker-compose.dev.yml
       service: grafana
     environment:
       - GF_SERVER_ROOT_URL=${GRAFANA_PROD_ROOT_URL}

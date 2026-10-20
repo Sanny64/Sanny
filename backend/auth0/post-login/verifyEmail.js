@@ -145,4 +145,4 @@ exports.onExecutePostLogin = async (event, api) => {
   }
 };
 
-// This script is a mirror of its original counterpart used within the Auth0 platform. It is not used within this backend and only provided as context.
+// This script is a mirror of it's original counterpart used within the Auth0 platform. It is not used within this backend and only provided as context.

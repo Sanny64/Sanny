@@ -32,7 +32,7 @@ Dabei wird eine echte E-Mail versendet. Zustellung und Benachrichtigungshistorie
 Den explizit aktivierten Webhooktest im Repository-Stammverzeichnis ausführen:
 
 ```powershell
-docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/discord-integration.test.ts
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.dev.yml run --rm --no-deps -e RUN_DISCORD_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/discord-integration.test.ts
 ```
 
 Der Test versendet eine synthetische Nachricht über `DISCORD_WEBHOOK` des Backend-Containers und erwartet HTTP `204`. Er prüft den Webhook selbst, nicht Grafanas Alarmweiterleitung. Nur ausführen, wenn eine sichtbare Testnachricht im konfigurierten Discord-Ziel in Ordnung ist.
@@ -42,12 +42,12 @@ Der Test versendet eine synthetische Nachricht über `DISCORD_WEBHOOK` des Backe
 Dieser Integrationstest sendet begrenzte synthetische Loki-Einträge über die Schwellenwerte der drei Logregeln und fragt anschließend Grafana ab, ob `429 Rate Limit Spike`, `Auth Endpoint Abuse` und `Auth Callback Flood` ausgelöst wurden:
 
 ```powershell
-docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
+docker compose --project-directory backend/docker --env-file backend/.env -f backend/docker/docker-compose.dev.yml run --build --rm --no-deps -e RUN_GRAFANA_ALERT_INTEGRATION=true sanny64-backend node --import=tsx --test monitoring/tests/grafana-rules.integration.test.ts
 ```
 
 Dabei können Discord-Warnungen und eine kritische E-Mail versendet werden. Nur ausführen, wenn diese Nebenwirkungen beabsichtigt sind. Grafanas API-Abfrage benötigt `GRAFANA_ADMIN_USER` und `GRAFANA_ADMIN_PASSWORD`, passend zum gespeicherten Grafana-Konto. Eine Änderung der Compose-Umgebungswerte ändert kein bestehendes Grafana-Passwort; wiederholte fehlgeschlagene Basic-Authentifizierungen können das Konto vorübergehend sperren. Vor einem erneuten Versuch zuerst die Authentifizierung korrigieren.
 
-Die synthetischen Loki-Einträge verwenden `source="integration-test"` und bleiben bis zum Ablauf der konfigurierten Aufbewahrung von sieben Tagen erhalten. Beim früheren Versuch im Entwicklungs-Stack akzeptierte Loki die Einträge, aber die Grafana-Abfrage des Alarmstatus lieferte HTTP `401`; es wurde kein Discord-Alarm empfangen und E-Mail nicht geprüft. Der isolierte Integrationstest bestand am 2026-10-08: alle drei Logregeln lösten aus und wurden an den lokalen Benachrichtigungs-Test-Sink zugestellt. Das belegt weder echte Discord-/E-Mail-Kontaktzustellung noch den NGINX-429-Playwright-Test. Grafana lud anfangs aufgrund eines verschachtelten Compose-Mounts keine Regeln; nach der Korrektur meldete Grafana 14 geladene Regeln und aktive Auswertung.
+Die synthetischen Loki-Einträge verwenden `source="integration-test"` und bleiben bis zum Ablauf der konfigurierten Aufbewahrung von sieben Tagen erhalten.
 
 ## Echten NGINX-429-Anstieg testen
 
@@ -60,7 +60,7 @@ $env:RUN_429_SPIKE_E2E = "true"
 npm run test:e2e:429-spike
 ```
 
-Der Test verwendet `playwright.monitoring.config.ts` und nur Chromium. Er ist von normalen E2E- und vollständigen Testläufen ausgeschlossen. Nur starten, wenn die Alarmbenachrichtigung beabsichtigt ist.
+Der Test verwendet `tests/e2e/playwright.monitoring.config.ts` und nur Chromium. Er wird von normalen E2E- und vollständigen Testläufen aufgerufen, aber übersprungen, sofern `RUN_429_SPIKE_E2E=true` nicht gesetzt ist. Setze die Variable nur, wenn der Alarm-Nebeneffekt beabsichtigt ist; zur Prüfung des ausgelösten Alarms benötigt der Test außerdem Grafana-Zugangsdaten.
 
 ## Lokale Testergebnisse
 
@@ -73,6 +73,4 @@ Der Test verwendet `playwright.monitoring.config.ts` und nur Chromium. Er ist vo
 | 2026-10-08 | Grafana-E-Mail-Kontaktpunkttest    | Nicht ausgeführt.                                                                                                                                        |
 | 2026-10-08 | Echter 429-Playwright-Test         | Als optionales Szenario hinzugefügt; nicht ausgeführt.                                                                                                   |
 
----
-
-Last edit: 08.10.2026
+Letzte Bearbeitung: 08.10.2026

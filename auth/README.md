@@ -9,7 +9,7 @@ Install dependencies at the repository root with `npm ci`, then use:
 - `npm run dev:auth`: HTTPS development server at `https://localhost:5174`.
 - `npm run lint:auth`: application lint.
 - `npm run build:auth`: build Auth; run `npm run check` first for static verification.
-- `npm run test:frontend:accessibility:auth`: mocked accessibility checks across configured browsers.
+- `npx playwright test tests/e2e/mock/auth-accessibility.spec.ts`: mocked accessibility checks across configured browsers.
 
 The development server uses a self-signed certificate. Backend CORS origins must include `https://localhost:5174`, and the account-link frontend URL must be `https://localhost:5174/confirm-linking`. OAuth callbacks remain at `https://localhost:8443/api/v001/auth/callback`.
 

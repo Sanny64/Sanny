@@ -3,24 +3,25 @@ name: Build and Deploy frontends to Hetzner (test-environment)
 permissions: {}
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - test
+  workflow_call:
+    secrets:
+      FTP_SERVER:
+        required: true
+      FTP_USERNAME:
+        required: true
+      FTP_PASSWORD:
+        required: true
+      TEST_BASIC_AUTH_ENTRY:
+        required: true
+      TEST_BASIC_AUTH_FILE_PATH:
+        required: true
 
 concurrency:
   group: deploy-frontends-test
   cancel-in-progress: false
 
 jobs:
-  verify:
-    if: github.ref == 'refs/heads/test'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/verify.yml
-
   lint-and-build:
-    needs: verify
     if: github.ref == 'refs/heads/test'
     runs-on: ubuntu-latest
 
@@ -36,7 +37,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
+
+      - name: Set up npm
+        run: npm install --global npm@11.6.3
 
       - name: Install dependencies
         run: npm ci
@@ -95,8 +99,8 @@ jobs:
           cp testing-site/sanny/.htaccess testing-site/auth/.htaccess
           printf '%s\n' 'ErrorDocument 404 /404.html' >> testing-site/docs/.htaccess
         env:
-          TEST_BASIC_AUTH_ENTRY: ${{ secrets['TEST_BASIC_AUTH_ENTRY'] }}
-          TEST_BASIC_AUTH_FILE_PATH: ${{ secrets['TEST_BASIC_AUTH_FILE_PATH'] }}
+          TEST_BASIC_AUTH_ENTRY: ${{ secrets.TEST_BASIC_AUTH_ENTRY }}
+          TEST_BASIC_AUTH_FILE_PATH: ${{ secrets.TEST_BASIC_AUTH_FILE_PATH }}
 
       - name: Upload frontend builds
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

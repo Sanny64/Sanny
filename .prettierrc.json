@@ -1,0 +1,10 @@
+{
+  "overrides": [
+    {
+      "files": "backend/auth0/**",
+      "options": {
+        "experimentalTernaries": true
+      }
+    }
+  ]
+}

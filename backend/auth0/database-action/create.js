@@ -14,9 +14,8 @@ function create(user, callback) {
   };
   const getOptionalConfig = (name, fallback) => {
     const value = configuration[name];
-    return value === undefined || value === null || value === ""
-      ? fallback
-      : value;
+    const hasValue = value !== undefined && value !== null && value !== "";
+    return hasValue ? value : fallback;
   };
   // Signup policy is exposed via Auth0 configuration so it can be tuned without redeploying this script.
   const emailPolicy = {
@@ -115,7 +114,6 @@ function create(user, callback) {
     ) {
       errors.email = "Invalid email format.";
     }
-
     const username = (user.username || "").trim();
     const looksLikeEmail = /@/.test(username);
     const looksLikePhone = /^\+[1-9]\d{7,14}$/.test(username);

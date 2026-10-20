@@ -8,12 +8,13 @@ sidebar_position: 6
 
 ## Bereitstellungsstatus
 
-Das Backend läuft lokal mit Docker; ein einzelner Workflow baut und veröffentlicht das Produktions-Image. Ein Push nach `main`, der `backend/**` oder `.github/workflows/deploy-backend.yml` ändert, führt Prüfungen aus und baut das Image einmal. Identische `latest`- und Commit-SHA-Tags werden nach GHCR und Docker Hub (`sanny64/backend`) veröffentlicht. Docker Hub ist die Image-Quelle für Gordons Analyse und das VPS-Deployment. Das Docker-Hub-Repository muss verfügbar sein; der Workflow benötigt Schreibzugriff und der VPS weiterhin Lesezugriff. Ein manueller Start über `workflow_dispatch` auf `main` baut und veröffentlicht das Image und deployed anschließend genau diesen Commit-SHA-Tag auf den VPS; manuelle Starts von anderen Branches werden übersprungen. `DOCKERHUB_USERNAME` und `DOCKERHUB_PAT` müssen als GitHub-Actions-Secrets und nicht als Backend-Laufzeitvariablen konfiguriert sein. Das Repository belegt nicht, dass eine gehostete Umgebung eingerichtet oder verifiziert ist. Ein lokaler Container mit `NODE_ENV=production` prüft nur die Produktionskonfiguration und gilt nicht als Deployment-Freigabe. Vor dem öffentlichen Produktivbetrieb muss eine isolierte Staging-Umgebung eingerichtet werden.
+Das Backend läuft lokal mit Docker. **Release workspace** (`release.yml`) wählt nach einer gemeinsamen Verifikationsprüfung das Image-Publishing aus und ruft den wiederverwendbaren Workflow `deploy-backend.yml` auf. Backend- oder gemeinsame Tooling-Änderungen auf `main` veröffentlichen identische `latest`- und Commit-SHA-Tags nach GHCR und Docker Hub (`sanny64/backend`). Docker Hub ist die Image-Quelle für Gordons Analyse und das VPS-Deployment. Der Workflow benötigt Schreibzugriff auf das Repository; der VPS benötigt Lesenzugriff auf Docker Hub. Ein manueller **Release workspace**-Lauf auf `main` deployed diesen Commit-SHA nur dann auf den VPS, wenn `deploy-backend` aktiviert ist. Ohne diese Eingabe wird das Image veröffentlicht, der VPS bleibt unverändert. `DOCKERHUB_USERNAME` und `DOCKERHUB_PAT` sind GitHub-Actions-Secrets, keine Backend-Laufzeitvariablen. Deployment-Unterworkflows besitzen keine eigenen Push-/manuellen Trigger. Ein lokaler Container mit `NODE_ENV=production` belegt weder ein gehostetes Deployment noch dessen Freigabe; vor dem öffentlichen Produktivbetrieb muss eine isolierte Staging-Umgebung eingerichtet werden.
 
 Auth0-, Datenbank- und Redis-Ressourcen müssen je Umgebung getrennt sein. Zugangsdaten kommen aus dem zugehörigen Secret-Store. Echte Hostnamen, Tenant-Kennungen oder Zugangsdaten gehören nicht in dieses Repository.
 
 ## Laufzeitgrenzen
 
+- Entwicklungscontainer heißen `sanny64-backend`; das Image heißt `sanny64-backend:latest`. Produktion verwendet das Registry-Image `sanny64/backend:<tag>`. Der feste Containername erlaubt nur eine Runtime-Instanz je Docker-Host. `npm run restart:stack` baut benötigte Images und erstellt den ganzen Entwicklungs-Stack neu; das Root-Skript delegiert dabei an `restart:stack` im Backend. `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
 - Fastify läuft hinter NGINX. Sein Port bleibt privat und darf nicht direkt öffentlich erreichbar sein.
 - NGINX beendet TLS, leitet HTTP auf HTTPS um und überschreibt Forwarding-Header. Produktionsseitiges Proxy-Vertrauen darf nur die tatsächliche vertrauenswürdige Proxy-IP bzw. das CIDR erlauben.
 - Redis ist auf das private Compose-Netz beschränkt und verwendet TLS mit Passwortschutz. Compose erstellt die Redis-Verbindungs-URL aus `REDIS_PASSWORD`.
@@ -33,7 +34,7 @@ Auth0-, Datenbank- und Redis-Ressourcen müssen je Umgebung getrennt sein. Zugan
 
 ## Rollback
 
-Es gibt noch keinen gehosteten Release- oder Rollback-Ablauf. Vor dem ersten gehosteten Release Verfahren und verantwortliche Person festlegen. Bei Fehlern die Freigabe stoppen und Image/Konfiguration über das genehmigte Verfahren zurückrollen. Datenbankmigrationen nur dann rückgängig machen, wenn dies nachweislich rückwärtskompatibel ist; andernfalls den freigegebenen Wiederherstellungsplan verwenden. Redis ist kein Ersatz für die Wiederherstellung von Benutzerkonten.
+Das Publishing und Deployment gehosteter Releases wird über **Release workspace** und dessen wiederverwendbare Deployment-Workflows automatisiert. Einen automatisierten gehosteten Rollback-Workflow gibt es nicht. Vor einem gehosteten Release ein Rollback-Verfahren für den Deployment-Host und eine verantwortliche Person festlegen. Bei Fehlern die Freigabe stoppen und Image/Konfiguration über dieses Verfahren zurückrollen. Datenbankmigrationen nur dann rückgängig machen, wenn dies nachweislich rückwärtskompatibel ist; andernfalls den freigegebenen Wiederherstellungsplan verwenden. Redis ist kein Ersatz für die Wiederherstellung von Benutzerkonten.
 
 ## Backup und Wiederherstellung
 
@@ -42,6 +43,4 @@ Es gibt noch keinen gehosteten Release- oder Rollback-Ablauf. Vor dem ersten geh
 - Compose-Volumes enthalten Redis- und Monitoring-Daten. Docker-Host und Volume-Backups schützen; Monitoring-Daten können Client-IP-Adressen und Dienstmetadaten enthalten.
 - Datenbank-Dumps, Redis-Snapshots, Zertifikate und Backup-Zugangsdaten gehören weder ins Repository noch in öffentliche Incident-Berichte.
 
----
-
-Last edit: 17.10.2026
+Letzte Bearbeitung: 20.10.2026

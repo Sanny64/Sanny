@@ -6,7 +6,6 @@
  * @param {String} name - Name of the action secret to retrieve.
  */
 function getActionSecret(event, name) {
-  // comment: Parameter 'name' implicitly has an 'any' type, but a better type may be inferred from usage.
   const value = event.secrets[name];
   if (!value) throw new Error(`${name} Action secret must be set`);
   return value;
@@ -32,7 +31,13 @@ async function assignDefaultRole(event) {
   }
 
   const tokenPayload = await tokenResponse.json();
-  if (!tokenPayload || !tokenPayload.access_token) {
+  if (
+    typeof tokenPayload !== "object" ||
+    tokenPayload === null ||
+    !("access_token" in tokenPayload) ||
+    typeof tokenPayload.access_token !== "string" ||
+    !tokenPayload.access_token
+  ) {
     throw new Error("Management token response missing access token");
   }
 
@@ -66,9 +71,10 @@ exports.onExecutePostLogin = async (event, api) => {
   const namespace = getActionSecret(event, "AUTH0_CLAIM_NAMESPACE");
 
   // Get roles from authorization (assigned via Management API) or fallback to user_metadata
-  const authorizationRoles = Array.isArray(event.authorization?.roles)
-    ? event.authorization.roles
-    : [];
+  let authorizationRoles = [];
+  if (Array.isArray(event.authorization?.roles)) {
+    authorizationRoles = event.authorization.roles;
+  }
   let roles = [...authorizationRoles];
 
   // Fallback: check user_metadata.roles if authorization.roles is empty
@@ -93,12 +99,14 @@ exports.onExecutePostLogin = async (event, api) => {
   }
 
   const managedUsername = event.user.user_metadata?.username;
-  const name = isDatabaseConnection
-    ? (event.user.username ?? event.user.name ?? event.user.nickname)
-    : (managedUsername ??
+  let name = event.user.username ?? event.user.name ?? event.user.nickname;
+  if (!isDatabaseConnection) {
+    name =
+      managedUsername ??
       event.user.name ??
       event.user.username ??
-      event.user.nickname);
+      event.user.nickname;
+  }
   if (name) {
     api.accessToken.setCustomClaim(`${namespace}/name`, name);
   }

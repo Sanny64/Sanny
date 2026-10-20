@@ -1,5 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
+  "files": ["../../shared/types/frontend-env.d.ts"],
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",

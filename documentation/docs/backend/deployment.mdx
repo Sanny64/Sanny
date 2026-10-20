@@ -8,21 +8,18 @@ sidebar_position: 6
 
 ## Deployment status
 
-The backend runs locally with Docker, and one workflow builds and publishes its production image. A push to `main` that changes `backend/**` or `.github/workflows/deploy-backend.yml` runs checks and builds the image once, publishing identical `latest` and commit-SHA tags to GHCR and Docker Hub (`sanny64/backend`). Docker Hub is the image source for Gordon's analysis and the VPS deployment. Ensure the Docker Hub repository is available with write access for the workflow and pull access for the VPS. A manual `workflow_dispatch` from `main` builds and publishes the image, then deploys that exact commit-SHA tag to the VPS; manual runs from other branches are skipped. Configure `DOCKERHUB_USERNAME` and `DOCKERHUB_PAT` as GitHub Actions secrets, not backend runtime variables. The repository does not establish that a hosted environment is provisioned or verified. A local container using `NODE_ENV=production` verifies production-mode configuration only; it is not a hosted deployment or release sign-off. Provision isolated staging before public production.
+The backend runs locally with Docker. **Release workspace** (`release.yml`) selects image publishing after one shared verification gate and calls the reusable `deploy-backend.yml` child. Backend or shared/tooling changes on `main` publish identical `latest` and commit-SHA tags to GHCR and Docker Hub (`sanny64/backend`). Docker Hub is the image source for Gordon and VPS deployment. Ensure repository write access for the workflow and pull access for the VPS. A manual **Release workspace** run from `main` with **deploy-backend** enabled deploys that exact commit-SHA image; without the input, publishing does not change the VPS. Other branches cannot deploy it. Configure `DOCKERHUB_USERNAME` and `DOCKERHUB_PAT` as GitHub Actions secrets, not backend runtime variables. Child workflows have no independent push/manual triggers. Local production-mode containers do not establish hosted verification or release sign-off; provision isolated staging before public production.
 
 Keep Auth0, database, and Redis resources separate between environments. Load credentials from each environment's secret store. Never put real hostnames, tenant identifiers, or credentials in this repository.
 
----
-
 ## Runtime boundaries
 
+- Development builds explicitly tag `sanny64-backend:latest`; runtime Compose containers are named `sanny64-backend`. Production keeps its registry image `sanny64/backend:<tag>` and immutable release selection. The fixed container name limits each Docker host to one runtime instance; disposable test projects keep generated names and separate images. Use root `npm run restart:stack` to rebuild buildable images and recreate the full development stack; it delegates to backend `restart:stack`. Use `npm run restart:backend` to rebuild and recreate only the backend service. Neither removes volumes. Building alone does not rename existing containers, and old image tags remain until deliberately removed.
 - Fastify is behind NGINX. Keep its port private and block direct public access.
 - NGINX terminates TLS, redirects HTTP to HTTPS, and must overwrite forwarding headers. Only enable production proxy trust for the actual trusted proxy IP/CIDR.
 - Redis is private to the compose network and uses TLS with password authentication. Compose constructs the backend Redis URL from `REDIS_PASSWORD`.
 - MariaDB is configured by `DATABASE_URL` and is not a service in the checked-in backend compose stack. Its provisioning, network policy, backups, and recovery need an independent owner.
 - Development npm scripts are not a production release mechanism.
-
----
 
 ## Staging release gate
 
@@ -35,13 +32,9 @@ Keep Auth0, database, and Redis resources separate between environments. Load cr
 7. Review logs and alerts for secrets or personal data. Record build ID, results, residual risks, rollback steps, and sign-off in a restricted deployment record.
 8. Promote only after staging passes. Public `/nginx_status` must be unavailable while the internal exporter can scrape it.
 
----
-
 ## Rollback
 
-There is no hosted release or rollback automation yet. Establish the deployment host's procedure and a named owner before a hosted release. On failure, stop promotion and roll back the application image/configuration using that procedure. Revert a database migration only if it is known to be backward-compatible; otherwise use the approved database recovery plan. Do not restore Redis as a substitute for restoring user records.
-
----
+Hosted publishing and deployment are automated through **Release workspace** and its reusable deployment workflows. There is no automated hosted rollback workflow. Establish the deployment host's rollback procedure and a named owner before a hosted release. On failure, stop promotion and roll back the application image/configuration using that procedure. Revert a database migration only if it is known to be backward-compatible; otherwise use the approved database recovery plan. Do not restore Redis as a substitute for restoring user records.
 
 ## Backup and recovery
 
@@ -50,6 +43,4 @@ There is no hosted release or rollback automation yet. Establish the deployment 
 - Compose named volumes contain Redis and monitoring state. Protect Docker host access and backups; monitoring data can include client IPs and service metadata.
 - Do not place database dumps, Redis snapshots, certificates, or backup credentials in the repository or public incident records.
 
----
-
-Last edit: 17.10.2026
+Last edit: 20.10.2026

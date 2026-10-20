@@ -25,7 +25,7 @@ npm ci
 npm run dev:sanny
 npm run lint:sanny
 npm run build:sanny
-npm run test:frontend:accessibility:sanny
+npx playwright test tests/e2e/mock/sanny-accessibility.spec.ts
 ```
 
 The development server uses HTTPS at `https://localhost:5173`. Build and lint wrappers are defined in the root `package.json`.

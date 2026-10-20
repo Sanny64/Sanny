@@ -4,28 +4,15 @@ description: Backend environment variables and environment separation.
 sidebar_position: 4
 ---
 
-The backend reads its local configuration from `backend/.env`. Start with
-`backend/.env.template`, then replace example values with credentials and resource
-identifiers for your own environment. Never commit `backend/.env`, real
-credentials, tenant identifiers, or private keys. Production secrets belong in
-the deployment environment's secret store, not in this file or in Compose
-overrides committed to the repository.
+The backend reads its local configuration from `backend/.env`. Start with `backend/.env.template`, then replace example values with credentials and resource identifiers for your own environment. Never commit `backend/.env`, real credentials, tenant identifiers, or private keys. Production secrets belong in the deployment environment's secret store, not in this file or in Compose overrides committed to the repository.
 
 ## Environment selection
 
-`NODE_ENV` must be exactly `development` or `production`. The backend uses it to
-select the matching `DEV_` or `PROD_` values below. Set up distinct Auth0,
-database, and Redis resources for each environment; do not point development at
-production data. The production Compose configuration sets `NODE_ENV` to
-`production`.
-
----
+`NODE_ENV` must be exactly `development` or `production`. The backend uses it to select the matching `DEV_` or `PROD_` values below. Set up distinct Auth0, database, and Redis resources for each environment; do not point development at production data. The production Compose configuration sets `NODE_ENV` to `production`.
 
 ## Auth0
 
-See [Auth0 Tenant Setup](./auth0-tenant-setup#actions) for explicit Auth0 environment configuration instructions.
-
----
+See [Auth0 Tenant Setup](./auth0-tenant-setup#7-deploy-actions) for explicit Auth0 environment configuration instructions.
 
 ## Backend
 
@@ -110,18 +97,11 @@ AUTH0_GLOBAL_BUDGET_PER_MIN=200
 DISCORD_WEBHOOK="your discord webhook url"
 ```
 
----
-
-`REDIS_CONNECT_TIMEOUT_MS` bounds the entire initial Redis connection attempt,
-including retries. It defaults to 10000 milliseconds and must be an integer from
-1 to 2147483647. Startup fails and closes the client when this limit is reached;
-automatic reconnection after a successful startup is unchanged.
+`REDIS_CONNECT_TIMEOUT_MS` bounds the entire initial Redis connection attempt, including retries. It defaults to 10000 milliseconds and must be an integer from 1 to 2147483647. Startup fails and closes the client when this limit is reached; automatic reconnection after a successful startup is unchanged.
 
 ## GitHub Actions Secrets
 
-Docker Hub credentials are not backend runtime configuration and must not be
-stored in `backend/.env` or `.env.template`. Add them as repository secrets for
-the backend workflow:
+Docker Hub credentials are not backend runtime configuration and must not be stored in `backend/.env` or `.env.template`. Add them as repository secrets for the **Release workspace** workflow. The reusable `deploy-backend.yml` workflow is not an independent push or manual entrypoint. `DOCKERHUB_USERNAME` and `DOCKERHUB_PAT` are required when the backend image is published; VPS secrets are used only when a manual `main` release enables `deploy-backend`.
 
 1. Open the repository's **Settings** on GitHub.
 2. Go to **Secrets and variables** > **Actions** > **New repository secret**.
@@ -129,13 +109,11 @@ the backend workflow:
 4. Add `DOCKERHUB_PAT` with a Docker Hub access token that can push to
    `sanny64/backend`.
 
-The `deploy-backend.yml` workflow uses these secrets to publish images to Docker
-Hub and to authenticate the VPS before it pulls the selected image. GHCR uses
-the workflow's `GITHUB_TOKEN` and does not require a separate registry secret.
+The release coordinator passes these secrets to the backend workflow when the planner selects the backend. It publishes the image to Docker Hub; GHCR uses the workflow's `GITHUB_TOKEN` and does not require a separate registry secret. VPS deployment additionally requires `VPS_HOST`, `VPS_USERNAME`, and `VPS_SSH_KEY`.
 
 ## Auth Frontend (`auth/.env.local`)
 
-Configure the backend API origin for the selected environment. The Auth frontend does not use Auth0 client credentials; OAuth is initiated and completed by the backend.
+Configure the backend API origin for the selected environment. Browser code consumes only `VITE_API_URL`; an explicit value takes precedence over `VITE_DEV_API_URL` in development/test mode and `VITE_PROD_API_URL` in other modes. Deployment workflows map the appropriate repository variable to `VITE_API_URL`. Values must be HTTPS origins without paths, credentials, queries, or fragments. The Auth frontend does not use Auth0 client credentials; OAuth is initiated and completed by the backend.
 
 ```
 VITE_DEV_API_URL=https://localhost:8443
@@ -144,11 +122,11 @@ VITE_PROD_API_URL=https://api.example.com
 
 The API origins must match the backend environment and its CORS configuration.
 
----
-
 ## Public Frontend (`sanny/.env.local`)
 
 The public frontend also uses the backend API origin. It does not configure an Auth0 React SDK client.
+
+It consumes the same canonical `VITE_API_URL` as the Auth frontend; use the environment-specific fallback variables and HTTPS-origin requirements described above.
 
 ```
 VITE_DEV_API_URL=https://localhost:8443
@@ -157,6 +135,4 @@ VITE_PROD_API_URL=https://api.example.com
 
 The values must match the selected backend environment and its CORS configuration.
 
----
-
-Last edit: 17.10.2026
+Last edit: 20.10.2026

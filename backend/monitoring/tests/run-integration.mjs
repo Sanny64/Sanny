@@ -35,7 +35,7 @@ const composeArgs = [
   "--project-name",
   `sanny-monitoring-tests-${pid}`,
   "--file",
-  "docker/docker-compose.monitoring-test.yml",
+  "docker/docker-compose.test.monitoring.yml",
 ];
 
 let activeComposeChild;

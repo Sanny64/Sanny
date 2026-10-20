@@ -1,8 +1,14 @@
-## Technologie-Stack
+---
+title: Technologie-Stack
+description: Technologien und Infrastruktur des Sanny64-Workspaces.
+sidebar_position: 4
+---
+
+# Technologie-Stack
 
 Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die Authentifizierungs-App, Backend-Dienste und Dokumentation.
 
-### Frontend
+## Frontend
 
 - React 19 und TypeScript, gebaut mit Vite
 - React Router für clientseitiges Routing
@@ -10,7 +16,7 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 - Gemeinsame Pakete `@sanny/i18n`, `@sanny/styles` und `@sanny/ui` für Lokalisierung, Themes und UI
 - Die Browser-Apps rufen die Fastify-API auf; das Backend verarbeitet Auth0 Authorization Code, PKCE und serverseitige Sessions
 
-### Backend
+## Backend
 
 - Fastify 5 und TypeScript stellen die REST-API bereit
 - Prisma ORM greift auf die MariaDB-Datenbank zu
@@ -19,20 +25,20 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 - Zod validiert API-Daten, Pino erstellt strukturierte Anwendungslogs
 - NGINX dient in der Docker-Compose-Umgebung als Reverse-Proxy
 
-### Monitoring und Laufzeit
+## Monitoring und Laufzeit
 
 - Docker Compose startet das Backend und unterstützende Dienste
 - Prometheus sammelt Metriken; Grafana stellt Dashboards und Alarmierungen bereit
 - Loki und Alloy bündeln Anwendungs- und NGINX-Logs
 - Redis-, NGINX- und Host-Exporter stellen interne Metriken für Prometheus bereit
 
-### Authentifizierung
+## Authentifizierung
 
 - Der Workspace `auth/` enthält Routen für Account-Linking-Bestätigung, Besitznachweis, Anfragestatus und Einstellungen; er ist kein eigenständiges Login-Formular
 - Das Backend startet und verarbeitet die Auth0-Authentifizierung und schützt API-Routen mit Sessions und Autorisierungsprüfungen
 - Auth0 Database Actions und Post-Login Actions unterstützen Registrierung, Verifizierung und Identitätsverknüpfung
 
-### Dokumentation und Werkzeuge
+## Dokumentation und Werkzeuge
 
 - Docusaurus 3 und MDX erstellen die englische und deutsche Dokumentation
 - npm Workspaces verwalten Frontend-Apps, gemeinsame Pakete, Backend und Dokumentation
@@ -40,4 +46,4 @@ Dieser Workspace ist ein TypeScript-Monorepo für die öffentliche Website, die 
 
 ---
 
-Last edit: 18.10.2026
+Letzte Bearbeitung: 18.10.2026

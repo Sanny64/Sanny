@@ -3,33 +3,30 @@ name: Build and deploy backend
 permissions: {}
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "backend/**"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.base.json"
-      - ".dockerignore"
-      - ".github/workflows/deploy-backend.yml"
-      - ".github/workflows/verify.yml"
+  workflow_call:
+    inputs:
+      deploy:
+        type: boolean
+        default: false
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PAT:
+        required: true
+      VPS_HOST:
+        required: false
+      VPS_USERNAME:
+        required: false
+      VPS_SSH_KEY:
+        required: false
 
 concurrency:
   group: deploy-backend-production
   cancel-in-progress: false
 
 jobs:
-  verify:
-    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-    uses: ./.github/workflows/verify.yml
-
   build-and-publish:
-    needs: verify
-    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     permissions:
@@ -82,7 +79,7 @@ jobs:
     needs: build-and-publish
     runs-on: ubuntu-latest
 
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: inputs.deploy && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     env:
       BACKEND_IMAGE_TAG: ${{ github.sha }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}

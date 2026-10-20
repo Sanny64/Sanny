@@ -60,13 +60,12 @@ export default function Main() {
 
 `ThemeProvider` setzt `MotionConfig` mit `reducedMotion="user"` und 180ms Uebergang. `AppShell` deaktiviert Eintrittsbewegung bei Reduced Motion. Buttons reagieren beim Druecken mit 160ms, ohne Hover-Vergoesserung oder Textschatten. Deaktivierte Buttons bewegen sich nicht.
 
-Bei `prefers-reduced-motion: reduce` sind CSS-Animationen und Uebergaenge abgeschaltet. Texte werden beim Routenwechsel nicht ausgeblendet. Button-Hintergruende wechseln ohne Farbinterpolation zwischen Themes, damit auch waehrend des Wechsels ausreichender Kontrast besteht.
-Fuege fuer dieselben Anforderungen keine separate app-eigene Motion-Konfiguration hinzu.
+Bei `prefers-reduced-motion: reduce` sind CSS-Animationen und Uebergaenge abgeschaltet. Texte werden beim Routenwechsel nicht ausgeblendet. Button-Hintergruende wechseln ohne Farbinterpolation zwischen Themes, damit auch waehrend des Wechsels ausreichender Kontrast besteht. Fuege fuer dieselben Anforderungen keine separate app-eigene Motion-Konfiguration hinzu.
 
 ## Pruefung
 
-`npm run test:frontend` prueft Lint, Builds und gemeinsame Komponenten. Gemockte Browser-Tests pruefen Theme-Speicherung, Kontrast, Tastaturbedienung, Reduced Motion, Schriftdateien, Desktop/Mobil und 200% Textgroesse. Chromium-Baselines decken den gemeinsamen Rahmen und Auth-/Account-/Admin-Oberflaechen ab. Screenreader-Tests bleiben eine manuelle Aufgabe.
+`npm run test:ci` prueft Lint, Builds, gemeinsame Komponenten und gemockte Browser. Die Browsertests pruefen Theme-Speicherung, Kontrast, Tastaturbedienung, Reduced Motion, Schriftdateien, Desktop/Mobil und 200% Textgroesse. Chromium-Baselines decken den gemeinsamen Rahmen und Auth-/Account-/Admin-Oberflaechen ab. Screenreader-Tests bleiben eine manuelle Aufgabe.
 
 ---
 
-Last edit: 17.10.2026
+Letzte Bearbeitung: 17.10.2026

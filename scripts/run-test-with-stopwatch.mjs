@@ -3,7 +3,11 @@ import { performance } from "node:perf_hooks";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-export const FULL_GATE_SCRIPTS = ["test:ci", "test:e2e:real"];
+export const FULL_GATE_SCRIPTS = [
+  "test:ci",
+  "test:e2e:real",
+  "test:e2e:429-spike",
+];
 
 function formatDuration(milliseconds) {
   const totalSeconds = Math.floor(milliseconds / 1000);

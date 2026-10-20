@@ -4,8 +4,7 @@ description: Start the local Sanny services and choose the right testing guide.
 sidebar_position: 1
 ---
 
-This guide provides step-by-step instructions to test backend flows on your local machine.
-Some tests require manual execution as Google blocks certain automated requests.
+This guide provides step-by-step instructions to test backend flows on your local machine. Some tests require manual execution as Google blocks certain automated requests.
 
 ## Prerequisites
 
@@ -16,8 +15,6 @@ Some tests require manual execution as Google blocks certain automated requests.
 ## 1. Configure Auth0 Application
 
 Complete Auth0 configuration as described in [Auth0 Tenant Setup](../auth0-tenant-setup).
-
----
 
 ## 2. Start Services
 
@@ -46,8 +43,6 @@ npm run dev:sanny
 ```
 
 The main app is available at `https://localhost:5173`.
-
----
 
 ## Troubleshooting
 
@@ -84,14 +79,10 @@ The main app is available at `https://localhost:5173`.
 
 - **Cause**: MySQL not running or credentials wrong in backend/.env
 - **Fix**: Verify MySQL is running and `DATABASE_URL` in backend/.env is correct
-- **Check**: Uncomment development DATABASE_URL in backend/.env if needed
-
----
+- **Check**: Confirm the development database URL is configured; do not use production database credentials.
 
 ## Continue
 
-Run [automated backend tests](./automated-testing.mdx) and [automated frontend tests](../../frontend/local-testing/automated-testing.mdx) as separate gates. Run [live Auth0 integration](../../frontend/local-testing/automated-testing.mdx#commands) with `npm run test:e2e:real` when the development API and dedicated test identity are available.
+Run [automated backend tests](./automated-testing.mdx) and [automated frontend tests](../../frontend/local-testing/automated-testing.mdx) as separate gates. See the [Local Testing guide](../../general-info/testing.mdx) for root-gate composition and prerequisites, including live Auth0 integration with `npm run test:e2e:real`.
 
----
-
-Last edit: 18.10.2026
+Last edit: 20.10.2026

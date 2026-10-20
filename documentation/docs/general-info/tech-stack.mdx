@@ -16,8 +16,6 @@ This workspace is a TypeScript monorepo for the public website, authentication a
 - Shared `@sanny/i18n`, `@sanny/styles`, and `@sanny/ui` packages for localization, themes, and UI
 - The browser apps call the Fastify API; the backend handles Auth0's authorization-code flow, PKCE, and server-side sessions
 
----
-
 ## Backend
 
 - Fastify 5 and TypeScript provide the REST API
@@ -27,8 +25,6 @@ This workspace is a TypeScript monorepo for the public website, authentication a
 - Zod validates API data, and Pino provides structured application logging
 - NGINX is the reverse proxy in the Docker Compose environment
 
----
-
 ## Monitoring and Runtime
 
 - Docker Compose runs the backend and supporting services
@@ -36,15 +32,11 @@ This workspace is a TypeScript monorepo for the public website, authentication a
 - Loki and Alloy aggregate application and NGINX logs
 - Redis, NGINX, and host exporters expose internal metrics to Prometheus
 
----
-
 ## Authentication
 
 - The `auth/` workspace provides account-link confirmation, ownership-proof, request-state, and settings routes; it is not a standalone sign-in form
 - The backend initiates and completes Auth0 authentication and protects API routes with its session and authorization checks
 - Auth0 database and post-login actions support account registration, verification, and identity linking
-
----
 
 ## Documentation and Tooling
 

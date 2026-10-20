@@ -11,7 +11,7 @@ Main public React + Vite + TypeScript site for the portfolio, pages, and interac
 - Build with `npm run build:sanny`.
 - Lint with `npm run lint:sanny`.
 - Run app-local static checks with `npm run check -w sanny`; it composes `lint` and `typecheck`. This app has no standalone unit-test script; browser tests belong to root E2E tooling.
-- Run `npm run test:frontend:accessibility:sanny` for the Sanny accessibility suite across browser projects.
+- Run `npx playwright test tests/e2e/mock/sanny-accessibility.spec.ts` for the Sanny accessibility suite across browser projects.
 - When shared packages change, run `npm run check` then `npm run build:sanny`. Builds produce output only; static checks are separate.
 
 ## Code Style Guidelines
@@ -25,7 +25,7 @@ Main public React + Vite + TypeScript site for the portfolio, pages, and interac
 
 - `src/pages/` contains the page modules for home, blog, games, party, portfolio, projects, and settings.
 - `src/styles/auxiliary.css` contains app-local style helpers.
-- `vite.config.ts` uses shared React/HTTPS plugins and the pre-render HTML theme bootstrap from `../vite.shared.ts`; workspace exports resolve shared packages without aliases.
+- `vite.config.ts` uses shared React/HTTPS plugins and the pre-render HTML theme bootstrap from `../tooling/config/vite.shared.ts`; workspace exports resolve shared packages without aliases.
 - The site depends on shared theme/language providers from the `shared/packages` workspace.
 - `src/main.tsx` imports shared globals/layout CSS. Main routes use the shared UI `AppShell`; theme tokens and reduced-motion-aware Framer Motion defaults belong to `@sanny/styles`. Auxiliary party routes retain their scoped visual identity.
 

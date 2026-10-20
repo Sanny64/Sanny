@@ -4,8 +4,7 @@ description: Lokale Sanny-Dienste starten und die passende Testanleitung auswäh
 sidebar_position: 1
 ---
 
-Diese Anleitung beschreibt Schritt für Schritt, wie du Backend-Abläufe auf deinem lokalen Rechner testest.
-Einige Tests müssen manuell ausgeführt werden, da Google bestimmte automatisierte Anfragen blockiert.
+Diese Anleitung beschreibt Schritt für Schritt, wie du Backend-Abläufe auf deinem lokalen Rechner testest. Einige Tests müssen manuell ausgeführt werden, da Google bestimmte automatisierte Anfragen blockiert.
 
 ## Voraussetzungen
 
@@ -57,7 +56,7 @@ Die Haupt-App ist unter `https://localhost:5173` erreichbar.
 
 - **Ursache**: Die E-Mail-Adresse des sekundären Kontos stimmt nicht mit der des primären Kontos überein.
 - **Lösung**: Stelle sicher, dass beide Konten exakt dieselbe E-Mail-Adresse verwenden.
-- **Debugging**: Prüfe die Backend-Logs auf Meldungen zu abweichenden E-Mail-Adressen.
+- **Fehlersuche**: Prüfe die Backend-Protokolle auf Meldungen zu abweichenden E-Mail-Adressen.
 
 ### Popup-Fenster wird blockiert
 
@@ -76,10 +75,14 @@ Die Haupt-App ist unter `https://localhost:5173` erreichbar.
 - **Ursache**: Der Redis-Container des Backends ist nicht verfügbar oder seine TLS-/Passwortkonfiguration stimmt nicht überein.
 - **Lösung**: Starte den Docker-Compose-Stack des Backends und prüfe die bereinigten Container-Statusmeldungen und Logs. Verwende kein nicht konfiguriertes öffentliches Redis-Image als Ersatz.
 
+### Fehler bei der Datenbankverbindung
+
+- **Ursache**: MySQL läuft nicht oder die Zugangsdaten in `backend/.env` sind falsch.
+- **Lösung**: Prüfe, ob die Entwicklungsdatenbank läuft und `DATABASE_URL` korrekt gesetzt ist.
+- **Prüfung**: Verwende keine Zugangsdaten der Produktionsdatenbank.
+
 ## Weiter
 
-Führe [automatisierte Backend-Tests](./automated-testing.mdx) und [automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx) als getrennte Prüfschritte aus. Starte die [Live-Auth0-Integration](../../frontend/local-testing/automated-testing.mdx#befehle) mit `npm run test:e2e:real`, wenn die Entwicklungs-API und eine dedizierte Testidentität verfügbar sind.
+Führe [automatisierte Backend-Tests](./automated-testing.mdx) und [automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx) als getrennte Prüfschritte aus. Zusammensetzung und Voraussetzungen der Root-Gates, einschließlich Live-Auth0-Integration mit `npm run test:e2e:real`, stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
----
-
-Last edit: 18.10.2026
+Letzte Bearbeitung: 20.10.2026

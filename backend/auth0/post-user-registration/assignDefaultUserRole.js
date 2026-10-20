@@ -63,3 +63,5 @@ exports.onExecutePostUserRegistration = async (event) => {
     throw new Error(`Default role assignment failed (${response.status})`);
   }
 };
+
+// This script is a mirror of it's original counterpart used within the Auth0 platform. It is not used within this backend and only provided as context.

@@ -12,15 +12,11 @@ Sanny and Auth share one visual system. `@sanny/styles` owns theme state, semant
 
 Neutral light/dark surfaces, green accents, locally bundled Manrope, restrained borders, and 4-8px radii create the common baseline. Blue information, amber warning, and red error tokens distinguish status from primary actions. Text size is stable across viewports; layouts adapt through wrapping, spacing, and constrained widths.
 
----
-
 ## Theme and Persistence
 
 The public API exports `ThemeProvider`, `ThemeContext`, `useTheme`, `getThemeVariant`, and the `Theme` and `ThemeContextType` types.
 
 The provider resolves the `theme` cookie first, then localStorage, then the system color scheme. Manual selections are persisted for 365 days and reflected in `html[data-theme]` and the `.dark` class. A system preference is followed until a user chooses an override. The workspace rename does not change these storage keys.
-
----
 
 ## Semantic Tokens
 
@@ -34,8 +30,6 @@ The provider resolves the `theme` cookie first, then localStorage, then the syst
 | Typography and motion | `--sans`, `--heading`, `--mono`, `--motion-duration`, `--motion-ease`                                        |
 
 Use semantic tokens instead of hardcoded light/dark colors. Existing `--color-*` and button overrides remain compatible. Auxiliary party routes retain their scoped color overrides without changing the shared provider.
-
----
 
 ## CSS Entrypoints
 
@@ -62,19 +56,15 @@ export default function Main() {
 
 `AppShell` provides branding, a localized skip link, a focusable main landmark, and short route-entry motion keyed by pathname, not by proof/query parameters. Its optional `headerActions` slot allows app-specific actions without putting session logic in the shared package.
 
----
-
 ## Motion Policy
 
 `ThemeProvider` wraps children in `MotionConfig` with `reducedMotion="user"` and a 180ms ease-out transition. The shell suppresses entry movement for reduced-motion users. Buttons use a 160ms press response without growing on hover or casting text shadows. Disabled buttons have no press transform.
 
 CSS animations and transitions are disabled under `prefers-reduced-motion: reduce`. Text is not faded on route entry, and button backgrounds are not interpolated across theme changes, avoiding transient contrast failures. Do not add independent app-level motion configuration for the same concerns.
 
----
-
 ## Verification
 
-Run `npm run test:frontend` for both app lint/build gates, shared lint, and component tests. Mocked browser tests cover theme persistence, light/dark contrast, keyboard navigation, reduced motion, bundled font loading, desktop/mobile layout, and 200% text sizing. Chromium snapshots cover the shared app frame and account/admin/authentication surfaces. Automated checks do not replace manual screen-reader testing.
+Run `npm run test:ci` for static checks, app/docs builds, components, and mocked browser tests. Mocked browser tests cover theme persistence, light/dark contrast, keyboard navigation, reduced motion, bundled font loading, desktop/mobile layout, and 200% text sizing. Chromium snapshots cover the shared app frame and account/admin/authentication surfaces. Automated checks do not replace manual screen-reader testing.
 
 ---
 

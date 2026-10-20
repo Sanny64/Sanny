@@ -4,29 +4,15 @@ description: Backend-Umgebungsvariablen und Trennung von Umgebungen.
 sidebar_position: 4
 ---
 
-Das Backend liest seine lokale Konfiguration aus `backend/.env`. Beginne mit
-`backend/.env.template` und ersetze anschließend die Beispielwerte durch
-Zugangsdaten und Ressourcenkennungen deiner eigenen Umgebung. Committe niemals
-`backend/.env`, echte Zugangsdaten, Tenant-Kennungen oder private Schlüssel.
-Produktionsgeheimnisse gehören in den Secret-Store der Bereitstellungsumgebung,
-nicht in diese Datei oder in ins Repository eingecheckte Compose-Overrides.
+Das Backend liest seine lokale Konfiguration aus `backend/.env`. Beginne mit `backend/.env.template` und ersetze anschließend die Beispielwerte durch Zugangsdaten und Ressourcenkennungen deiner eigenen Umgebung. Committe niemals `backend/.env`, echte Zugangsdaten, Tenant-Kennungen oder private Schlüssel. Produktionsgeheimnisse gehören in den Secret-Store der Bereitstellungsumgebung, nicht in diese Datei oder in ins Repository eingecheckte Compose-Overrides.
 
 ## Umgebung auswählen
 
-`NODE_ENV` muss exakt `development` oder `production` sein. Das Backend verwendet
-den Wert, um die passenden Werte mit dem Präfix `DEV_` oder `PROD_` auszuwählen.
-Richte für jede Umgebung eigene Auth0-, Datenbank- und Redis-Ressourcen ein;
-verwende in der Entwicklung keine Produktionsdaten. Die Produktions-Compose-
-Konfiguration setzt `NODE_ENV` auf `production`.
-
----
+`NODE_ENV` muss exakt `development` oder `production` sein. Das Backend verwendet den Wert, um die passenden Werte mit dem Präfix `DEV_` oder `PROD_` auszuwählen. Richte für jede Umgebung eigene Auth0-, Datenbank- und Redis-Ressourcen ein; verwende in der Entwicklung keine Produktionsdaten. Die Produktions-Compose- Konfiguration setzt `NODE_ENV` auf `production`.
 
 ## Auth0
 
-Ausführliche Anweisungen zur Auth0-Umgebungskonfiguration stehen unter
-[Einrichtung des Auth0-Tenants](./auth0-tenant-setup#7-actions-bereitstellen).
-
----
+Ausführliche Anweisungen zur Auth0-Umgebungskonfiguration stehen unter [Einrichtung des Auth0-Tenants](./auth0-tenant-setup#7-actions-bereitstellen).
 
 ## Backend
 
@@ -111,19 +97,11 @@ AUTH0_GLOBAL_BUDGET_PER_MIN=200
 DISCORD_WEBHOOK="deine Discord-Webhook-URL"
 ```
 
----
-
-`REDIS_CONNECT_TIMEOUT_MS` begrenzt den gesamten ersten Redis-Verbindungsversuch,
-einschließlich Wiederholungen. Der Standardwert beträgt 10000 Millisekunden; zulässig
-sind Ganzzahlen von 1 bis 2147483647. Wird das Limit erreicht, schlägt der Start fehl
-und der Client wird geschlossen. Der automatische Neuverbindungsversuch nach einem
-erfolgreichen Start bleibt unverändert.
+`REDIS_CONNECT_TIMEOUT_MS` begrenzt den gesamten ersten Redis-Verbindungsversuch, einschließlich Wiederholungen. Der Standardwert beträgt 10000 Millisekunden; zulässig sind Ganzzahlen von 1 bis 2147483647. Wird das Limit erreicht, schlägt der Start fehl und der Client wird geschlossen. Der automatische Neuverbindungsversuch nach einem erfolgreichen Start bleibt unverändert.
 
 ## GitHub-Actions-Secrets
 
-Docker-Hub-Zugangsdaten sind keine Backend-Laufzeitkonfiguration und dürfen nicht
-in `backend/.env` oder `.env.template` gespeichert werden. Lege sie als Repository-
-Secrets für den Backend-Workflow an:
+Docker-Hub-Zugangsdaten sind keine Backend-Laufzeitkonfiguration und dürfen nicht in `backend/.env` oder `.env.template` gespeichert werden. Lege sie als Repository- Secrets für den Workflow **Release workspace** an. `deploy-backend.yml` ist kein eigenständiger Push- oder manueller Einstiegspunkt. `DOCKERHUB_USERNAME` und `DOCKERHUB_PAT` werden beim Veröffentlichen des Backend-Images benötigt; VPS-Secrets kommen nur zum Einsatz, wenn ein manueller `main`-Release `deploy-backend` aktiviert.
 
 1. Öffne auf GitHub die **Settings** des Repositorys.
 2. Wähle **Secrets and variables** > **Actions** > **New repository secret**.
@@ -131,16 +109,11 @@ Secrets für den Backend-Workflow an:
 4. Lege `DOCKERHUB_PAT` mit einem Docker-Hub-Zugriffstoken an, das Images nach
    `sanny64/backend` pushen darf.
 
-Der Workflow `deploy-backend.yml` verwendet diese Secrets zum Veröffentlichen der
-Images auf Docker Hub und zur Anmeldung des VPS, bevor dieser das ausgewählte
-Image herunterlädt. Für GHCR wird das `GITHUB_TOKEN` des Workflows verwendet;
-ein separates Registry-Secret ist dafür nicht nötig.
+Der Release-Koordinator übergibt diese Secrets an den Backend-Workflow, wenn der Planner das Backend auswählt. Dieser veröffentlicht das Image auf Docker Hub; für GHCR wird das `GITHUB_TOKEN` des Workflows verwendet, ein separates Registry-Secret ist nicht nötig. Für das VPS-Deployment werden zusätzlich `VPS_HOST`, `VPS_USERNAME` und `VPS_SSH_KEY` benötigt.
 
 ## Auth-Frontend (`auth/.env.local`)
 
-Konfiguriere den Ursprung der Backend-API für die ausgewählte Umgebung. Das
-Auth-Frontend verwendet keine Auth0-Client-Zugangsdaten; OAuth wird vom Backend
-gestartet und abgeschlossen.
+Konfiguriere den Ursprung der Backend-API für die ausgewählte Umgebung. Der Browser-Code verwendet ausschließlich `VITE_API_URL`; ein expliziter Wert hat Vorrang vor `VITE_DEV_API_URL` im Entwicklungs-/Testmodus und `VITE_PROD_API_URL` in anderen Modi. Deployment-Workflows übergeben die passende Repository-Variable als `VITE_API_URL`. Werte müssen HTTPS-Origins ohne Pfad, Zugangsdaten, Query oder Fragment sein. Das Auth-Frontend verwendet keine Auth0-Client-Zugangsdaten; OAuth wird vom Backend gestartet und abgeschlossen.
 
 ```dotenv
 VITE_DEV_API_URL=https://localhost:8443
@@ -149,12 +122,11 @@ VITE_PROD_API_URL=https://api.example.com
 
 Die API-Ursprünge müssen zur Backend-Umgebung und deren CORS-Konfiguration passen.
 
----
-
 ## Öffentliches Frontend (`sanny/.env.local`)
 
-Auch das öffentliche Frontend verwendet den Ursprung der Backend-API. Es konfiguriert
-keinen Auth0-React-SDK-Client.
+Auch das öffentliche Frontend verwendet den Ursprung der Backend-API. Es konfiguriert keinen Auth0-React-SDK-Client.
+
+Es verwendet wie das Auth-Frontend das kanonische `VITE_API_URL`; für umgebungsspezifische Fallback-Variablen und die Anforderungen an HTTPS-Origins gelten die obigen Angaben.
 
 ```dotenv
 VITE_DEV_API_URL=https://localhost:8443
@@ -163,6 +135,4 @@ VITE_PROD_API_URL=https://api.example.com
 
 Die Werte müssen zur ausgewählten Backend-Umgebung und deren CORS-Konfiguration passen.
 
----
-
-Letzte Bearbeitung: 18.10.2026
+Letzte Bearbeitung: 20.10.2026

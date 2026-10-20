@@ -17,15 +17,11 @@ Frontend manual checks complement the automated frontend gate in [Automated Fron
 - [ ] Decide whether forced-colors/high-contrast mode is supported and verify it if in scope.
 - [ ] Review Chromium desktop/mobile visual baselines after intentional visual changes. These baselines do not establish Firefox/Edge visual parity.
 
----
-
 ## Product Flows
 
-- [ ] Exercise shipped public interactions beyond route loading, including navigation, project/blog links, games, and party pages. Record intentionally static pages.
+- [ ] Verify public content routes render and switch language correctly. Their page bodies currently contain translated placeholders rather than shipped portfolio, blog, game, or party interactions; standalone games are separate projects.
 - [ ] Verify UI state and feedback for sign-in/session controls, settings, account-linking confirmation/cancellation, and admin allowed/denied states.
 
-Mocked browser checks verify frontend behavior and request/response contracts only. Verify successful backend mutations, live Auth0 behavior, and hosted security controls with the [backend and integration checklists](../../backend/local-testing/manual-testing.mdx).
+Verify successful backend mutations, live Auth0 behavior, and hosted security controls with the [backend and integration checklists](../../backend/local-testing/manual-testing.mdx). Shared test-result limits and evidence handling are in the [Local Testing guide](../../general-info/testing.mdx).
 
----
-
-Last edit: 18.10.2026
+Last edit: 20.10.2026

@@ -1,43 +1,25 @@
 ---
-title: Übersicht für lokale Tests
-description: Lokale Sanny-Dienste starten und die passende Testanleitung wählen.
+title: Manuelle Backend-Tests
+description: Backend-Abläufe, assistive Technologien und gehostete Grenzen manuell prüfen.
+sidebar_position: 3
 ---
 
-## Lokale Dienste starten
+## Zweck
 
-Führe die Befehle im Repository-Stammverzeichnis aus. Installiere Abhängigkeiten einmalig mit `npm ci`.
-
-| Dienst        | Befehl                  | Lokale URL               |
-| ------------- | ----------------------- | ------------------------ |
-| Backend-Stack | `npm run start:backend` | `https://localhost:8443` |
-| Auth-App      | `npm run dev:auth`      | `https://localhost:5174` |
-| Sanny-App     | `npm run dev:sanny`     | `https://localhost:5173` |
-
-Der Backend-Befehl startet den konfigurierten Docker-Compose-Stack. Verwende eine dedizierte Entwicklungsanwendung bei Auth0 und Testkonten; nutze niemals persönliche Konten und committe keine Zugangsdaten.
-
-## Anleitung wählen
-
-- [Automatisierte Tests](./automated-testing): Befehle, Abdeckung, Grenzen und Abschlusskriterien der lokalen/CI-Tests.
-- [Account-Linking-Schnellstart](./quickstart-testing): Schritt-für-Schritt-Anleitung zum manuellen Account-Linking.
-- [Account-Verknüpfung lokal konfigurieren](./account-linking-testing): erforderliche Auth0-Konfiguration und lokale Dienste.
-
-Die automatisierte Suite überspringt den Google-Login absichtlich. Google-Provider-Flows müssen manuell geprüft werden; Details stehen in der Testanleitung.
+Die folgenden Schritte betreffen Backend und gehostete Umgebungen. Gemeinsame Regeln zu Testdaten und Nachweisen, zur Aussagekraft der Root-Gates und zum letzten vollständigen Lauf stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
 ## Vor dem Staging
 
-- [ ] Backend-Unit-, Monitoring- und Redis-Tests mit `npm run test:backend` ausführen und Ergebnisse dokumentieren. [Frontend-Prüfungen](../../frontend/local-testing/automated-testing) separat ausführen. Das Root-`npm run test` setzt Backend-, Frontend-, Docs- und Live-Integrations-Gates zusammen.
+- [ ] Backend-Unit-, Monitoring-, Redis- und Discord-Tests mit `npm run test:backend` ausführen und Ergebnisse festhalten. [Frontend-Prüfungen](../../frontend/local-testing/automated-testing.mdx) separat durchführen. Die Zusammensetzung der Root-Gates steht im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 - [ ] Passwortregistrierung/-anmeldung, E-Mail-Verifizierung, Passwort-Reset, Logout und Sitzungsablauf mit dedizierten Testkonten prüfen.
-- [ ] Google-Anmeldung und Account-Verknüpfung in beiden Richtungen prüfen: Besitz-Reauthentifizierung, Bestätigen, Abbrechen, Ablauf/Bereinigung und resultierende Auth0-/lokale Kontodaten. Siehe [Account-Linking](./account-linking-testing).
-- [ ] Erfolgreiche Profiländerung, Kontolöschung, Admin-Suche/Paginierung, Rollenänderung, Passwort-Reset und Ablehnung für Nicht-Admins in isolierter Umgebung prüfen; Persistenz und Bereinigung bestätigen.
-- [ ] Live-MFA und E-Mail-OTP-Step-up einschließlich Abbruch, Wiederherstellung, Ablauf und Wiederholung für sensible Aktionen prüfen.
+- [ ] Google-Anmeldung und Account-Verknüpfung in beide Richtungen (zuerst Google und zuerst Passwort) prüfen: erneute Besitz-Authentifizierung, Bestätigen, Abbrechen, Ablauf/Bereinigung sowie abschließende Auth0-Identität und lokalen Datenbankdatensatz. Siehe [Account-Verknüpfung](./account-linking-testing.mdx).
+- [ ] Profiländerung, Kontolöschung, Admin-Suche und -Paginierung, Rollenänderungen, Passwort-Reset sowie abgelehnten Nicht-Admin-Zugriff prüfen. Persistenz und Bereinigung in der isolierten Umgebung bestätigen.
+- [ ] Live-MFA und E-Mail-OTP-Step-up einschließlich Abbruch, Wiederherstellung, Ablauf und Wiederholung bei sensiblen Aktionen prüfen.
 
-## Gehostetes Staging und Nachweise
+## Gehostetes Staging
 
-- [ ] Alle Punkte unter [Deployment und Wiederherstellung](../deployment) prüfen, darunter Umgebungsisolation, Proxy/Direktzugriff, HTTPS/Security-Header, Rate-Limits, PKCE-Replay, Refresh/Re-use, Sitzungsablauf und Backup/Restore.
-- [ ] Grafana-Regelauswertung sowie echte Discord-/E-Mail-Zustellung prüfen. Ein direkter Discord-Webhook-Test beweist keine Grafana-Zustellung; siehe [Monitoring-Integrationstests](./monitoring-integration-testing).
-- [ ] Logs/Metriken auf Geheimnisse, personenbezogene Daten, unbeschränkte Labels oder Query-Leaks prüfen; geschützte Monitoring-Endpunkte dürfen öffentlich nicht erreichbar sein.
-- [ ] Für jede Prüfung Datum, Build/Revision, Umgebung, Browser/Gerät oder Hilfstechnologie, Szenario, Ergebnis und Restrisiken in einem zugriffsbeschränkten Deployment-Nachweis dokumentieren. Keine Zugangsdaten oder personenbezogenen Daten aufnehmen.
+- [ ] Alle Punkte unter [Bereitstellung und Wiederherstellung](../deployment.mdx) prüfen, einschließlich Umgebungsisolation, Proxy-/Direktzugriffsgrenzen, HTTPS/Security-Header, Rate-Limits, PKCE-Replay-Ablehnung, Refresh-/Reuse-Behandlung, Sitzungsablauf und Backup-/Restore-Bereitschaft.
+- [ ] Echte Discord-/E-Mail-Kontaktpunktzustellung in Entwicklungs- oder Staging-Umgebung prüfen. Der isolierte automatisierte Test belegt Regel-Auslösung und Zustellung an einen Test-Sink, nicht externe Zustellung; siehe [Monitoring](../monitoring.mdx) und den datierten Monitoring-Nachweis.
+- [ ] Logs und Metriken auf Secrets, personenbezogene Daten, unbeschränkte Labels oder Query-Leaks prüfen; sicherstellen, dass geschützte Monitoring-Endpunkte nicht öffentlich erreichbar sind.
 
----
-
-Last edit: 18.10.2026
+Letzte Bearbeitung: 20.10.2026

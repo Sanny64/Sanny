@@ -16,19 +16,21 @@ Alloy versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehl
 
 ## Alarme und Benachrichtigungen
 
-Grafana-Regeln aus `backend/monitoring/alerting/rules/` werden einmal pro Minute ausgewertet. Die NGINX-Logregeln melden:
+Grafana-Regeln aus `backend/monitoring/alerting/rules/` werden einmal pro Minute ausgewertet.
+
+Die NGINX-Logregeln melden:
 
 - **429 Rate Limit Spike**: mehr als 20 protokollierte `429`-Antworten in fünf Minuten; Warnstufe.
 - **Auth Endpoint Abuse**: mehr als 50 zur Auth-Route passende Requests in fünf Minuten; Warnstufe.
 - **Auth Callback Flood**: mehr als 20 zur Auth-Callback-Route passende Requests in fünf Minuten; kritische Stufe.
 
-Zusätzliche Prometheus-Alarme decken ausgefallene oder neu gestartete Backend-Prozesse, fehlgeschlagene Abhängigkeitsprüfungen, langsame Datenbankprüfungen und Prisma-Abfragen, Redis-Fallback-Nutzung, fehlgeschlagene Refresh-Token-Abläufe oder erkannte Wiederverwendung, Fehler der Auth0 Management API, fehlende/ausgefallene Exporter-Ziele und geringen freien Speicherplatz auf dem Host-Dateisystem ab. Ziel- und Speicheralarme sind Betriebssignale; im Zielsystem muss geprüft werden, ob sie ausgelöst und zugestellt werden.
-
-Die bestehenden NGINX-Logregeln summieren passende Zeilen über den gesamten Dienst. Sie sind grobe Volumenindikatoren, keine Erkennung einzelner Clients und kein Beweis für einen Angriff. Keine Client-Kennungen als Metriklabels ergänzen.
-
 Die Regeln bleiben jeweils mindestens zwei Minuten über dem Schwellenwert. Standard-Kontaktpunkt ist Discord; kritische Alarme werden an den konfigurierten E-Mail-Kontaktpunkt geleitet. SMTP ist über Compose-Umgebungsvariablen aktiviert. Zustellung an beide Ziele bei Änderungen an Provisionierung oder Zugangsdaten prüfen.
 
 Lokale Verfahren für Kontaktpunkt-, Regel- und Rate-Limit-Tests sowie dokumentierte Ergebnisse stehen unter [Monitoring-Integrationstests](./local-testing/monitoring-integration-testing.mdx). Diese optionalen Tests können echte Benachrichtigungen versenden und dürfen nur gegen den Entwicklungs-Stack laufen.
+
+Zusätzliche Prometheus-Alarme decken ausgefallene oder neu gestartete Backend-Prozesse, fehlgeschlagene Abhängigkeitsprüfungen, langsame Datenbankprüfungen und Prisma-Abfragen, Redis-Fallback-Nutzung, fehlgeschlagene Refresh-Token-Abläufe oder erkannte Wiederverwendung, Fehler der Auth0 Management API, fehlende/ausgefallene Exporter-Ziele und geringen freien Speicherplatz auf dem Host-Dateisystem ab. Ziel- und Speicheralarme sind Betriebssignale; im Zielsystem muss geprüft werden, ob sie ausgelöst und zugestellt werden.
+
+Die bestehenden NGINX-Logregeln summieren passende Zeilen über den gesamten Dienst. Sie sind grobe Volumenindikatoren, keine Erkennung einzelner Clients und kein Beweis für einen Angriff. Keine Client-Kennungen als Metriklabels ergänzen.
 
 ## Logs und Aufbewahrung
 
@@ -46,6 +48,4 @@ Backend-Logs und Alarme dürfen keine Access-/Refresh-Tokens, Session-IDs, CSRF-
 - Beide Compose-Dateien ordnen HTTP/HTTPS den Host-Ports `8080`/`8443` zu. Host-Firewall und externe Proxys für die Zielumgebung bewusst konfigurieren; diese Ports nicht ungeprüft als öffentliche Standardports behandeln.
 - Loki, Prometheus, Exporter, Grafana und Monitoring-Volumes auf vertrauenswürdige Betreiber und das private Compose-Netz beschränken. Endpunkt-Authentifizierung ersetzt keine Host-/Netzwerkkontrollen.
 
----
-
-Last edit: 08.10.2026
+Letzte Bearbeitung: 08.10.2026

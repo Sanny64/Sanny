@@ -59,14 +59,14 @@ const config: Config = {
       },
       items: [
         {
+          type: "localeDropdown",
+          position: "right",
+        },
+        {
           type: "docSidebar",
           sidebarId: "tutorialSidebar",
           position: "left",
           label: "Documentation",
-        },
-        {
-          type: "localeDropdown",
-          position: "right",
         },
         {
           href: "https://github.com/Sanny64/Sanny",

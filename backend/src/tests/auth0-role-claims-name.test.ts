@@ -179,6 +179,10 @@ test("social users receive the default Auth0 role and role claim when missing", 
     "https://tenant.example.test/api/v2/users/google-oauth2%7Cnew-user/roles",
   );
   assert.equal(requests[1]?.init?.method, "POST");
+  assert.equal(
+    new Headers(requests[1]?.init?.headers).get("authorization"),
+    "Bearer management-token",
+  );
   assert.deepEqual(JSON.parse(String(requests[1]?.init?.body)), {
     roles: ["role-user-id"],
   });
@@ -186,4 +190,45 @@ test("social users receive the default Auth0 role and role claim when missing", 
     JSON.stringify(claims["https://sanny64.app/roles"]),
     JSON.stringify(["user"]),
   );
+});
+
+test("social role assignment rejects malformed Management API token responses", async (context) => {
+  const payloads = [
+    null,
+    {},
+    [],
+    "management-token",
+    { access_token: null },
+    { access_token: "" },
+    { access_token: 123 },
+    { access_token: true },
+    { access_token: {} },
+  ];
+
+  for (const payload of payloads) {
+    await context.test(JSON.stringify(payload), async () => {
+      let requestCount = 0;
+      const action = await loadAction(async () => {
+        requestCount += 1;
+        return Response.json(payload);
+      });
+      const { api, claims } = createApi();
+
+      await assert.rejects(
+        action.onExecutePostLogin(
+          {
+            connection: { strategy: "google-oauth2" },
+            user: { user_id: "google-oauth2|new-user" },
+            authorization: { roles: [] },
+            secrets: socialActionSecrets,
+          },
+          api,
+        ),
+        /Management token response missing access token/,
+      );
+
+      assert.equal(requestCount, 1);
+      assert.deepEqual(claims, {});
+    });
+  }
 });

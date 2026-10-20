@@ -1,0 +1,113 @@
+name: Release workspace
+
+on:
+  push:
+    branches: [main, test]
+  workflow_dispatch:
+    inputs:
+      deploy-backend:
+        description: Deploy this main-branch commit to the VPS after verification
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      auth: ${{ steps.targets.outputs.auth }}
+      sanny: ${{ steps.targets.outputs.sanny }}
+      docs: ${{ steps.targets.outputs.docs }}
+      backend: ${{ steps.targets.outputs.backend }}
+      testing: ${{ steps.targets.outputs.testing }}
+      deploy-backend: ${{ steps.targets.outputs.deployBackend }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .nvmrc
+      - id: targets
+        run: node scripts/deployment-targets.mjs
+        env:
+          RELEASE_BEFORE: ${{ github.event.before }}
+          RELEASE_DEPLOY_BACKEND: ${{ inputs.deploy-backend }}
+
+  verify:
+    needs: plan
+    if: needs.plan.outputs.auth == 'true' || needs.plan.outputs.sanny == 'true' || needs.plan.outputs.docs == 'true' || needs.plan.outputs.backend == 'true' || needs.plan.outputs.testing == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify.yml
+
+  auth:
+    needs: [plan, verify]
+    if: needs.plan.outputs.auth == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-auth.yml
+    secrets:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+
+  sanny:
+    needs: [plan, verify]
+    if: needs.plan.outputs.sanny == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-sanny.yml
+    secrets:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+
+  docs:
+    needs: [plan, verify]
+    if: needs.plan.outputs.docs == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-docs.yml
+    secrets:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+
+  testing:
+    needs: [plan, verify]
+    if: needs.plan.outputs.testing == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-to-test.yml
+    secrets:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      TEST_BASIC_AUTH_ENTRY: ${{ secrets.TEST_BASIC_AUTH_ENTRY }}
+      TEST_BASIC_AUTH_FILE_PATH: ${{ secrets.TEST_BASIC_AUTH_FILE_PATH }}
+
+  backend:
+    needs: [plan, verify]
+    if: needs.plan.outputs.backend == 'true'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      deploy: ${{ needs.plan.outputs.deploy-backend == 'true' }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PAT: ${{ secrets.DOCKERHUB_PAT }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}

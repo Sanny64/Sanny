@@ -6,62 +6,98 @@ sidebar_position: 4
 
 ## Installation And Ownership
 
-Use Node.js 24 and npm 11. Install all workspaces once with root `npm ci`. The root lockfile is authoritative for the backend, apps, documentation, and shared packages; do not create workspace-local lockfiles. ESLint, Prettier, TypeScript, Vite/plugins, common Node/React development types, and YAML tooling belong to the root. Runtime dependencies and specialized test/framework tools remain declared by their consumers. Formatting settings are unchanged and can be extended later.
+Use Node.js 24 (`.nvmrc`) and npm 11.6.3 (`packageManager`). `preinstall` and `check:runtime` enforce these versions; CI selects the version file and installs the pinned npm before `npm ci`. The root lockfile is authoritative for every workspace. ESLint, Prettier, TypeScript, Vite/plugins, common development types, YAML tooling, and isolated-test certificate generation belong to the root. Runtime dependencies and specialized test/framework tools remain declared by their consumers.
 
 | Configuration                                           | Responsibility                                                                                                                                             |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `eslint.config.js`                                      | One discovered flat policy for editor and CLI, with browser, Node/tooling, and React scopes. Frontend type-aware lint uses the TypeScript project service. |
 | `.editorconfig`, `.prettierignore`, root `package.json` | Editor and Prettier whitespace policy, formatting exclusions, and repository formatting scripts.                                                           |
-| `tsconfig.base.json`                                    | Environment-neutral strict defaults.                                                                                                                       |
-| `tsconfig.frontend.base.json`                           | Browser libraries, Vite asset types, JSX, and frontend checks.                                                                                             |
-| `tsconfig.node.base.json`                               | Strict Node/tooling defaults without browser globals.                                                                                                      |
-| `tsconfig.tooling.json`                                 | Root Vite/Playwright configs and E2E files, including DOM types for browser-evaluated callbacks.                                                           |
+| `tooling/config/tsconfig.base.json`                     | Environment-neutral strict defaults.                                                                                                                       |
+| `tooling/config/tsconfig.frontend.base.json`            | Browser libraries, Vite asset types, JSX, and frontend checks.                                                                                             |
+| `tooling/config/tsconfig.node.base.json`                | Strict Node/tooling defaults without browser globals.                                                                                                      |
+| `tsconfig.json`                                         | Automatically discovered root Vite/Playwright configs and E2E files, including DOM types for browser-evaluated callbacks.                                  |
 | Package TypeScript configs                              | Source boundaries; backend retains NodeNext resolution and stricter indexed/optional-property checks.                                                      |
-| `vite.shared.ts`                                        | Shared React/HTTPS plugins and the pre-render theme bootstrap.                                                                                             |
+| `tooling/config/vite.shared.ts`                         | Shared React/HTTPS plugins and the pre-render theme bootstrap.                                                                                             |
+
+## Tooling And Test Layout
+
+Reusable compiler defaults, the Vite factory, and the ESLint policy live in `tooling/config/`. They are repository tooling, not runtime npm packages. Frontend ambient declarations live in `shared/types/frontend-env.d.ts`, not a utilities package. Package-local compiler and Vite entrypoints retain their existing ownership.
+
+```text
+tooling/config/          # Compiler bases, ESLint policy, shared Vite factory
+shared/types/           # Frontend ambient environment declarations
+tests/contracts/        # Repository tooling and configuration contracts
+tests/e2e/              # Playwright configurations, specs, and screenshots
+scripts/                # Release, runtime, stopwatch, and visual-run automation
+```
+
+Root `eslint.config.js` re-exports `tooling/config/eslint.shared.js`; naming the implementation differently prevents accidental nested config discovery. Root `playwright.config.ts` re-exports the mocked config in `tests/e2e/`, so plain `playwright test` stays credential-free and selects mocked tests only. Root `tsconfig.json` remains the editor-discovered tooling/E2E project. Playwright test, server, and artifact paths are anchored to the repository rather than the invoking directory.
+
+**Path migration:** replace imports of root compiler bases and `vite.shared.ts` with their `tooling/config/` locations. Configuration contracts moved from `scripts/config.test.mjs` to `tests/contracts/config.test.mjs`; E2E specs and their screenshots moved together from `e2e/` to `tests/e2e/`. Direct live/monitoring runs must use the configs under `tests/e2e/`. Existing npm command names remain unchanged, including the separately owned accessibility commands and Linux runner. Release planning treats both `tooling/` and `tests/` changes as shared tooling changes. Backend Docker images copy the relocated neutral compiler base; the build context remains the repository root.
 
 ## Shared Packages
+
+Shared `frontend-env.d.ts` is included by the browser base and strictly declares `VITE_API_URL`; unknown environment keys fail typechecking. App Vite configurations pass their own directories to the shared factory, so root and environment lookup do not depend on the invoking working directory. The explicit Node type reference in the shared factory is unnecessary because the tooling compiler owns those types.
 
 `@sanny/i18n`, `@sanny/styles`, and `@sanny/ui` are private, source-exported packages consumed through npm workspace links. Package exports, not TypeScript paths or Vite aliases, define resolution. Vite bundles TypeScript and assets with each app. Shared packages no longer emit `dist/` or need a build before development.
 
 Run `npm run typecheck:shared` for all shared packages, or `npm run typecheck -w @sanny/ui` for one. Builds produce output only; run `npm run check` before a manual app build. Keep UI tests in their separate Vitest config.
 
+Package source `exports` are the sole modern entrypoint policy; duplicate `main` and top-level `types` fields are removed. The backend is an application launched by Docker and has no package entrypoint. Retain package TypeScript configs, both Vite entrypoint configs, separate Playwright configurations, and UI Vitest configuration: each owns a real discovery or isolation boundary. Prettier defaults plus `.editorconfig` remain sufficient; no formatter plugin or extra config is needed. Workspace ignore files retain only unique generated/certificate policies.
+
 ## Verification
 
 Every workspace owns its base commands. Root wrappers call those workspace scripts; only repository-owned tooling, formatting, and cross-workspace E2E commands run directly at root.
 
-| Base script | Meaning                                                                                | Root command                                                                                 |
-| ----------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `lint`      | ESLint only; never the TypeScript compiler.                                            | `npm run lint`, or `npm run lint:backend` / `:auth` / `:sanny` / `:docs` / `:shared`.        |
-| `typecheck` | TypeScript only; never ESLint.                                                         | `npm run typecheck`, or the same workspace suffixes.                                         |
-| `check`     | Workspace composition: `npm run lint && npm run typecheck`.                            | `npm run check`, the same workspace suffixes, or explicit `-w` workspace selections.         |
-| `test`      | Actual test runners, not a lint/typecheck alias. Only workspaces with tests expose it. | `test:backend` (unit, monitoring, and Redis), `test:components`, and repository E2E scripts. |
-| `build`     | Produce app/image output only; run static checks separately.                           | Existing `build:auth`, `build:sanny`, `build:docs`, and `build:backend` wrappers.            |
-| `dev`       | Run a frontend or documentation development server.                                    | `dev:auth`, `dev:sanny`, `dev:docs`, and `dev:docs-de`.                                      |
+| Base script | Meaning                                                                                | Root command                                                                                          |
+| ----------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `lint`      | ESLint only; never the TypeScript compiler.                                            | `npm run lint`, or `npm run lint:backend` / `:auth` / `:sanny` / `:docs` / `:shared`.                 |
+| `typecheck` | TypeScript only; never ESLint.                                                         | `npm run typecheck`, or the same workspace suffixes.                                                  |
+| `check`     | Workspace composition: `npm run lint && npm run typecheck`.                            | `npm run check`, the same workspace suffixes, or explicit `-w` workspace selections.                  |
+| `test`      | Actual test runners, not a lint/typecheck alias. Only workspaces with tests expose it. | `test:backend` (unit, monitoring, Redis, and Discord), `test:components`, and repository E2E scripts. |
+| `build`     | Produce app/image output only; run static checks separately.                           | Existing `build:auth`, `build:sanny`, `build:docs`, and `build:backend` wrappers.                     |
+| `dev`       | Run a frontend or documentation development server.                                    | `dev:auth`, `dev:sanny`, `dev:docs`, and `dev:docs:de`.                                               |
+
+For the development Compose lifecycle, `npm run restart:stack` delegates to backend `restart:stack`, which rebuilds buildable images and recreates the full stack while preserving volumes. `npm run restart:backend` rebuilds and recreates only the backend service; `npm run build:backend` builds its image without starting or recreating services.
 
 Backend `lint` covers source, tests, Prisma configuration, Docker runners, and monitoring tooling. Test doubles may use explicit `any` only in backend test files; production source retains the rule. Docusaurus permits `require` only for its `@site/static/*.svg` asset loader convention. These narrow exceptions do not disable other lint rules.
 
 - `npm run check:tooling`: tooling lint and E2E/tooling typechecks.
 - `npm run test:tooling`: configuration contract tests only.
 - `npm run lint:shared`: shared lint using the same root config as the editor.
-- `npm run test:frontend`: app lint/build, shared lint, components, and mocked browser tests.
+- `npm run build:frontend`: Auth, Sanny, and English/German documentation production builds.
 - `npm run check:backend`: backend lint and typechecks.
-- `npm run test:backend`: backend unit tests, disposable Docker monitoring integration, and isolated real-Redis session integration.
+- `npm run test:backend`: backend unit tests, disposable Docker monitoring integration, isolated real-Redis session integration, and Discord integration.
 - `npm run test:integration:redis -w backend`: run only the isolated Redis integration. It uses a fixed test-only password on an internal Docker network and does not load `backend/.env` or inherit the runtime Compose stack.
-- `npm run test:ci`: formatting, all workspace/tooling checks, contracts, backend unit/monitoring/Redis tests, app builds, components, mocked browsers, and one docs build that emits English and German. Docker and Playwright browsers are required; live Auth0 credentials are not.
-- `npm run test`: the CI gate followed by live Auth0 integration, without repeating checks. Mocked and live browser suites each run once across Chromium, Firefox, and Edge.
+- `npm run test:ci`: formatting, all workspace/tooling checks, contracts, backend unit/monitoring/Redis/Discord tests, frontend/docs builds, components, mocked browsers, documentation browser tests, and Linux visual baselines. Docker and Playwright browsers are required; live Auth0 credentials are not.
+- `npm run test`: the CI gate followed by live Auth0 and invocation of the 429 spike scenario, without repeating checks. The spike spec skips unless `RUN_429_SPIKE_E2E=true`; enabling it requires Grafana credentials and may trigger alerts. The full mocked suite and live suite each run across Chromium, Firefox, and Edge; mocked accessibility and Sanny route smoke tests also run on WebKit.
 - `npm run format:check`: repository formatting without writes.
 
 `format:check` runs Prettier. `check` runs ESLint and TypeScript. They are separate gates; `test:ci` invokes each once.
 
-The default Playwright config selects only `e2e/mock`. `playwright.real.config.ts` explicitly selects live authentication, serializes tests, and loads only dedicated test-credential keys from the backend environment without overriding exported values. Live traces/screenshots are disabled to avoid recording authentication secrets. Monitoring and Redis tests use isolated stacks, not backend runtime credentials. CI rejects focused tests and does not reuse existing frontend servers; mocked failures retain traces/screenshots.
+The shared CI workflow also runs `node scripts/warn-docs-translation.mjs` (`npm run compare:docs` locally). It compares physical line counts and raw UTF-8 file sizes of English Markdown/MDX documents with their German counterparts, including blank lines and front matter. LF and CRLF are equivalent for line counts but contribute their actual bytes to file sizes. A page produces one non-blocking warning when its line-count difference is at least one, or its byte-size difference is at least 2,500 bytes. Output shows only the immediate parent directory and filename plus signed byte and line differences (German minus English), for example `shared-packages/ui.mdx: +120 bytes, +2 lines (DE - EN)`. The step uses `continue-on-error` so checker errors cannot block verification. Warnings are drift hints, not completeness checks; document-presence contracts remain blocking.
 
-`npm run test:e2e:real` runs the headed live suite across Chromium, Firefox, and Edge in one Playwright invocation. Direct live invocations require `--config=playwright.real.config.ts`; passing a live directory to the default config no longer selects those tests.
+The configuration contract separately requires a German counterpart for every English page, preserves inline technical references, and checks the reviewed English-source hash. After reviewing the German translation of an English page, update its recorded source hash with `npm run docs:translation:review -- <path-relative-to-documentation/docs>`. CI rejects missing or stale review hashes. The size/line warnings are drift hints, not a translation-completeness check.
+
+The default Playwright config selects only `tests/e2e/mock`. `tests/e2e/playwright.real.config.ts` explicitly selects live authentication, serializes tests, and loads only dedicated test-credential keys from the backend environment without overriding exported values. Live traces/screenshots are disabled to avoid recording authentication secrets. Monitoring and Redis tests use isolated stacks, not backend runtime credentials. CI rejects focused tests and does not reuse existing frontend servers; mocked failures retain traces/screenshots.
+
+`npm run test:e2e:real` runs the headed live suite across Chromium, Firefox, and Edge in one Playwright invocation. Direct live invocations require `--config=tests/e2e/playwright.real.config.ts`; passing a live directory to the default config no longer selects those tests.
 
 Mocked projects run in one Playwright invocation with a global two-worker limit and one frontend-server lifecycle. Their synthetic API setting is not inherited by live frontend servers. Browser source receives React/browser lint rules; Node configs do not. Frontend and backend production source use the TypeScript project service with `await-thenable` and `no-floating-promises` checks.
 
 ## Configuration Migration
 
-Root scripts use existing test-runner names directly: live authentication is `npm run test:e2e:real`; `test:integration`, `test:frontend:runtime`, and `check:frontend` aliases are unnecessary. Redundant per-browser aliases and the extra `test:gate` wrapper were removed. The full gate runs mocked browsers only in `test:ci`, then Redis and live browsers. Accessibility specs are already included in mocked tests and are not repeated by the composed gate. Configuration contracts reject missing script references and enforce script ordering.
+### October 2026 Configuration Review
+
+- Replace direct references to `tsconfig.tooling.json` with root `tsconfig.json`. Browser and Node bases remain separate; no composite/declaration builds or additional monorepo orchestrator are required.
+- Configuration contracts test compiler/environment behavior, exports, runtime enforcement, secret-free test fixtures, suite coverage, and release dependencies. Script key ordering is no longer a gate.
+- Backend lint now includes Auth0 scripts, with globals and hosted entrypoint exceptions restricted to those scripts.
+- Redis tests generate disposable one-day TLS certificates rather than mounting ignored local certificates. Cleanup removes the test files after Compose teardown.
+- Mocked WebKit covers accessibility and route smoke tests; live Auth0 still uses Chromium, Firefox, and Edge. Accessibility specs run as part of `npm run test:e2e:mocked`.
+- Run `npm run test:visual:linux`, or append `-- --update` to regenerate reviewed Linux Chromium baselines. The runner derives the official container version from the lockfile, copies only secret-free source, and cleans its temporary workspace. Windows and Linux baselines are distinct. This check is part of both PR `test:ci` and the full local `npm run test` gate.
+- **Breaking operator change:** use **Release workspace** (`release.yml`) for manual deployment. The reusable deployment children no longer expose push/manual triggers. The coordinator verifies once and forwards only target-specific secrets; enable `deploy-backend` on a manual `main` run for VPS deployment. See [Deployment](./deployment).
+
+Root scripts use existing test-runner names directly: live authentication is `npm run test:e2e:real`; `test:integration`, `test:frontend:runtime`, and `check:frontend` aliases are unnecessary. Redundant per-browser aliases and the extra `test:gate` wrapper were removed. The full gate runs mocked browsers and documentation browser tests in `test:ci`, then live browsers and invokes the 429 spike scenario; the scenario skips unless `RUN_429_SPIKE_E2E=true`. WebKit runs only the matched accessibility and Sanny route smoke tests in the mocked suite; live Auth0 excludes WebKit. Accessibility specs are already included in mocked tests and are not repeated by the composed gate. Configuration contracts validate referenced scripts but do not enforce script-key ordering.
 
 - Each app now has one browser-source `tsconfig.json`; its redundant `tsconfig.app.json` and `tsconfig.node.json` files are removed. Root tooling explicitly checks both Vite configs and the UI Vitest config using NodeNext. Browser resolution remains Bundler; the neutral base owns common strict/module-syntax flags but no runtime resolution policy. Docusaurus keeps its framework base and inherited `baseUrl` deprecation workaround.
 - Browser code reads only `VITE_API_URL`. An explicit input overrides local `VITE_DEV_API_URL` for development/test mode or `VITE_PROD_API_URL` for other modes. Builds require an HTTPS origin without credentials, paths, queries, or fragments; local HTTP loopback origins are accepted only by development servers. CI maps the existing target-specific repository variables into the canonical input. No local environment file rename is required.
@@ -74,13 +110,13 @@ Root scripts use existing test-runner names directly: live authentication is `np
 
 Build from the repository root with `docker build -f backend/docker/Dockerfile .`. Docker installs the backend workspace from the root lockfile with `npm ci`, generates Prisma, then prunes development dependencies. Both stages use Debian-compatible Node 24 images. `tsx` remains a runtime dependency. Root `.dockerignore` excludes environment files, certificates, local dependencies, and generated output.
 
-Production Compose inherits common services from the development file; deploy both files together. Its app remains image-only with explicit production mode and fixed proxy trust. Monitoring integration uses dedicated test configuration and does not consume backend runtime credentials. Redis integration builds a disposable backend test image and Redis service with test-only environment values, sharing only the repository TLS configuration/certificates. Deployment path filters track relevant root tooling. Dependabot targets the root npm workspace, backend Dockerfile directory, and GitHub Actions.
+Production Compose inherits common services from the development file; deploy both files together. Its app remains image-only with explicit production mode and fixed proxy trust. Monitoring integration uses dedicated test configuration and does not consume backend runtime credentials. Redis integration builds a disposable backend test image and Redis service with test-only environment values. Its runner generates a one-day test CA and Redis certificate in a temporary directory, mounts those temporary files into the isolated stack, and removes them during cleanup; it does not use repository or developer certificates. The release planner's changed-path rules include relevant root tooling. Dependabot targets the root npm workspace, backend Dockerfile directory, and GitHub Actions.
 
 ## Breaking Changes And Migration
 
 Script normalization removes backend `type-check` in favor of `typecheck`; root `lint:backend` and `lint:docs` now run real ESLint. Use `typecheck:backend` / `typecheck:docs` for the former type-only behavior, or `check:*` for both. Auth and Sanny no longer expose `test` aliases for lint: use their `check` commands. Root `test:frontend:auth` / `test:frontend:sanny` aliases are removed; use `check:auth` / `check:sanny` plus the corresponding build wrapper. Documentation uses workspace `dev` instead of `start`.
 
-Accessibility commands are grouped under `test:frontend:accessibility:*`; the aggregate `test:frontend:accessibility` follows its app/shared commands. These replace the former `test:e2e:accessibility:*` names.
+Accessibility specs are included in `test:e2e:mocked`. Run a focused spec directly with `npx playwright test tests/e2e/mock/auth-accessibility.spec.ts`, `sanny-accessibility.spec.ts`, or `accessibility.spec.ts` from the repository root.
 
 Backend integration commands use `test:integration:monitoring`, `test:integration:discord`, and `test:integration:redis`. They replace `test:monitoring`, `test:discord-integration`, `test:alert-rules-integration`, and the old host-only `test:redis:integration`. The Redis command owns its disposable Docker lifecycle and is included once in the backend test gate; the redundant root `test:backend:redis` alias was removed.
 

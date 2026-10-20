@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
+import ts from "typescript";
 import { createAccountLinkProof } from "../utils/account-link-proof.js";
 
 const actionPath = fileURLToPath(
@@ -69,6 +70,28 @@ async function withManagementApi(
     globalThis.fetch = originalFetch;
   }
 }
+
+test("Auth0 Action logging accepts calls with or without details", () => {
+  const program = ts.createProgram([actionPath], {
+    allowJs: true,
+    checkJs: true,
+    noEmit: true,
+    skipLibCheck: true,
+    target: ts.ScriptTarget.ESNext,
+    module: ts.ModuleKind.NodeNext,
+  });
+  const source = program.getSourceFile(actionPath);
+  assert.ok(source);
+  const argumentErrors = program
+    .getSemanticDiagnostics(source)
+    .filter((diagnostic) => diagnostic.code === 2554);
+  assert.deepEqual(
+    argumentErrors.map((diagnostic) =>
+      ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+    ),
+    [],
+  );
+});
 
 test("Auth0 Action leaves single email and Google identities unchanged", async () => {
   const action = await loadAction();

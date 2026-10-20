@@ -22,6 +22,7 @@ Shared reusable UI component package for the workspace frontends.
 
 - `src/components/Button.tsx` is the current reusable button implementation.
 - `src/components/AppShell.tsx` provides the shared branded frame, localized skip navigation, optional header actions, and reduced-motion-aware route entry for Sanny and Auth. Keep app session logic in callers, not the shell.
+- Keep explicit zero tab indices on skip/brand anchors: WebKit's default sequential navigation otherwise skips them in the tested environment. Preserve DOM tab order and native link semantics; do not replace keyboard tests with programmatic focus.
 - Shared controls and feedback styles consume semantic tokens from `@sanny/styles`; use the same action hierarchy in both themes rather than adding app-specific palettes.
 - `src/pages/Settings.tsx` provides shared theme and language preferences.
 - `src/index.ts` is the public entrypoint consumed by the apps.

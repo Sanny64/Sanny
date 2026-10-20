@@ -6,21 +6,15 @@ sidebar_position: 3
 
 ## Purpose
 
-Manual checks supplement automated tests for third-party identity flows, assistive technology, and hosted deployment boundaries. Google sign-in is intentionally skipped in Playwright because Google blocks controlled browsers. Do not treat local mock tests as evidence of staging behavior.
-
-Use isolated development or staging services and dedicated test identities. Never use personal accounts or include passwords, tokens, cookies, email addresses, or other personal data in test evidence.
-
----
+Backend and hosted-environment procedures are listed below. See the [Local Testing guide](../../general-info/testing.mdx) for shared test-data and evidence-handling rules, root-gate interpretation, and the latest full-run result.
 
 ## Before Staging
 
-- [ ] Run backend unit, monitoring, and Redis tests with `npm run test:backend`; record results. Run [frontend checks](../../frontend/local-testing/automated-testing.mdx) separately. The root `npm run test` composes backend, frontend, docs, and live integration gates.
+- [ ] Run backend unit, monitoring, Redis, and Discord tests with `npm run test:backend`; record results. Run [frontend checks](../../frontend/local-testing/automated-testing.mdx) separately. See the [Local Testing guide](../../general-info/testing.mdx) for root-gate composition.
 - [ ] Verify password signup/login, email verification, password reset, logout, and session expiry with dedicated identities.
 - [ ] Verify Google sign-in and account linking in both directions (Google first and password first): ownership reauthentication, confirm, cancel, expired request/cleanup, and the final Auth0 identity plus local database record. Follow [Account Linking](./account-linking-testing.mdx).
 - [ ] Verify successful profile update, account deletion, admin lookup/list pagination, role changes, password reset, and denied access for non-admins. Confirm persistence and cleanup in the isolated environment.
 - [ ] Exercise live MFA and email-OTP step-up, including cancellation, recovery, expiry, and retry behavior for sensitive actions.
-
----
 
 ## Hosted Staging
 
@@ -28,12 +22,4 @@ Use isolated development or staging services and dedicated test identities. Neve
 - [ ] Verify real Discord/email contact-point delivery in the development or staging stack. The isolated automated test proves rule firing and test-sink delivery, not external contact-point delivery; see [Monitoring](../monitoring.mdx) and the dated monitoring record.
 - [ ] Review logs and metrics for secrets, personal data, unbounded labels, or query-string leakage; confirm protected monitoring endpoints are not publicly reachable.
 
----
-
-## Evidence
-
-For each check, record date, build/revision, environment, browser/device or assistive technology, scenario, outcome, and residual issues in the restricted staging record. Do not include secrets or personal data. Keep a check open until evidence is recorded and reviewed.
-
----
-
-Last edit: 18.10.2026
+Last edit: 20.10.2026

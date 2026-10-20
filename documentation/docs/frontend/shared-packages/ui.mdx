@@ -6,27 +6,21 @@ sidebar_position: 3
 
 # @sanny/ui
 
-`@sanny/ui` is a shared npm package that provides UI components used across all frontend projects.<br/>
-It keeps the overall component styles in sync and supports shared HTTP error and settings handling.
+`@sanny/ui` is a shared npm package that provides UI components used across all frontend projects.<br/> It keeps the overall component styles in sync and supports shared HTTP error and settings handling.
 
 `AppShell` is the shared application frame for Sanny and Auth. It provides branding, localized skip navigation, a focusable main landmark, optional `headerActions`, and reduced-motion-aware route entry. Use `variant="auth"` for the narrower authentication layout. Import globals and layout CSS from `@sanny/styles` in the app entrypoint; see the [shared theme and motion policy](./styles).
 
 Shared buttons, settings, and toast surfaces consume semantic light/dark tokens. Theme changes preserve the same action hierarchy; do not switch a primary action to secondary just because the theme changes.
 
----
-
 ## What it exports
 
-The package’s public API exports shared UI components and shared UI pages used by frontend apps.<br/>
-It also ships the CSS used by those components and pages.
+The package’s public API exports shared UI components and shared UI pages used by frontend apps.<br/> It also ships the CSS used by those components and pages.
 
 - `components`
-  - Standard components like `Buttons` and `TextInputs`.
-  - Advanced components like the basic settings overlay, the page footer, and more, based on the standard components.
+  - `AppShell`, `Button`, `ButtonGroup`, `Checkbox`, and `ToastViewport`.
 - `pages`: Full pages that are used in all frontend projects, for example `Error.tsx` and `Settings.tsx`.
-- `styles`: CSS styles for those shared components and pages.
-
----
+- Toast helpers: `showToast`, `showErrorToast`, `dismissToast`, and `retriggerToast`.
+- Component CSS is colocated under the package's `src/styles/` directory and bundled by the consuming app.
 
 ## Usage
 
@@ -52,7 +46,7 @@ export default function Hello() {
       // Standard button
       <Button
         className="say-hello-button"
-        variant={themeVariant} // could be 'primary' or 'secondary'; 'ghost' can be used to hide the button.
+        variant={themeVariant} // getThemeVariant returns 'primary' or 'secondary'; 'destructive' is also supported.
         onClick={sayHello}
       >
         Hello World Button
@@ -94,31 +88,13 @@ onClick={() => {
 
 In general, externalizing functions is better for consistency and maintainability.
 
----
-
 ## Notes for developers
 
 Prefer visible button text and associated form labels: they already provide the accessible name. Add a localized `aria-label` when a control has no sufficient visible text, such as an icon-only button. Do not use an `aria-label` that conflicts with visible text or an associated label, because it overrides the name assistive technology announces.
 
-Shared UI components must include route-scoped color divergence without changing layout behavior:
+Shared UI components use the semantic tokens from `@sanny/styles`. Auxiliary route styles currently scope only the layout background and text color through `--auxiliary-layout-bg` and `--auxiliary-layout-text`; they do not override shared component colors.
 
-- Shared component CSS reads component-level tokens with global fallbacks.
-
-This means that when implementing shared UI components, you must include color variables like this:
-
-```tsx
-.component--primary {
-  background: var(--component-primary-bg, var(--color-primary)); // if `--component-primary-bg` is set in an auxiliary route CSS file such as `party.css`, it uses that color.
-  color: var(--component-primary-text, white); // if the first variable is not set anywhere, it falls back to `var(--color-primary)`.
-}
-
-.component--secondary {
-  background: var(--component-secondary-bg, var(--color-surface-2));
-  color: var(--component-secondary-text, var(--color-text));
-}
-```
-
-These tokens are consumed in the shared UI component CSS and can be set in route classes like `.auxiliary-layout--auxiliary-page-name`:
+Set these variables in a route stylesheet and map the route to its layout class in `Auxiliary.tsx`. Keep component styling on the shared semantic tokens rather than adding route-specific component-token APIs. Current route styles set the variables on classes such as `.auxiliary-layout--party`:
 
 ```css
 .auxiliary-layout--auxiliary-page-name {
@@ -126,10 +102,6 @@ These tokens are consumed in the shared UI component CSS and can be set in route
     radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
     linear-gradient(180deg, #0c7a00 0%, #059600 100%);
   --auxiliary-layout-text: #eff8ee;
-  --component-primary-bg: #ebf8e8;
-  --component-primary-text: #0d5b00;
-  --component-secondary-bg: rgba(10, 79, 4, 0.45);
-  --component-secondary-text: #eff8ee;
 }
 ```
 
@@ -174,7 +146,5 @@ export default function Layout() {
 ```
 
 More information about route behavior can be found [here](/docs/frontend/projects/sanny#special-behavior).
-
----
 
 Last edit: 17.10.2026

@@ -3,32 +3,22 @@ name: Build and Deploy auth frontend to Hetzner (prod-environment)
 permissions: {}
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "auth/**"
-      - "shared/packages/**"
-      - "package.json"
-      - "package-lock.json"
-      - "vite.shared.ts"
-      - "eslint.config.js"
-      - "tsconfig*.json"
-      - ".github/workflows/deploy-auth.yml"
-      - ".github/workflows/verify.yml"
+  workflow_call:
+    secrets:
+      FTP_SERVER:
+        required: true
+      FTP_USERNAME:
+        required: true
+      FTP_PASSWORD:
+        required: true
 
 concurrency:
   group: deploy-auth-production
   cancel-in-progress: false
 
 jobs:
-  verify:
-    permissions:
-      contents: read
-    uses: ./.github/workflows/verify.yml
-
   lint-and-build:
-    needs: verify
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     permissions:
@@ -43,7 +33,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
+
+      - name: Set up npm
+        run: npm install --global npm@11.6.3
 
       - name: Install dependencies
         run: npm ci

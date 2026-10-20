@@ -12,18 +12,15 @@ Die Routen sind vorhanden, ihre Seiteninhalte zeigen derzeit jedoch übersetzte 
 
 ### Portfolio
 
-(/home, /portfolio, /projects)<br/>
-Der Hauptzweck ist es, meine Programmierfähigkeiten und mein Architekturwissen beim Aufbau von Full-Stack-Anwendungen zu präsentieren.
+(/, /portfolio, /projects; `/home` leitet auf `/` weiter)<br/> Der Hauptzweck ist es, meine Programmierfähigkeiten und mein Architekturwissen beim Aufbau von Full-Stack-Anwendungen zu präsentieren.
 
 ### Spielearchiv
 
-(/games, game.sanny64.de)<br/>
-Ich programmiere hin und wieder aus Spaß ein Spiel, deshalb wird die Seite auch als Spielearchiv genutzt.
+(/games, blockrunner.sanny64.de)<br/> Ich programmiere hin und wieder aus Spaß ein Spiel, deshalb wird die Seite auch als Spielearchiv genutzt.
 
 ### Helfer zur Event-Organisation
 
-(/party, /comfort, /refreshments)<br/>
-Als privater Veranstalter ist es meine Aufgabe, dafür zu sorgen, dass sich alle möglichst sicher und willkommen fühlen.<br/>Deshalb habe ich auf meinen Partys Care-Kits eingeführt, die über diese Seite organisiert werden.
+(/party, /party/comfort, /party/refreshments)<br/> Als privater Veranstalter ist es meine Aufgabe, dafür zu sorgen, dass sich alle möglichst sicher und willkommen fühlen.<br/>Deshalb habe ich auf meinen Partys Care-Kits eingeführt, die über diese Seite organisiert werden.
 
 ---
 
@@ -41,7 +38,7 @@ Der Unterschied ist bei Auxiliary-Routen bewusst nur farblich:
 - `auxiliary.css` stellt route-spezifische Variablen für Hintergrund und Text bereit.
 - Die Routen-Styles liefern die Werte für diese Variablen.
 
-Aktuelles Muster für das Auxiliary-Layout:
+Beispiel für die Zuordnung von Auxiliary-Routen zu Layout-Klassen:
 
 ```typescript
 {/* Example Auxiliary.tsx */}
@@ -94,15 +91,6 @@ Beispiel für ein route-spezifisches Farb-Pattern auf `/auxiliary-page-1`:
 		radial-gradient(circle at top, rgba(0, 0, 0, 0.04), transparent 42%),
 		linear-gradient(180deg, #eaf9ec 0%, #d5f3d9 100%);
 	--auxiliary-layout-text: #0d5b00;
-	--component1-primary-bg: #0d5b00;
-	--component1-primary-text: #ebf8e8;
-	--component1-secondary-bg: rgba(13, 91, 0, 0.08);
-	--component1-secondary-text: #0d5b00;
-  --component2-primary-bg: rgba(255,255,255,0.02);
-	--component2-primary-text: #cfe8d0;
-	--component2-secondary-bg: rgba(10, 79, 4, 0.12);
-	--component2-secondary-text: #cfe8d0;
-  ...
 } // grüner Light Mode
 
 html[data-theme='dark'] .auxiliary-layout--1,
@@ -111,15 +99,6 @@ html.dark .auxiliary-layout--1 {
 		radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
 		linear-gradient(180deg, #0f2b0c 0%, #163a0f 100%);
 	--auxiliary-layout-text: #cfe8d0;
-	--component1-primary-bg: rgba(255,255,255,0.03);
-	--component1-primary-text: #cfe8d0;
-	--component1-secondary-bg: rgba(10, 79, 4, 0.22);
-	--component1-secondary-text: #cfe8d0;
-	--component2-primary-bg: rgba(255,255,255,0.02);
-	--component2-primary-text: #cfe8d0;
-	--component2-secondary-bg: rgba(10, 79, 4, 0.12);
-	--component2-secondary-text: #cfe8d0;
-  ...
 } // grüner Dark Mode
 
 @media (prefers-color-scheme: dark) {
@@ -128,15 +107,6 @@ html.dark .auxiliary-layout--1 {
 			radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
 			linear-gradient(180deg, #1e381b 0%, #163a0f 100%);
 		--auxiliary-layout-text: #cfe8d0;
-		--component1-primary-bg: rgba(255,255,255,0.03);
-		--component1-primary-text: #cfe8d0;
-		--component1-secondary-bg: rgba(10, 79, 4, 0.22);
-		--component1-secondary-text: #cfe8d0;
-		--component2-primary-bg: rgba(255,255,255,0.02);
-		--component2-primary-text: #cfe8d0;
-		--component2-secondary-bg: rgba(10, 79, 4, 0.12);
-		--component2-secondary-text: #cfe8d0;
-    ...
 	} // gespiegelte Dark-Mode-Werte, falls Dark Mode nicht manuell gesetzt ist, aber `prefers-color-scheme: dark` aktiv ist
 }
 ```
@@ -145,4 +115,4 @@ Darstellungs- und Spracheinstellungen werden auf der Einstellungsseite verwaltet
 
 ---
 
-Last edit: 03.10.2026
+Letzte Bearbeitung: 03.10.2026

@@ -15,8 +15,6 @@ This guide explains how to test the account linking flow locally with localhost 
 - Verify the current Login Action and backend configuration using [Auth0 Tenant Contract](../auth0-tenant-contract). Repository copies of Auth0 Actions are not deployed automatically with the backend.
 - Keep access tokens, ID tokens, refresh tokens, cookies, and authorization codes out of browser consoles, online tools, tickets, and chat.
 
----
-
 ## Verify Both Directions
 
 Use separate dedicated test identities for each direction, with the same verified email for the Google and password identities within each test. The entry flow depends on which identity already exists.
@@ -57,11 +55,7 @@ WHERE email = 'dedicated-test-address@example.test';
 
 For cancellation, restart the flow, choose **Return to login**, and verify that the identities were not linked and no authenticated session was established. Verify any temporary-user cleanup against the configured expiry/cleanup behavior; do not assume a fixed 60-minute delay. Record the environment, browser, direction, result, and cleanup without recording personal data or secrets.
 
----
-
 After a successful link, Auth0 has one Google-primary user with the database identity in its linked identities. The backend reconciles the local user's `auth0Sub` to that canonical subject during the OAuth callback. Verify one local user row using the non-secret query above; do not expect an `account_linking_completed` metadata flag or inspect the password hash.
-
----
 
 ## Transitioning to Production
 
@@ -69,13 +63,13 @@ When ready to deploy to production:
 
 1. **Update Auth0 Configuration**:
    - Replace localhost URLs with production domains
-   - Set Allowed Callback URLs to:
-     ```
-     https://api.example.com/api/v001/auth/callback,
-     https://auth.example.com/,
-     https://app.example.com/
-     ```
-   - Update CORS to use production domains
+   - Set **Allowed Callback URLs** to the backend callbacks only:
+
+   ```
+   https://api.example.com/api/v001/auth/callback,
+     https://api.example.com/api/v001/auth/account-link-proof/callback
+   ```
+   - Do not add frontend origins as callback URLs; configure them in the backend CORS setting and use the appropriate success/logout URLs.
 
 2. **Update Environment Variables**:
    - Backend: Set HTTPS values for `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT`, and `PROD_AUTH0_LOGOUT_REDIRECT`.
@@ -85,8 +79,6 @@ When ready to deploy to production:
 3. **Database Deployment**:
    - Review the Prisma schema changes and the deployment's approved database migration procedure before deploying.
    - Verify custom database connection scripts are active in the intended Auth0 tenant.
-
----
 
 ## Key URLs for Testing
 
@@ -103,6 +95,4 @@ When ready to deploy to production:
 - [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
 - [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)
 
----
-
-Last edit: 18.10.2026
+Last edit: 20.10.2026

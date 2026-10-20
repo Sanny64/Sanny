@@ -1,0 +1,40 @@
+---
+title: Local Testing
+description: Shared test gates, result boundaries, and evidence-handling guidance.
+sidebar_position: 6
+---
+
+## Root Test Gates
+
+Run commands from the repository root with Node.js 24 and npm 11.6.3.
+
+- `npm run test:ci` runs formatting and static checks, contracts, backend and component tests, mocked browser tests, frontend and documentation builds, and Linux visual baselines. Docker and installed Playwright browsers are required; live Auth0 credentials are not.
+- `npm run test` adds live Auth0 to `test:ci` and invokes the 429 spike scenario. That scenario skips unless `RUN_429_SPIKE_E2E=true`; enabling it also requires Grafana credentials and may trigger alerts. The gate requires a reachable development API/Auth0 tenant and dedicated test credentials. Google automation is intentionally skipped because Google may block controlled browsers.
+
+## Latest full run
+
+2026-10-20, Node 24/npm 11.6.3:
+
+- passed in an uninterrupted isolated run completed at 12:04 UTC. The backend was stopped afterward with `npm run stop:backend`.
+- Formatting and static checks, 38 tooling contracts, 11 UI component tests, 166 backend unit tests, backend integration tests, and the Auth, documentation, and Sanny builds passed. One Redis-dependent unit test was intentionally skipped.
+- Mocked browser tests: 798 passed and 15 intentional skips. Documentation browser tests: 2 passed. Linux visual tests: 5 passed.
+- Live Auth0 password login passed in Chromium, Firefox, and Edge. Google automation was skipped in all three browsers, and the 429 spike test was skipped by its conditions; this run does not establish rate-limit-spike behavior or hosted sign-off.
+
+## Interpreting Results
+
+A passing gate establishes that its configured checks passed for the current checkout and local test environment. Mocked frontend tests verify UI behavior and request/response contracts, not backend persistence or live Auth0. Live authentication covers only the configured test identity and selected flows. No local gate proves behavior for every browser, device, identity provider, input, or deployment configuration, and local results are not staging or production sign-off.
+
+Automated test coverage does not replace manual checks with other identity providers, assistive technologies, or hosted security controls. Linux visual baselines are Chromium-only. The 429 spike behavior is not established by the latest full run because that test was skipped.
+
+## Test Data and Evidence
+
+Use isolated development or staging services and dedicated test identities. Never use personal accounts or record passwords, tokens, cookies, email addresses, or other personal data in test evidence. Record the date, build/revision, environment, browser/device or assistive technology, scenario, outcome, and residual issues in the restricted test record. Keep checks open until their evidence is recorded and reviewed.
+
+## Testing Guides
+
+- [Frontend automated testing](../frontend/local-testing/automated-testing.mdx) and [frontend manual testing](../frontend/local-testing/manual-testing.mdx)
+- [Backend automated testing](../backend/local-testing/automated-testing.mdx) and [backend manual testing](../backend/local-testing/manual-testing.mdx)
+
+---
+
+Last edit: 20.10.2026

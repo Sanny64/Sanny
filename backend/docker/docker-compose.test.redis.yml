@@ -10,7 +10,7 @@ services:
       REDIS_PASSWORD: sanny-redis-test-only
     volumes:
       - ../redis/redis.conf:/etc/redis/redis.conf:ro
-      - ../redis/certs:/etc/redis/certs:ro
+      - ${SANNY_REDIS_TEST_CERTS:?Run the Redis test runner}:/etc/redis/certs:ro
       - redis-data:/data
     networks:
       - redis-test
@@ -40,7 +40,7 @@ services:
       AUTH0_AUDIENCE: https://api.example.test
       DEV_AUTH0_CALLBACK_URL: https://api.example.test/api/v001/auth/callback
     volumes:
-      - ../redis/certs/ca.crt:/app/redis-ca.crt:ro
+      - ${SANNY_REDIS_TEST_CERTS:?Run the Redis test runner}/ca.crt:/app/redis-ca.crt:ro
     command:
       - node
       - --import=tsx

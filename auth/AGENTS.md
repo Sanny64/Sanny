@@ -11,7 +11,7 @@ React + Vite + TypeScript app for the authentication subdomain.
 - Build with `npm run build:auth`.
 - Lint with `npm run lint:auth`.
 - Run app-local static checks with `npm run check -w auth`; it composes `lint` and `typecheck`. This app has no standalone unit-test script; browser tests belong to root E2E tooling.
-- Run `npm run test:frontend:accessibility:auth` for the Auth accessibility suite across browser projects.
+- Run `npx playwright test tests/e2e/mock/auth-accessibility.spec.ts` for the Auth accessibility suite across browser projects.
 - For verification after shared changes, run `npm run check` then `npm run build:auth`. Builds produce output only; static checks are separate.
 
 ## Code Style Guidelines
@@ -25,7 +25,7 @@ React + Vite + TypeScript app for the authentication subdomain.
 
 - `src/main.tsx` composes the shared theme and language providers around the app.
 - `src/pages/` contains authentication helper routes, account-link ownership proof, and a neutral root view with shared appearance settings.
-- `vite.config.ts` uses shared React/HTTPS plugins and the pre-render HTML theme bootstrap from `../vite.shared.ts`; workspace exports resolve shared packages without aliases.
+- `vite.config.ts` uses shared React/HTTPS plugins and the pre-render HTML theme bootstrap from `../tooling/config/vite.shared.ts`; workspace exports resolve shared packages without aliases.
 - `src/main.tsx` imports shared globals and layout CSS; `Main.tsx` uses `AppShell` from `@sanny/ui`. App-specific account-link styling uses shared semantic tokens.
 
 ## Workflow / Security

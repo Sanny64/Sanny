@@ -14,9 +14,8 @@ function changePassword(emailInput, newPassword, callback) {
   };
   const getOptionalConfig = (name, fallback) => {
     const value = configuration[name];
-    return value === undefined || value === null || value === ""
-      ? fallback
-      : value;
+    const hasValue = value !== undefined && value !== null && value !== "";
+    return hasValue ? value : fallback;
   };
   // Password policy is exposed via Auth0 configuration so it can be tuned without redeploying this script.
   const passwordPolicy = {

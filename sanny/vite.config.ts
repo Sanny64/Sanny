@@ -1,3 +1,3 @@
-import { createFrontendViteConfig } from "../vite.shared.ts";
+import { createFrontendViteConfig } from "../tooling/config/vite.shared.ts";
 
-export default createFrontendViteConfig();
+export default createFrontendViteConfig(import.meta.dirname);

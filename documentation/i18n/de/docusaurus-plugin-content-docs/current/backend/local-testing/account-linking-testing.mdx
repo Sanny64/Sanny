@@ -63,13 +63,13 @@ Wenn du für ein Produktionsdeployment bereit bist:
 
 1. **Auth0-Konfiguration aktualisieren**:
    - Ersetze Localhost-URLs durch Produktionsdomains.
-   - Setze die Allowed Callback URLs auf:
-     ```
-     https://api.example.com/api/v001/auth/callback,
-     https://auth.example.com/,
-     https://app.example.com/
-     ```
-   - Aktualisiere CORS für die Produktionsdomains.
+   - Setze **Allowed Callback URLs** ausschließlich auf die Backend-Callbacks:
+
+   ```
+   https://api.example.com/api/v001/auth/callback,
+     https://api.example.com/api/v001/auth/account-link-proof/callback
+   ```
+   - Füge Frontend-Origins nicht als Callback-URLs hinzu. Konfiguriere sie in der Backend-CORS-Einstellung und setze die passenden Erfolgs-/Logout-URLs.
 
 2. **Umgebungsvariablen aktualisieren**:
    - Backend: Setze HTTPS-Werte für `PROD_AUTH0_CALLBACK_URL`, `PROD_AUTH0_SUCCESS_REDIRECT` und `PROD_AUTH0_LOGOUT_REDIRECT`.
@@ -95,6 +95,4 @@ Wenn du für ein Produktionsdeployment bereit bist:
 - [Auth0 Custom Database Connections](https://auth0.com/docs/authenticate/database-connections/custom-database)
 - [Auth0 Post-Login Actions](https://auth0.com/docs/flows/guides/hosted-login/call-your-api-using-the-authorization-code-flow)
 
----
-
-Last edit: 18.10.2026
+Letzte Bearbeitung: 20.10.2026

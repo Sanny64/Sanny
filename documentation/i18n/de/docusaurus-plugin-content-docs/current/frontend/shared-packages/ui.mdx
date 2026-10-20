@@ -6,38 +6,34 @@ sidebar_position: 3
 
 # @sanny/ui
 
-`@sanny/ui` ist ein gemeinsam genutztes npm-Paket, das UI-Komponenten bereitstellt, die in allen Frontend-Projekten verwendet werden.<br/>
-Es hält die übergreifenden Komponenten-Styles synchron und unterstützt gemeinsames Handling von HTTP-Fehlern und Einstellungen.
+`@sanny/ui` ist ein gemeinsam genutztes npm-Paket mit Benutzeroberflächen-Komponenten für alle Frontend-Projekte.<br/> Es hält die gemeinsamen Komponentenstile synchron und unterstützt eine einheitliche Behandlung von HTTP-Fehlern und Einstellungen.
 
-`AppShell` ist der gemeinsame App-Rahmen für Sanny und Auth. Er stellt Branding, lokalisierte Skip-Navigation, ein fokussierbares Main-Landmark, optionale `headerActions` und reduzierte Routeneintrittsbewegung bereit. Für das schmalere Auth-Layout wird `variant="auth"` verwendet. Apps importieren globale und Layout-CSS aus `@sanny/styles` im Einstiegspunkt; beachte dazu die [gemeinsame Richtlinie für Themes und Bewegungen](./styles).
+`AppShell` ist der gemeinsame App-Rahmen für Sanny und Auth. Er stellt die Markenidentität, lokalisierte Sprungnavigation, einen fokussierbaren Hauptbereich, optionale `headerActions` und bewegungsreduzierte Routenübergänge bereit. Für das schmalere Auth-Layout wird `variant="auth"` verwendet. Apps importieren globale und Layout-CSS aus `@sanny/styles` im Einstiegspunkt; beachte dazu die [gemeinsame Richtlinie für Darstellung und Bewegung](./styles).
 
----
+Gemeinsame Schaltflächen, Einstellungen und Toasts verwenden semantische Hell-Dunkel-Designvariablen. Die Aktionshierarchie bleibt beim Wechsel des Darstellungsthemas gleich; eine primäre Aktion darf nicht allein deshalb zu einer sekundären werden.
 
 ## Was exportiert wird
 
-Die öffentliche API des Pakets exportiert gemeinsame UI-Komponenten sowie gemeinsame UI-Seiten, die von Frontend-Apps genutzt werden.<br/>
-Zusätzlich liefert es das CSS mit, das von diesen Komponenten und Seiten verwendet wird.
+Die öffentliche API des Pakets exportiert gemeinsame UI-Komponenten sowie gemeinsame UI-Seiten, die von Frontend-Apps genutzt werden.<br/> Zusätzlich liefert es das CSS mit, das von diesen Komponenten und Seiten verwendet wird.
 
 - `components`
-  - Standardkomponenten wie `Buttons` und `TextInputs`.
-  - Erweiterte Komponenten wie das grundlegende Settings-Overlay, der Seiten-Footer und mehr, basierend auf den Standardkomponenten.
+  - `AppShell`, `Button`, `ButtonGroup`, `Checkbox` und `ToastViewport`.
 - `pages`: Vollständige Seiten, die in allen Frontend-Projekten verwendet werden, zum Beispiel `Error.tsx` und `Settings.tsx`.
-- `styles`: CSS-Styles für diese gemeinsamen Komponenten und Seiten.
-
----
+- Toast-Hilfsfunktionen: `showToast`, `showErrorToast`, `dismissToast` und `retriggerToast`.
+- Komponenten-CSS liegt unter `src/styles/` des Pakets und wird von der konsumierenden App gebündelt.
 
 ## Verwendung
 
 Importiere in einer Seite, für die du das Routing bereits eingerichtet hast, die benötigte Komponente, zum Beispiel `Button`:
 
 ```typescript
-{/* Example Hello.tsx */}
+{/* Beispiel Hallo.tsx */}
 import { Button } from '@sanny/ui';
 import { useTheme, getThemeVariant } from '@sanny/styles';
 import { useLanguage, translations } from '@sanny/i18n';
 
 function sayHello() {
-  alert('Hello World');
+  alert('Hallo Welt');
 }
 
 export default function Hello() {
@@ -47,24 +43,23 @@ export default function Hello() {
   const t = translations[language]; // nur nötig, wenn Komponenten ihren Text anhand globaler Sprachänderungen anpassen.
   return (
     <div className="content">
-      // Standard-Button
+      // Standardschaltfläche
       <Button
         className="say-hello-button"
-        aria-label="Klicken, um Hello als Alert auszugeben" // aria-label
-        variant={themeVariant} // kann 'primary' oder 'secondary' sein; 'ghost' kann verwendet werden, um den Button auszublenden.
+        variant={themeVariant} // getThemeVariant liefert 'primary' oder 'secondary'; zusätzlich wird 'destructive' unterstützt.
         onClick={sayHello}
       >
-        Hello-World-Button
+        Hallo-Welt-Schaltfläche
       </Button>
 
-      // Dynamisches Rendern eines Buttons
+      // Schaltfläche dynamisch darstellen
       <Button
         className="toggle-theme-button"
         aria-label={t.shared.settings.descriptionToggleThemeButton(theme)} // wechselt die Beschreibung abhängig vom Theme
         variant={themeVariant} // wechselt das Aussehen des Buttons (oder jeder anderen Komponente) abhängig vom Theme
         onClick={toggleTheme} // wechselt das Theme
       >
-        {t.shared.settings.toggleThemeButton(theme)} // wechselt den angezeigten Button-Text abhängig vom Theme
+        {t.shared.settings.toggleThemeButton(theme)} // ändert den angezeigten Schaltflächentext passend zum Darstellungsthema
       </Button>
     </div>
   );
@@ -82,42 +77,24 @@ Für einfache Funktionen wie `sayHello()` musst du die Funktion nicht außerhalb
 ```tsx
 // Standard
 onClick={() =>
-  alert('Button clicked')
+  alert('Schaltfläche angeklickt')
 }
 
-// In einem JS-Expression-Wrapper
+// Innerhalb eines JavaScript-Ausdrucks
 onClick={() => {
-  alert('Button clicked'); // erlaubt dir die Verwendung von Semikolons und anderer JS-spezifischer Syntax.
+  alert('Schaltfläche angeklickt'); // ermöglicht Semikolons und weitere JavaScript-spezifische Syntax.
 }}
 ```
 
 Grundsätzlich ist das Auslagern von Funktionen jedoch besser für Konsistenz und Wartbarkeit.
 
----
-
 ## Hinweise für Entwickler:innen
 
 Bevorzuge sichtbaren Button-Text und zugeordnete Formularlabels; sie stellen bereits den barrierefreien Namen bereit. Verwende ein lokalisiertes `aria-label`, wenn ein Steuerelement keinen ausreichenden sichtbaren Text hat, zum Beispiel bei einem Button, der nur ein Symbol zeigt. Verwende kein `aria-label`, das sichtbarem Text oder einem zugeordneten Label widerspricht, da es den von assistiven Technologien angesagten Namen überschreibt.
 
-Gemeinsame UI-Komponenten müssen routenspezifische Farbabweichungen unterstützen, ohne dabei das Layout-Verhalten zu verändern:
+Gemeinsame UI-Komponenten verwenden die semantischen Tokens aus `@sanny/styles`. Auxiliary-Routen-Styles begrenzen derzeit nur Layout-Hintergrund und Textfarbe über `--auxiliary-layout-bg` und `--auxiliary-layout-text`; sie überschreiben keine Farben gemeinsamer Komponenten.
 
-- Gemeinsames Komponenten-CSS liest komponentenspezifische Tokens mit globalen Fallbacks.
-
-Das bedeutet: Wenn du gemeinsame UI-Komponenten implementierst, musst du Farbvariablen wie diese einbeziehen:
-
-```tsx
-.component--primary {
-  background: var(--component-primary-bg, var(--color-primary)); // wenn `--component-primary-bg` in einer Auxiliary-Route-CSS-Datei wie `party.css` gesetzt ist, wird diese Farbe verwendet.
-  color: var(--component-primary-text, white); // wenn die erste Variable nirgends gesetzt ist, fällt sie auf `var(--color-primary)` zurück.
-}
-
-.component--secondary {
-  background: var(--component-secondary-bg, var(--color-surface-2));
-  color: var(--component-secondary-text, var(--color-text));
-}
-```
-
-Diese Tokens werden im gemeinsamen UI-Komponenten-CSS verwendet und können in Routenklassen wie `.auxiliary-layout--auxiliary-page-name` gesetzt werden:
+Setze diese Variablen in einem Routen-Stylesheet und ordne die Route in `Auxiliary.tsx` ihrer Layout-Klasse zu. Verwende für Komponenten weiterhin die gemeinsamen semantischen Tokens, statt eine API für routenspezifische Komponenten-Tokens einzuführen. Die aktuellen Routen-Styles setzen die Variablen auf Klassen wie `.auxiliary-layout--party`:
 
 ```css
 .auxiliary-layout--auxiliary-page-name {
@@ -125,10 +102,6 @@ Diese Tokens werden im gemeinsamen UI-Komponenten-CSS verwendet und können in R
     radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
     linear-gradient(180deg, #0c7a00 0%, #059600 100%);
   --auxiliary-layout-text: #eff8ee;
-  --component-primary-bg: #ebf8e8;
-  --component-primary-text: #0d5b00;
-  --component-secondary-bg: rgba(10, 79, 4, 0.45);
-  --component-secondary-text: #eff8ee;
 }
 ```
 
@@ -174,6 +147,4 @@ export default function Layout() {
 
 Weitere Informationen zum Routenverhalten findest du [hier](/docs/frontend/projects/sanny#besonderes-verhalten).
 
----
-
-Last edit: 17.10.2026
+Letzte Bearbeitung: 20.10.2026

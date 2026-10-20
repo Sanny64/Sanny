@@ -14,22 +14,16 @@ Authentication is handled by Auth0. You can sign in with an email and password o
 
 The backend also exposes `POST /api/v001/users/link-account`, a separate local-record merge endpoint. It requires a session and recent authentication, and checks that the session subject matches one of the two supplied Auth0 subjects. It does not verify ownership of the other subject or confirm the Auth0 identities are linked. It does not link identities in Auth0: it merges local rows, preserves a secondary password hash only when the primary row has none, carries forward verified-email status, and deletes the secondary row. The current Auth0 account-linking UI does not call this endpoint; it uses signed ownership proof and reconciles the canonical subject in the OAuth callback.
 
----
-
 ## Browser storage
 
 The site saves your selected language (`language`) and theme (`theme`) in first-party cookies and in your browser's `localStorage`. Preference cookies can remain for up to one year; `localStorage` remains until you or your browser clears it. If you have not chosen a language or theme, the site can use your browser language and operating-system theme preference. The site does not currently persist accessibility settings.
 
 Signing in also uses necessary authentication cookies. The session itself is stored server-side and expires after 30 minutes of inactivity, or after eight hours at the latest. A separate CSRF cookie supports protection of account-changing requests.
 
----
-
 ## Account controls and operations
 
 You can update your username or request account deletion from account settings. Deletion removes the account from the application's user database and Auth0, and invalidates its active sessions. You can request a password reset from account settings.
 
 For service operation and security, the backend records limited request metrics, such as route category, method, response status, and duration. Application logs are configured to redact account identifiers, email addresses, IP addresses, request and response bodies, cookies, and credentials.
-
----
 
 Last edit: 18.10.2026

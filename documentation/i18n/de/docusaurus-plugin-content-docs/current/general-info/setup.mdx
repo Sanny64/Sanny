@@ -4,61 +4,54 @@ description: Einführung in die Dokumentation
 sidebar_position: 1
 ---
 
-Klone dieses Repository, um Zugriff auf alle Anwendungen in diesem Workspace zu erhalten.<br/>Du benötigst Node.js und Git auf deinem Rechner.
+Klone dieses Repository, um Zugriff auf alle Anwendungen im Workspace zu erhalten. Du benötigst Node.js 24, npm 11.6.3 und Git.
 
----
+### Installation und Einrichtung
 
-### Installations- und Setup-Anweisungen
-
-Installiere die Abhängigkeiten im Repository-Stammverzeichnis:
+Installiere alle Workspace-Abhängigkeiten im Repository-Stammverzeichnis:
 
 ```sh
 npm ci
 ```
 
-_Führe im Root-Verzeichnis eines der Workspace-Skripte aus:_
+Starte jede benötigte App in einem eigenen Terminal:
 
-- npm run dev:sanny
-- npm run dev:auth
-- npm run dev:docs
-- npm run dev:docs-de
-- npm run start:backend
+- `npm run dev:sanny`
+- `npm run dev:auth`
+- `npm run dev:docs`
+- `npm run dev:docs:de`
+- `npm run start:backend`
+- `npm run restart:stack` für den initialen Image-Build und den vollständigen Entwicklungs-Stack
 
-Starte jede benötigte App in einem eigenen Terminal. Sanny läuft unter `https://localhost:5173`, Auth unter `https://localhost:5174` und die englische Dokumentation unter `http://localhost:3000`. Das deutsche Docs-Skript verwendet Port `3001`. Die Frontend-Dev-Server verwenden ein lokales HTTPS-Zertifikat und laden bei Quellcodeänderungen neu. Beende den Backend-Stack nach der Arbeit mit `npm run stop:backend`.
+Sanny läuft unter `https://localhost:5173`, Auth unter `https://localhost:5174` und die englische Dokumentation unter `http://localhost:3000`. Der deutsche Root-Befehl verwendet `http://localhost:3000/de/`; für einen separaten Port starte `npm run dev:de -w documentation`, das `http://localhost:3001/de/` bereitstellt. Frontend-Dev-Server verwenden ein lokales HTTPS-Zertifikat. Beende den Backend-Stack nach der Arbeit mit `npm run stop:backend`.
 
-_Für Qualitätsprüfungen:_
+### Qualitätsprüfungen
 
-- npm run format:check
-- npm run lint:backend
-- npm run lint:auth
-- npm run lint:sanny
-- npm run lint:docs
-- npm run test:backend
-- npm run test:frontend
-- npm run test
+- `npm run format:check`
+- `npm run check`
+- `npm run test:ci`
+- `npm run test` für das vollständige Gate einschließlich Live-Auth0-Prüfungen
 
-_Für lokale Builds:_
+### Builds
 
-- npm run build:sanny
-- npm run build:auth
-- npm run build:docs
-- npm run serve:docs (baut die Docs vorher)
-- npm run build:backend -> baut und startet den lokalen Docker-Compose-Backend-Stack
-- npm run restart:backend -> erstellt den Backend-App-Container neu
+Führe vor manuellen Builds `npm run check` aus; Build-Befehle führen keine statischen Prüfungen aus.
+
+- `npm run build:auth`, `npm run build:sanny` und `npm run build:docs` bauen einzelne Ziele; `build:docs` erstellt beide konfigurierten Sprachen. Für eine einzelne Sprache `build:docs:en` oder `build:docs:de` verwenden.
+- `npm run build:frontend` baut Auth, Sanny und beide Dokumentationssprachen.
+- `npm run build:backend` baut nur das Backend-Image und startet keine Services.
+- `npm run restart:stack` baut benötigte Images und erstellt den gesamten Entwicklungs-Compose-Stack neu; `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
 
 Das Backend benötigt vor dem Start eine lokale Umgebungskonfiguration und Zertifikate; siehe [Backend-Setup](../backend/backend-setup.mdx).
-
----
 
 ### Workspace-Übersicht
 
 - `sanny/`: öffentliche React-/Vite-Website und ihre gerouteten Seiten.
-- `auth/`: Authentifizierungs-UI für Bestätigung und Eigentumsnachweis.
+- `auth/`: Frontend für Account-Link-Bestätigung und Besitznachweis.
 - `backend/`: Fastify-API, Auth0-Skripte, Prisma-Schema, Docker Compose und Monitoring-Konfiguration.
-- `shared/packages/`: die Pakete `@sanny/i18n`, `@sanny/styles` und `@sanny/ui`.
+- `shared/packages/`: `@sanny/i18n`, `@sanny/styles` und `@sanny/ui`.
 - `documentation/`: Docusaurus-Quellen auf Englisch und Deutsch.
 - `games/`: eigenständige Spieleprojekte.
 
 ---
 
-Last edit: 18.10.2026
+Letzte Bearbeitung: 20.10.2026

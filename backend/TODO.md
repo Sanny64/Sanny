@@ -1,6 +1,6 @@
 # Staging Readiness Verification
 
-Backend test commands and coverage boundaries are in [Automated Testing](../documentation/docs/backend/local-testing/automated-testing.mdx). Frontend component, lint, build, and browser-test coverage is in [Frontend Local Testing](../documentation/docs/frontend/local-testing/automated-testing.mdx). Manual checks are in [Manual Testing](../documentation/docs/backend/local-testing/manual-testing.mdx). Record hosted evidence in the restricted deployment record and link only sanitized outcomes here. Never include secrets or personal data.
+Shared gate behavior and evidence-handling rules are in the [Local Testing guide](../documentation/docs/general-info/testing.mdx). Backend test commands and coverage boundaries are in [Automated Testing](../documentation/docs/backend/local-testing/automated-testing.mdx). Frontend component, lint, build, and browser-test coverage is in [Frontend Local Testing](../documentation/docs/frontend/local-testing/automated-testing.mdx). Backend manual checks are in [Manual Testing](../documentation/docs/backend/local-testing/manual-testing.mdx). Record hosted evidence in the restricted deployment record and link only sanitized outcomes here. Never include secrets or personal data.
 
 There is no hosted staging environment yet. Local unit, mocked-browser, and development-stack results are not staging sign-off.
 

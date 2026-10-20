@@ -233,7 +233,7 @@ test("rate-limit responses return JSON to APIs and redirect browser navigation",
 
     const development = parse(
       await readFile(
-        new URL("../../docker/docker-compose.yml", import.meta.url),
+        new URL("../../docker/docker-compose.dev.yml", import.meta.url),
         "utf8",
       ),
     );
@@ -249,7 +249,7 @@ test("rate-limit responses return JSON to APIs and redirect browser navigation",
       ),
     );
     assert.deepEqual(production.services["nginx-exporter"].extends, {
-      file: "docker-compose.yml",
+      file: "docker-compose.dev.yml",
       service: "nginx-exporter",
     });
   } finally {

@@ -4,43 +4,26 @@ description: Erklärung, worum es in diesem Projekt überhaupt geht.
 sidebar_position: 2
 ---
 
-Dieses Repository betreibt meine persönliche Website sowie den dazugehörigen Login, das Backend und die Dokumentations-Workspace. Die öffentliche Seite dient als **Portfolio**, als Hilfe zum **Hosten von Events** und als Ort für **Spiele, Blogbeiträge und allgemeine Inhalte**.
+Sanny64 ist meine persönliche Website und die Heimat meines Portfolios, meiner Seiten zur Eventplanung und kleinerer Unterhaltungsprojekte. Die Website bündelt diese Interessen und lädt dazu ein, meine Arbeit und Projekte zu entdecken.
 
----
+Dieses Repository umfasst mehr als die öffentliche Website. Es ist ein modulares Monorepo mit Authentifizierungs-App, Backend-API, gemeinsamen Frontend-Paketen und dieser Entwicklerdokumentation.
 
 ## Was ist in diesem Monorepo enthalten?
 
-- `sanny/` enthält die öffentliche React + Vite Website
-- `auth/` enthält die auf Authentifizierung fokussierte Auth-App
-- `backend/` enthält die Fastify-API, die geschützte Funktionen und Einstellungen unterstützt
-- `shared/packages/i18n/` verwaltet Sprachstatus und Übersetzungen
-- `shared/packages/styles/` verwaltet Theme- und Darstellungszustand
-- `shared/packages/ui/` stellt wiederverwendbare UI-Komponenten und gemeinsame Seiten bereit
-- `documentation/` enthält diese Dokumentationsseite
-- `games/` enthält eigenständige Mini-Spielprojekte
+- **Öffentliche Website:** Portfolio, Projekte, Spiele, Blog und Eventseiten.
+- **Authentifizierung:** Ein Auth0-basierter Kontenablauf für geschützte Aktionen und Dienste.
+- **Backend:** Eine Fastify-API für Anwendungsdienste und geschützte Benutzerfunktionen.
+- **Gemeinsame Frontend-Pakete:** Sprach-, Theme- und UI-Funktionen für Website und Auth-App.
+- **Dokumentation:** Anleitungen und Projektkontext für Entwicklung und Wartung.
 
 Die öffentlichen Routen für Portfolio, Projekte, Spiele, Blog und Party sind vorhanden, ihre Seiteninhalte zeigen derzeit jedoch übersetzte Platzhalter. Die interaktiven Konto-, Einstellungs-, Admin- und Account-Linking-Abläufe sind davon getrennt und in Frontend und Backend implementiert.
 
----
-
 ## Projektausrichtung
 
-Der Workspace folgt einigen zentralen Prinzipien:
-
-- Architektur: modulbasiertes Monorepo
-- Designansatz: mobile-first und nutzerzentriert
-- Authentifizierung: für einige Aktionen erforderlich, mit rollenbasiertem Zugriff
-- Einstellungen: Sprach- und Darstellungsänderungen über alle Apps hinweg
-- Anforderungen: barrierefrei, Hell- und Dunkelmodus, Unterstützung für Englisch und Deutsch, Mikrointeraktionen sowie ein modernes, intuitives Design
-
----
+Das Projekt verfolgt einen mobilorientierten, nutzerzentrierten Ansatz. Die Oberflächen unterstützen Deutsch und Englisch, helle und dunkle Darstellung, Tastaturbedienung und reduzierte Bewegung. Gemeinsame Pakete sorgen für ein konsistentes Erlebnis auf der öffentlichen Website und in der Auth-App. Authentifizierung und rollenbasierte Berechtigungen schützen Funktionen, die dies erfordern.
 
 ## Gemeinsamer Fokus
 
-Die Shared-Packages sorgen dafür, dass die Frontend-Apps konsistent bleiben. Sprache, Theme, Einstellungen und gemeinsame UI sollen über die öffentliche Seite und den Auth-Workspace hinweg abgestimmt sein, anstatt in jeder App neu implementiert zu werden.
+Die gemeinsamen Pakete stimmen Sprache, Darstellung, Einstellungen und gemeinsame Benutzeroberfläche über die öffentliche Website und Auth hinweg aufeinander ab, statt diese Funktionen in jeder App neu umzusetzen. So werden Wartung sowie Anpassungen an Barrierefreiheit, Lokalisierung und Gestaltung zentral gebündelt.
 
-Das erleichtert die Wartung des Repos und bündelt Änderungen wie Barrierefreiheit, Lokalisierung und Styling-Verhalten an einer zentralen Stelle.
-
----
-
-Last edit: 18.10.2026
+Letzte Bearbeitung: 20.10.2026

@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
-  testDir: "./e2e/monitoring",
+  testDir: fileURLToPath(new URL("./monitoring", import.meta.url)),
+  outputDir: fileURLToPath(new URL("../../test-results", import.meta.url)),
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   reporter: "list",

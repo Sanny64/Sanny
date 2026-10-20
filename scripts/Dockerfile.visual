@@ -1,0 +1,7 @@
+ARG PLAYWRIGHT_VERSION
+FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble
+
+WORKDIR /workspace
+RUN npm install --global npm@11.6.3
+COPY . .
+RUN npm ci --ignore-scripts --no-audit --no-fund

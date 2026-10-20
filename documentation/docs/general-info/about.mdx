@@ -8,8 +8,6 @@ Sanny64 is my personal website and the home of my portfolio, event-planning page
 
 This repository contains more than the public website. It is a modular monorepo that also includes an authentication frontend, a backend API, shared frontend packages, and this developer documentation.
 
----
-
 ## What the Project Includes
 
 - **Public website:** Portfolio, projects, games, blog, and event-related pages.
@@ -20,12 +18,12 @@ This repository contains more than the public website. It is a modular monorepo 
 
 The public routes for the portfolio, projects, games, blog, and party pages are present, but their page bodies currently render translated placeholder content. The interactive account, settings, admin, and account-linking flows are separate and are implemented in the frontend and backend.
 
----
-
 ## Project Direction
 
 The project is built with a mobile-first, user-centered approach. Its interfaces support English and German, light and dark appearance, keyboard access, and reduced-motion preferences. Shared packages keep the experience consistent across the public site and authentication app, while authentication and role-based permissions protect features that need them.
 
----
+## Shared Focus
 
-Last edit: 18.10.2026
+The shared packages keep language, theme, settings, and common UI aligned across the public site and Auth instead of reimplementing them in each app. This centralizes maintenance for accessibility, localization, and styling behavior.
+
+Last edit: 20.10.2026

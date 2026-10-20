@@ -286,7 +286,7 @@ async function deleteUser(event, managementToken, userId) {
 
 /**
  * @param {string} event
- * @param {Record<string, any>} details
+ * @param {Record<string, any>} [details]
  */
 function logLinkDetection(event, details) {
   const detailsString =
@@ -383,21 +383,19 @@ async function detectAndPromptForLinking(event, api) {
     return; // nothing unlinked left to offer
   }
 
-  const proofUserId =
-    event.user.user_id === primaryUser.user_id
-      ? secondaryUser.user_id
-      : event.user.user_id === secondaryUser.user_id
-        ? primaryUser.user_id
-        : undefined;
+  let proofUserId;
+  if (event.user.user_id === primaryUser.user_id) {
+    proofUserId = secondaryUser.user_id;
+  } else if (event.user.user_id === secondaryUser.user_id) {
+    proofUserId = primaryUser.user_id;
+  }
   if (!proofUserId) {
     throw new Error("The current login is not part of the account link");
   }
 
-  const temporaryUserId =
-    event.stats && event.stats.logins_count === 1
-      ? event.user.user_id
-      : undefined;
-  if (temporaryUserId) {
+  let temporaryUserId;
+  if (event.stats && event.stats.logins_count === 1) {
+    temporaryUserId = event.user.user_id;
     await recordLinkDecision(
       event,
       managementToken,
@@ -472,12 +470,13 @@ async function handleLinkDecision(event, api) {
   }
 
   if (decision === "confirm") {
+    // prettier-ignore
     const expectedProofUserId =
-      event.user.user_id === primaryUserId
-        ? secondaryUserId
-        : event.user.user_id === secondaryUserId
-          ? primaryUserId
-          : undefined;
+      event.user.user_id === primaryUserId ?
+        secondaryUserId
+      : event.user.user_id === secondaryUserId ?
+        primaryUserId
+      : undefined;
     if (!expectedProofUserId) {
       throw new Error("The current login is not part of the account link");
     }

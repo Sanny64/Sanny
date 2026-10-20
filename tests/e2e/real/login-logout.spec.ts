@@ -3,6 +3,9 @@
 import { expect, test } from "@playwright/test";
 import { env } from "node:process";
 
+const apiUrl =
+  env.SANNY_E2E_API_URL ?? env.VITE_API_URL ?? "https://localhost:8443";
+
 async function beginSignIn(
   page: import("@playwright/test").Page,
   appUrl: string,
@@ -11,20 +14,47 @@ async function beginSignIn(
   await page.goto(appUrl);
   const appHost = new URL(appUrl).host;
   const apiHost = new URL(apiUrl).host;
+  const authStartActivity: string[] = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/v001/auth") {
+      authStartActivity.push(`request ${request.method()}`);
+    }
+  });
+  page.on("response", (response) => {
+    if (new URL(response.url()).pathname === "/api/v001/auth") {
+      authStartActivity.push(`response ${response.status()}`);
+    }
+  });
+  page.on("requestfailed", (request) => {
+    if (new URL(request.url()).pathname === "/api/v001/auth") {
+      authStartActivity.push(
+        `failed ${request.failure()?.errorText ?? "unknown"}`,
+      );
+    }
+  });
   const accountMenu = page.getByRole("button", { name: "Account menu" });
-  await Promise.all([
-    page.waitForURL((url) => url.host !== appHost && url.host !== apiHost, {
-      waitUntil: "commit",
-      timeout: 90_000,
-    }),
-    (async () => {
-      await accountMenu.click();
-      await page
-        .getByRole("navigation", { name: "Account", exact: true })
-        .getByRole("button", { name: "Login", exact: true })
-        .click();
-    })(),
-  ]);
+  try {
+    await Promise.all([
+      page.waitForURL((url) => url.host !== appHost && url.host !== apiHost, {
+        waitUntil: "commit",
+        timeout: 90_000,
+      }),
+      (async () => {
+        await accountMenu.click();
+        await page
+          .getByRole("navigation", { name: "Account", exact: true })
+          .getByRole("button", { name: "Login", exact: true })
+          .click();
+      })(),
+    ]);
+  } catch (error) {
+    const currentUrl = new URL(page.url());
+    throw new Error(
+      `Sign-in did not reach Auth0 from ${currentUrl.host}${currentUrl.pathname}; ` +
+        `auth endpoint activity: ${authStartActivity.join(", ") || "none"}.`,
+      { cause: error },
+    );
+  }
 }
 
 async function submitCredentialsAndWaitForCallback(
@@ -131,9 +161,7 @@ test("creates or loads a Google social user through live Auth0 @real", async ({
     "Set TESTGOOGLEUSER_EMAIL and TESTGOOGLEUSER_PASSWORD to run the live flow.",
   );
 
-  const appUrl = env.SANNY_E2E_APP_URL ?? "https://127.0.0.1:5176";
-  const apiUrl = env.SANNY_E2E_API_URL ?? "https://localhost:8443";
-
+  const appUrl = env.SANNY_E2E_APP_URL ?? "https://127.0.0.1:5178";
   await beginSignIn(page, appUrl, apiUrl);
 
   await page.getByRole("button", { name: /google/i }).click();
@@ -176,9 +204,7 @@ test("creates or loads a password user through live Auth0 @real", async ({
     "Set TESTUSER_EMAIL and TESTUSER_PASSWORD to run the live flow.",
   );
 
-  const appUrl = env.SANNY_E2E_APP_URL ?? "https://127.0.0.1:5176";
-  const apiUrl = env.SANNY_E2E_API_URL ?? "https://localhost:8443";
-
+  const appUrl = env.SANNY_E2E_APP_URL ?? "https://127.0.0.1:5178";
   const auth0StepResponses: string[] = [];
   let cloudflareChallengeDetected = false;
   page.on("response", (response) => {
@@ -288,7 +314,8 @@ test("creates or loads a password user through live Auth0 @real", async ({
     error: "Forbidden",
     message: "Invalid CSRF token",
   };
-  const trustedOrigin = new URL(appUrl).origin;
+  const trustedOrigin =
+    env.SANNY_E2E_TRUSTED_ORIGIN ?? "https://127.0.0.1:5176";
   const profileMutation = await context.request.patch(
     `${apiUrl}/api/v001/users/me`,
     {

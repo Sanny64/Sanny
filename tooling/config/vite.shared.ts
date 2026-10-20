@@ -1,9 +1,7 @@
-/// <reference types="node" />
-
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
-import { themeStorageKey } from "./shared/packages/styles/theme.config.ts";
+import { themeStorageKey } from "../../shared/packages/styles/theme.config.ts";
 
 export function createThemeBootstrap(): Plugin {
   return {
@@ -75,14 +73,16 @@ export function resolveFrontendApiUrl(
   return url.origin;
 }
 
-export function createFrontendViteConfig() {
+export function createFrontendViteConfig(root: string) {
   return defineConfig(({ mode, command }) => {
     const apiUrl = resolveFrontendApiUrl(
-      loadEnv(mode, process.cwd(), "VITE_"),
+      loadEnv(mode, root, "VITE_"),
       mode,
       command,
     );
     return {
+      root,
+      envDir: root,
       plugins: [createThemeBootstrap(), react(), basicSsl()],
       define: { "import.meta.env.VITE_API_URL": JSON.stringify(apiUrl) },
     };
