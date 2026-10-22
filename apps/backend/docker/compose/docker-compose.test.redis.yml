@@ -1,0 +1,62 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
+      - --requirepass
+      - sanny-redis-test-only
+    environment:
+      REDIS_PASSWORD: sanny-redis-test-only
+    volumes:
+      - ../../../../apps/backend/redis/redis.conf:/etc/redis/redis.conf:ro
+      - ${SANNY_REDIS_TEST_CERTS:?Run the Redis test runner}:/etc/redis/certs:ro
+      - redis-data:/data
+    networks:
+      - redis-test
+    restart: 'no'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli --tls --cacert /etc/redis/certs/ca.crt -h redis ping | grep -qx PONG
+      interval: 1s
+      timeout: 3s
+      retries: 10
+
+  sanny64-backend:
+    build:
+      context: ../../../../
+      dockerfile: apps/backend/docker/Dockerfile
+      target: builder
+    restart: 'no'
+    environment:
+      NODE_ENV: development
+      RUN_REAL_REDIS_TESTS: 'true'
+      REDIS_CONNECT_TIMEOUT_MS: '10000'
+      REDIS_PASSWORD: sanny-redis-test-only
+      DATABASE_URL: mysql://test:test@127.0.0.1:3306/test
+      AUTH0_DOMAIN: tenant.example.test
+      AUTH0_CLIENT_ID: integration-client
+      AUTH0_CLIENT_SECRET: integration-secret
+      AUTH0_AUDIENCE: https://api.example.test
+      DEV_AUTH0_CALLBACK_URL: https://api.example.test/api/v001/auth/callback
+    volumes:
+      - ${SANNY_REDIS_TEST_CERTS:?Run the Redis test runner}/ca.crt:/app/redis-ca.crt:ro
+    command:
+      - node
+      - --import=tsx
+      - --test
+      - --test-timeout=120000
+      - src/tests/session-rotation.test.ts
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - redis-test
+
+networks:
+  redis-test:
+    internal: true
+
+volumes:
+  redis-data:

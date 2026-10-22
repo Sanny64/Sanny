@@ -37,7 +37,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: tooling/config/.nvmrc
 
       - name: Set up npm
         run: npm install --global npm@11.6.3
@@ -62,9 +62,9 @@ jobs:
       - name: Stage testing sites
         run: |
           mkdir -p testing-site/sanny testing-site/auth testing-site/docs
-          cp -a sanny/dist/. testing-site/sanny/
-          cp -a auth/dist/. testing-site/auth/
-          cp -a documentation/build/. testing-site/docs/
+          cp -a apps/frontend/sanny/dist/. testing-site/sanny/
+          cp -a apps/frontend/auth/dist/. testing-site/auth/
+          cp -a apps/documentation/build/. testing-site/docs/
           if [[ -z "$TEST_BASIC_AUTH_ENTRY" || "$TEST_BASIC_AUTH_ENTRY" == *$'\r'* ]]; then
             echo "TEST_BASIC_AUTH_ENTRY must contain one or more username:hashed-password lines."
             exit 1
@@ -119,11 +119,11 @@ jobs:
       matrix:
         include:
           - site: sanny
-            server-dir: "/public_html/testing/"
+            server-dir: '/public_html/testing/'
           - site: auth
-            server-dir: "/public_html/testing/auth/"
+            server-dir: '/public_html/testing/apps/frontend/auth/'
           - site: docs
-            server-dir: "/public_html/testing/docs/"
+            server-dir: '/public_html/testing/docs/'
 
     steps:
       - name: Download frontend builds

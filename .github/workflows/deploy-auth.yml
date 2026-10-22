@@ -33,7 +33,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: tooling/config/.nvmrc
 
       - name: Set up npm
         run: npm install --global npm@11.6.3
@@ -55,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: auth-dist
-          path: auth/dist/
+          path: apps/frontend/auth/dist/
           if-no-files-found: error
 
   deploy:
@@ -67,7 +67,7 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: auth-dist
-          path: auth/dist/
+          path: apps/frontend/auth/dist/
 
       - name: Deploy to Hetzner via FTP
         uses: SamKirkland/FTP-Deploy-Action@110f9186c050f71550953127052e77650219c287 # v4.4.0
@@ -77,5 +77,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: strict
-          local-dir: ./auth/dist/
-          server-dir: /public_html/auth/
+          local-dir: ./apps/frontend/auth/dist/
+          server-dir: /public_html/apps/frontend/auth/

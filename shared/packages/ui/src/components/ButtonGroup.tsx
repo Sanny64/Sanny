@@ -1,7 +1,7 @@
-import type { ButtonHTMLAttributes } from "react";
-import "../styles/button.css";
+import type { ButtonHTMLAttributes } from 'react';
+import '../css/button.css';
 
-type Layout = "horizontal" | "vertical";
+type Layout = 'horizontal' | 'vertical';
 
 type ButtonGroupProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   layout?: Layout;
@@ -9,8 +9,8 @@ type ButtonGroupProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export function ButtonGroup({
   children,
-  className = "",
-  layout = "horizontal",
+  className = '',
+  layout = 'horizontal',
 }: ButtonGroupProps) {
   return (
     <div className={`btn-group btn-group--${layout} ${className}`}>

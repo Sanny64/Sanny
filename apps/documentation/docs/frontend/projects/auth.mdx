@@ -1,0 +1,34 @@
+---
+title: Auth
+description: Informations on the auth project.
+sidebar_position: 3
+---
+
+# Auth
+
+The `apps/frontend/auth/` workspace is the authentication frontend for the monorepo. It handles account-link confirmation and ownership proof, not a standalone login form. Its root displays request state and shared appearance settings; backend login endpoints and Auth0 callbacks remain unchanged.
+
+## Purpose
+
+- Provide a focused authentication experience
+- Keep protected flows separate from the public portfolio pages
+- Share language, theme, and UI behavior with the rest of the workspace
+- Stay small and maintainable through shared packages
+
+## Shared Dependencies
+
+The auth app relies on the shared workspace packages to stay consistent with the rest of the project:
+
+- `@sanny/i18n` for language handling and translations
+- `@sanny/styles` for theme and global styling state
+- `@sanny/ui` for reusable components and shared UI patterns
+
+Both Auth and Sanny use `AppShell`, semantic light/dark surface tokens, bundled Manrope typography, and reduced-motion-aware Framer Motion defaults. Shared CSS is imported by `src/main.tsx`, so standalone proof and error routes receive the same theme.
+
+## Development and Deployment
+
+Use `npm run dev:auth`, `npm run lint:auth`, and `npm run build:auth` from the root. Run focused accessibility checks with `npx playwright test shared/tests/e2e/mock/auth-accessibility.spec.ts`. The app runs at `https://localhost:5174`.
+
+The `deploy-auth.yml` workflow passes the built artifact to the deploy job and publishes `apps/frontend/auth/dist/` to `/public_html/apps/frontend/auth/`. The auth subdomain document root must point there. Existing runtime configuration files move with the directory; endpoint URLs do not change merely because the workspace was renamed.
+
+Last edit: 17.10.2026

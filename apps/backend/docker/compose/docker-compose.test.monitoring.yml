@@ -1,0 +1,73 @@
+services:
+  loki:
+    image: grafana/loki:2.9.8
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ../../../../apps/backend/monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+
+  notification-sink:
+    image: node:24-alpine
+    command: ['node', '/app/notification-sink.mjs']
+    volumes:
+      - ../../../../tooling/scripts/notification-sink.mjs:/app/notification-sink.mjs:ro
+
+  grafana:
+    image: grafana/grafana@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
+    environment:
+      GF_SECURITY_ADMIN_USER: monitoring-test
+      GF_SECURITY_ADMIN_PASSWORD: monitoring-test-only
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SMTP_ENABLED: 'false'
+      GF_LOG_LEVEL: warn
+    volumes:
+      - ../../../../apps/backend/monitoring/tests/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../../../../apps/backend/monitoring/tests/grafana-contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
+      - ../../../../apps/backend/monitoring/tests/grafana-policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
+      - ${SANNY_MONITORING_TEST_RULES:?Run the monitoring test runner}:/etc/grafana/provisioning/alerting/test-rules.yml:ro
+    depends_on:
+      - loki
+      - notification-sink
+
+  monitoring-tests:
+    user: '0:0'
+    build:
+      context: ../../../../
+      dockerfile: apps/backend/docker/Dockerfile
+      target: builder
+    command:
+      - node
+      - --import=tsx
+      - --test
+      - monitoring/tests/integration/grafana-rules.integration.test.ts
+    environment:
+      GRAFANA_ADMIN_USER: monitoring-test
+      GRAFANA_ADMIN_PASSWORD: monitoring-test-only
+      GRAFANA_URL: http://grafana:3000
+      LOKI_URL: http://loki:3100
+      NOTIFICATION_SINK_URL: http://notification-sink:9000
+    volumes:
+      - nginx-logs:/var/log/nginx
+      - application-logs:/var/log/app
+    depends_on:
+      - grafana
+      - loki
+      - notification-sink
+      - alloy
+
+  alloy:
+    image: grafana/alloy:v1.21.0
+    command: ['run', '--storage.path=/var/lib/alloy', '/etc/alloy/config.alloy']
+    volumes:
+      - ../../../../apps/backend/monitoring/config/config.alloy:/etc/alloy/config.alloy:ro
+      - nginx-logs:/var/log/nginx:ro
+      - application-logs:/var/log/app:ro
+      - alloy-data:/var/lib/alloy
+      - promtail-data:/var/lib/promtail:ro
+    depends_on:
+      - loki
+
+volumes:
+  nginx-logs:
+  application-logs:
+  alloy-data:
+  promtail-data:

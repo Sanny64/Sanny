@@ -1,15 +1,29 @@
 {
-  "extends": "./tooling/config/tsconfig.node.base.json",
   "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+    "target": "ES2023",
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "strict": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedSideEffectImports": true
   },
   "include": [
-    "tooling/**/*.ts",
-    "playwright*.ts",
-    "tests/**/*.ts",
-    "auth/vite.config.ts",
-    "sanny/vite.config.ts",
-    "shared/types/frontend-env.d.ts",
+    "apps/frontend/**/*.ts",
+    "shared/tests/**/*.ts",
     "shared/packages/ui/vitest.config.ts"
   ]
 }

@@ -33,7 +33,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version-file: .nvmrc
+          node-version-file: tooling/config/.nvmrc
 
       - name: Set up npm
         run: npm install --global npm@11.6.3
@@ -42,7 +42,7 @@ jobs:
         run: npm ci
 
       - name: Copy favicon from root
-        run: cp ./favicon.ico ./sanny/public/
+        run: cp ./favicon.ico ./apps/frontend/sanny/public/
 
       - name: Build the project
         run: |
@@ -62,5 +62,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ftps
           security: strict
-          local-dir: ./sanny/dist/
-          server-dir: /public_html/sanny/
+          local-dir: ./apps/frontend/sanny/dist/
+          server-dir: /public_html/apps/frontend/sanny/

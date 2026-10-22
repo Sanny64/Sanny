@@ -1,4 +1,15 @@
 {
-  "extends": "../../../tooling/config/tsconfig.frontend.base.json",
-  "include": ["*.ts", "*.tsx", "locales/**/*.ts"]
+  "extends": "../../../apps/frontend/tsconfig.frontend.json",
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "locales/**/*.ts",
+    "index.ts",
+    "src/config/language.config.ts",
+    "src/types/language.types.ts",
+    "src/utils/language.utils.ts",
+    "src/LanguageContext.tsx",
+    "src/LanguageProvider.tsx",
+    "src/hooks/useLanguage.ts"
+  ]
 }

@@ -3,7 +3,7 @@ export type ErrorStatus = (typeof supportedStatuses)[number];
 
 export function getErrorStatus(
   value: string | number | null,
-  fallback: ErrorStatus = 500,
+  fallback: ErrorStatus = 500
 ): ErrorStatus {
   if (value === null) return fallback;
   const parsed = Number(value);

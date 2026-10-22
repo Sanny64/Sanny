@@ -1,0 +1,150 @@
+---
+title: Umgebungskonfiguration
+description: Backend-Umgebungsvariablen und Trennung von Umgebungen.
+sidebar_position: 4
+---
+
+Das Backend liest seine lokale Konfiguration aus `apps/backend/.env`. Beginne mit `apps/backend/.env.template` und ersetze anschließend die Beispielwerte durch Zugangsdaten und Ressourcenkennungen deiner eigenen Umgebung. Committe niemals `apps/backend/.env`, echte Zugangsdaten, Tenant-Kennungen oder private Schlüssel. Produktionsgeheimnisse gehören in den Secret-Store der Bereitstellungsumgebung, nicht in diese Datei oder in ins Repository eingecheckte Compose-Overrides.
+
+## Umgebung auswählen
+
+`NODE_ENV` muss exakt `development` oder `production` sein. Das Backend verwendet den Wert, um die passenden Werte mit dem Präfix `DEV_` oder `PROD_` auszuwählen. Richte für jede Umgebung eigene Auth0-, Datenbank- und Redis-Ressourcen ein; verwende in der Entwicklung keine Produktionsdaten. Die Produktions-Compose- Konfiguration setzt `NODE_ENV` auf `production`.
+
+---
+
+## Auth0
+
+Ausführliche Anweisungen zur Auth0-Umgebungskonfiguration stehen unter [Einrichtung des Auth0-Tenants](./auth0-tenant-setup#7-actions-bereitstellen).
+
+---
+
+## Backend
+
+```dotenv
+# Backend-Umgebungsvorlage für Sanny
+
+# Umgebung auswählen
+NODE_ENV="development" # Bei einer Änderung dieses Werts muss er auch
+                         # für alle Auth0-Anwendungen, Actions und Datenbankverbindungen
+                         # angepasst werden. Zulässig ist exakt `development` oder `production`.
+
+# Datenbankverbindung
+DATABASE_URL="mysql://benutzer:passwort@server/datenbank"
+
+# Redis-Sitzungsspeicher
+REDIS_PASSWORD="zufälliger geheimer Text ohne Sonderzeichen"
+REDIS_CONNECT_TIMEOUT_MS=10000
+
+# Grafana
+GRAFANA_ADMIN_USER="dein Grafana-Administratorname"
+GRAFANA_ADMIN_PASSWORD="dein Grafana-Administratorkennwort"
+GRAFANA_DEV_ROOT_URL="https://localhost:8443/grafana/"
+GRAFANA_PROD_ROOT_URL="https://monitoring.example.de/grafana/"
+
+# Hetzner-SMTP
+SMTP_HOST="dein-mailserver:587"                 # Port 587 erfordert STARTTLS
+                                                  # Port 465 verwendet implizites TLS. Zertifikate werden überprüft.
+SMTP_USER="dein SMTP-Benutzername"              # z. B. webmaster@domain.de
+SMTP_PASSWORD="dein SMTP-Kennwort"
+SMTP_FROM_ADDRESS="deine Absenderadresse"       # z. B. webmaster@domain.de
+
+# Auth0-Anwendung
+AUTH0_DOMAIN="beispiel.location.auth0.com" # Eigene Domain, z. B. auth.example.com
+                                            # Wie in Auth0 konfiguriert; hier kein http- oder https-Präfix verwenden.
+AUTH0_AUDIENCE="https://api.example.de"
+AUTH0_CLIENT_ID="deine Auth0-Client-ID"
+AUTH0_CLIENT_SECRET="dein Auth0-Client-Secret"
+AUTH0_M2M_CLIENT_ID="deine Auth0-M2M-Client-ID"
+AUTH0_M2M_CLIENT_SECRET="dein Auth0-M2M-Client-Secret"
+AUTH0_MGMT_AUDIENCE="https://tenant.location.auth0.com/api/v2/"
+
+# OAuth-Weiterleitungen und Browser-Origin-Adressen
+DEV_AUTH0_CALLBACK_URL="https://localhost:8443/api/v001/auth/callback"
+PROD_AUTH0_CALLBACK_URL="https://api.example.de/api/v001/auth/callback"
+DEV_AUTH0_SUCCESS_REDIRECT="https://localhost:5173/"
+PROD_AUTH0_SUCCESS_REDIRECT="https://example.de/"
+DEV_AUTH0_LOGOUT_REDIRECT="https://localhost:5173/"
+PROD_AUTH0_LOGOUT_REDIRECT="https://example.de/"
+DEV_CORS_ORIGINS="https://localhost:5173,https://localhost:5174"
+PROD_CORS_ORIGINS="https://www.example.de,https://auth.example.de,https://example.de"
+
+# Auth0-Token-Claims und Verifizierung
+AUTH0_EMAIL_CLAIM="https://example.de/email"
+AUTH0_NAME_CLAIM="https://example.de/name"
+AUTH0_ROLES_CLAIM="https://example.de/roles"
+AUTH0_CLAIM_NAMESPACE="https://example.de"
+AUTH0_EMAIL_VERIFIED_CLAIM="https://example.de/email_verified"
+
+# Backend-Sicherheit und Betrieb
+DEV_TRUST_PROXY="false"
+PROD_TRUST_PROXY="172.28.0.2"
+AUTH0_ROLE_SYNC_ENABLED="true"
+
+# Kontoverknüpfung
+DEV_ACCOUNT_LINK_FRONTEND_URL="https://localhost:5174/confirm-linking"
+PROD_ACCOUNT_LINK_FRONTEND_URL="https://auth.example.de/confirm-linking"
+ACCOUNT_LINK_PROOF_SECRET="zufälliger geheimer Text ohne Sonderzeichen"
+AUTH0_DATABASE_CONNECTION="deine Auth0-Datenbankverbindung"
+AUTH0_DATABASE_CONNECTION_ID="con_deine-auth0-datenbankverbindungs-id"
+
+# Playwright-Testkonfiguration
+## Testbenutzer
+TESTUSER_EMAIL="testuser@example.com"
+TESTUSER_PASSWORD="dein Kontokennwort für die Anwendung"
+TESTGOOGLEUSER_EMAIL="testuser@gmail.com"
+TESTGOOGLEUSER_PASSWORD="dein Google-Kontokennwort für die Anwendung"
+
+# Ratenbegrenzung
+AUTH0_GLOBAL_BUDGET_PER_MIN=200
+
+# Webhooks
+DISCORD_WEBHOOK="deine Discord-Webhook-URL"
+```
+
+`REDIS_CONNECT_TIMEOUT_MS` begrenzt den gesamten ersten Redis-Verbindungsversuch, einschließlich Wiederholungen. Der Standardwert beträgt 10000 Millisekunden; zulässig sind Ganzzahlen von 1 bis 2147483647. Wird das Limit erreicht, schlägt der Start fehl und der Client wird geschlossen. Der automatische Neuverbindungsversuch nach einem erfolgreichen Start bleibt unverändert.
+
+---
+
+## GitHub-Actions-Secrets
+
+Docker-Hub-Zugangsdaten sind keine Backend-Laufzeitkonfiguration und dürfen nicht in `apps/backend/.env` oder `.env.template` gespeichert werden. Lege sie als Repository- Secrets für den Workflow **Release workspace** an. `deploy-backend.yml` ist kein eigenständiger Push- oder manueller Einstiegspunkt. `DOCKERHUB_USERNAME` und `DOCKERHUB_PAT` werden beim Veröffentlichen des Backend-Images benötigt; VPS-Secrets kommen nur zum Einsatz, wenn ein manueller `main`-Release `deploy-backend` aktiviert.
+
+1. Öffne auf GitHub die **Settings** des Repositorys.
+2. Wähle **Secrets and variables** > **Actions** > **New repository secret**.
+3. Lege `DOCKERHUB_USERNAME` mit dem Docker-Hub-Kontonamen an.
+4. Lege `DOCKERHUB_PAT` mit einem Docker-Hub-Zugriffstoken an, das Images nach
+   `sanny64/backend` pushen darf.
+
+Der Release-Koordinator übergibt diese Secrets an den Backend-Workflow, wenn der Planner das Backend auswählt. Dieser veröffentlicht das Image auf Docker Hub; für GHCR wird das `GITHUB_TOKEN` des Workflows verwendet, ein separates Registry-Secret ist nicht nötig. Für das VPS-Deployment werden zusätzlich `VPS_HOST`, `VPS_USERNAME` und `VPS_SSH_KEY` benötigt.
+
+---
+
+## Auth-Frontend (`apps/frontend/auth/.env.local`)
+
+Konfiguriere den Ursprung der Backend-API für die ausgewählte Umgebung. Der Browser-Code verwendet ausschließlich `VITE_API_URL`; ein expliziter Wert hat Vorrang vor `VITE_DEV_API_URL` im Entwicklungs-/Testmodus und `VITE_PROD_API_URL` in anderen Modi. Deployment-Workflows übergeben die passende Repository-Variable als `VITE_API_URL`. Werte müssen HTTPS-Origins ohne Pfad, Zugangsdaten, Query oder Fragment sein. Das Auth-Frontend verwendet keine Auth0-Client-Zugangsdaten; OAuth wird vom Backend gestartet und abgeschlossen.
+
+```dotenv
+VITE_DEV_API_URL=https://localhost:8443
+VITE_PROD_API_URL=https://api.example.com
+```
+
+Die API-Ursprünge müssen zur Backend-Umgebung und deren CORS-Konfiguration passen.
+
+---
+
+## Öffentliches Frontend (`apps/frontend/sanny/.env.local`)
+
+Auch das öffentliche Frontend verwendet den Ursprung der Backend-API. Es konfiguriert keinen Auth0-React-SDK-Client.
+
+Es verwendet wie das Auth-Frontend das kanonische `VITE_API_URL`; für umgebungsspezifische Fallback-Variablen und die Anforderungen an HTTPS-Origins gelten die obigen Angaben.
+
+```dotenv
+VITE_DEV_API_URL=https://localhost:8443
+VITE_PROD_API_URL=https://api.example.com
+```
+
+Die Werte müssen zur ausgewählten Backend-Umgebung und deren CORS-Konfiguration passen.
+
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

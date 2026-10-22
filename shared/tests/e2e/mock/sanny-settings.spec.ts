@@ -1,0 +1,1028 @@
+import { expect, test, type Page, type Route } from '@playwright/test';
+
+const sannyUrl = 'https://127.0.0.1:5176';
+
+for (const appUrl of [sannyUrl, 'https://127.0.0.1:5175']) {
+  for (const preference of [
+    'cookie',
+    'localStorage',
+    'system',
+    'light',
+    'invalid',
+    'blocked',
+  ] as const) {
+    test(`initial theme survives hard refresh before React loads: ${appUrl} / ${preference}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({
+        colorScheme: preference === 'cookie' ? 'light' : 'dark',
+      });
+      await page.addInitScript((source) => {
+        localStorage.clear();
+        document.cookie = 'theme=; Max-Age=0; path=/';
+        if (source === 'cookie') {
+          document.cookie = 'theme=dark; path=/';
+          localStorage.setItem('theme', 'light');
+        } else if (source === 'localStorage' || source === 'light') {
+          localStorage.setItem('theme', source === 'light' ? 'light' : 'dark');
+        } else if (source === 'invalid') {
+          document.cookie = 'theme=invalid; path=/';
+          localStorage.setItem('theme', 'invalid');
+        } else if (source === 'blocked') {
+          Object.defineProperty(window, 'localStorage', {
+            get() {
+              throw new DOMException('Storage unavailable', 'SecurityError');
+            },
+          });
+        }
+      }, preference);
+      await page.route('**/*', (route) => {
+        const type = route.request().resourceType();
+        return type === 'script' || type === 'stylesheet'
+          ? route.abort()
+          : route.continue();
+      });
+      const expectedTheme = preference === 'light' ? 'light' : 'dark';
+      const expectedBackground =
+        preference === 'light' ? 'rgb(245, 247, 246)' : 'rgb(21, 25, 23)';
+
+      await page.goto(appUrl);
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-theme',
+        expectedTheme
+      );
+      await expect(page.locator('html')).toHaveCSS(
+        'background-color',
+        expectedBackground
+      );
+      await expect(page.locator('html')).toHaveCSS(
+        'color-scheme',
+        expectedTheme
+      );
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute(
+        'data-theme',
+        expectedTheme
+      );
+      await expect(page.locator('html')).toHaveCSS(
+        'background-color',
+        expectedBackground
+      );
+      await expect(page.locator('#root')).toBeEmpty();
+    });
+  }
+}
+
+for (const role of ['guest', 'user', 'admin']) {
+  test(`account dropdown exposes the correct actions for ${role}`, async ({
+    page,
+  }) => {
+    await page.route('**/api/v001/auth/me', (route) =>
+      route.fulfill({
+        status: role === 'guest' ? 401 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ roles: [role], permissions: [] }),
+      })
+    );
+    await page.goto(sannyUrl);
+
+    const trigger = page.getByRole('button', { name: 'Account menu' });
+    const dropdown = page.getByRole('navigation', {
+      name: 'Account',
+      exact: true,
+    });
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(dropdown).toHaveCount(0);
+    await trigger.click();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await expect(
+      dropdown.getByRole('button', {
+        name: role === 'guest' ? 'Login' : 'Logout',
+        exact: true,
+      })
+    ).toBeEnabled();
+    await expect(
+      dropdown.getByRole('link', { name: 'Settings', exact: true })
+    ).toHaveAttribute('href', '/settings');
+    await expect(
+      dropdown.getByRole('link', { name: 'Admin settings', exact: true })
+    ).toHaveCount(role === 'admin' ? 1 : 0);
+    if (role === 'admin') {
+      await expect(
+        dropdown.getByRole('link', { name: 'Admin settings', exact: true })
+      ).toHaveAttribute('href', '/settings/admin');
+    }
+
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Escape');
+    await expect(trigger).toBeFocused();
+    await expect(dropdown).toHaveCount(0);
+    await trigger.click();
+    await page.locator('main').click();
+    await expect(dropdown).toHaveCount(0);
+    await trigger.click();
+    await dropdown.getByRole('link', { name: 'Settings', exact: true }).click();
+    await expect(page).toHaveURL(`${sannyUrl}/settings`);
+    await expect(dropdown).toHaveCount(0);
+  });
+}
+
+async function respondJson(route: Route, body: unknown, status = 200) {
+  await route.fulfill({
+    status,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+}
+
+async function respondEmpty(route: Route) {
+  await route.fulfill({ status: 204 });
+}
+
+async function expectAlert(page: Page, message: string) {
+  await expect(
+    page.getByRole('alert').filter({ hasText: message }).first()
+  ).toBeVisible();
+}
+
+async function expectStatus(page: Page, message: string) {
+  await expect(
+    page.getByRole('status').filter({ hasText: message }).first()
+  ).toBeVisible();
+}
+
+test('updates, resets, and deletes a mocked own account', async ({ page }) => {
+  let updateBody: { username?: string } | undefined;
+  let resetRequests = 0;
+  let deleteRequests = 0;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'account@example.com',
+        name: 'Account Test',
+        roles: ['user'],
+        permissions: ['update:me', 'delete:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      await respondJson(route, {
+        id: 7,
+        email: 'account@example.com',
+        username: 'Account Test',
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'PATCH') {
+      updateBody = request.postDataJSON() as { username?: string };
+      await respondJson(route, {
+        id: 7,
+        email: 'account@example.com',
+        username: updateBody.username,
+      });
+    } else if (path === '/api/v001/users/me/password-reset') {
+      resetRequests += 1;
+      await respondEmpty(route);
+    } else if (path === '/api/v001/users/me' && request.method() === 'DELETE') {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto(`${sannyUrl}/settings`);
+
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByLabel('Username')).toHaveValue('Account Test');
+
+  await page.getByLabel('Username').fill('Updated Test Account');
+  await page.getByRole('button', { name: 'Save username' }).click();
+  await expect
+    .poll(() => updateBody)
+    .toEqual({
+      username: 'Updated Test Account',
+    });
+
+  await page.getByRole('button', { name: 'Password reset' }).click();
+  await expect.poll(() => resetRequests).toBe(1);
+
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+  await expect.poll(() => deleteRequests).toBe(1);
+  await expect(
+    page.getByRole('button', { name: 'Create account' })
+  ).toBeVisible();
+});
+
+test('starts Auth0 signup when creating an account without a session', async ({
+  page,
+}) => {
+  let signupUrl: URL | undefined;
+  let createRequests = 0;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth' && request.method() === 'GET') {
+      signupUrl = new URL(request.url());
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: '',
+      });
+    } else if (path === '/api/v001/auth/me') {
+      await respondJson(route, { error: 'Unauthorized' }, 401);
+    } else if (path === '/api/v001/users/me' && request.method() === 'POST') {
+      createRequests += 1;
+      await respondJson(route, { error: 'Unauthorized' }, 401);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect
+    .poll(() => signupUrl?.searchParams.get('screen_hint'))
+    .toBe('signup');
+  expect(signupUrl?.searchParams.get('returnTo')).toBe('/settings');
+  expect(createRequests).toBe(0);
+});
+
+test('creates a local account when none exists', async ({ page }) => {
+  let createBody: unknown;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'new-account@example.com',
+        name: 'New Account',
+        roles: ['user'],
+        permissions: ['update:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      await respondJson(route, { message: 'User not found' }, 404);
+    } else if (path === '/api/v001/users/me' && request.method() === 'POST') {
+      createBody = request.postDataJSON();
+      await respondJson(route, {
+        id: 8,
+        email: 'new-account@example.com',
+        username: 'New Account',
+      });
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByText('No local account exists yet.')).toBeVisible();
+  await page.getByRole('button', { name: 'Create account' }).click();
+
+  await expect.poll(() => createBody).toEqual({});
+  await expect(page.getByLabel('Username')).toHaveValue('New Account');
+});
+
+test('cancels account deletion without sending a delete request', async ({
+  page,
+}) => {
+  let deleteRequests = 0;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'account@example.com',
+        name: 'Account Test',
+        roles: ['user'],
+        permissions: ['delete:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      await respondJson(route, {
+        id: 7,
+        email: 'account@example.com',
+        username: 'Account Test',
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'DELETE') {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on('dialog', (dialog) => dialog.dismiss());
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByLabel('Username')).toHaveValue('Account Test');
+
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+
+  expect(deleteRequests).toBe(0);
+  await expect(page.getByLabel('Username')).toHaveValue('Account Test');
+});
+
+test('shows API failures for create, update, password reset, and delete', async ({
+  page,
+}) => {
+  const failures = {
+    create: 'Could not create account',
+    update: 'Could not update account',
+    reset: 'Could not send password reset',
+    delete: 'Could not delete account',
+  };
+  let accountExists = false;
+  const requests: string[] = [];
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'account@example.com',
+        name: 'Account Test',
+        roles: ['admin'],
+        permissions: ['read:users', 'update:me', 'delete:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      if (!accountExists) {
+        await respondJson(route, { message: 'User not found' }, 404);
+      } else {
+        await respondJson(route, {
+          id: 7,
+          email: 'account@example.com',
+          username: 'Account Test',
+        });
+      }
+    } else if (path === '/api/v001/users/me' && request.method() === 'POST') {
+      requests.push('create');
+      await respondJson(route, { message: failures.create }, 500);
+    } else if (path === '/api/v001/users/me' && request.method() === 'PATCH') {
+      requests.push('update');
+      await respondJson(route, { message: failures.update }, 500);
+    } else if (path === '/api/v001/users/me/password-reset') {
+      requests.push('reset');
+      await respondJson(route, { message: failures.reset }, 500);
+    } else if (path === '/api/v001/users/me' && request.method() === 'DELETE') {
+      requests.push('delete');
+      await respondJson(route, { message: failures.delete }, 500);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto(`${sannyUrl}/settings`);
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expectAlert(page, failures.create);
+  await expect(
+    page.getByRole('button', { name: 'Create account' })
+  ).toBeVisible();
+  expect(requests).toContain('create');
+
+  accountExists = true;
+  await page.getByRole('button', { name: 'Test account endpoints' }).click();
+  await expect(page.getByLabel('Username')).toHaveValue('Account Test');
+
+  await page.getByLabel('Username').fill('Updated Test Account');
+  await page.getByRole('button', { name: 'Save username' }).click();
+  await expectAlert(page, failures.update);
+  expect(requests).toContain('update');
+
+  await page.getByRole('button', { name: 'Password reset' }).click();
+  await expectAlert(page, failures.reset);
+  expect(requests).toContain('reset');
+
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+  await expectAlert(page, failures.delete);
+  expect(requests).toContain('delete');
+  await expect(page.getByLabel('Username')).toHaveValue('Updated Test Account');
+});
+
+test('loads an admin user, updates roles, resets, and deletes that mocked user', async ({
+  page,
+}) => {
+  let usernameBody: { username?: string } | undefined;
+  let rolesBody: { roles?: string[] } | undefined;
+  let roleRequests = 0;
+  let resetRequests = 0;
+  let deleteRequests = 0;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'admin@example.com',
+        name: 'Admin Test',
+        roles: ['admin'],
+        permissions: ['read:users', 'write:users', 'delete:users'],
+      });
+    } else if (path === '/api/v001/users/roles/available') {
+      await respondJson(route, { roles: ['admin', 'user', 'moderator'] });
+    } else if (path === '/api/v001/users/list') {
+      await respondJson(route, [
+        { id: 42, email: 'managed@example.com', username: 'Managed User' },
+      ]);
+    } else if (
+      path === '/api/v001/users/42/roles' &&
+      request.method() === 'GET'
+    ) {
+      roleRequests += 1;
+      if (roleRequests === 1) {
+        await respondJson(route, { message: 'Could not load user roles' }, 500);
+      } else {
+        await respondJson(route, { roles: ['user'] });
+      }
+    } else if (path === '/api/v001/users/42' && request.method() === 'PATCH') {
+      usernameBody = request.postDataJSON() as { username?: string };
+      await respondJson(route, {
+        id: 42,
+        email: 'managed@example.com',
+        username: usernameBody.username,
+      });
+    } else if (
+      path === '/api/v001/users/42/roles' &&
+      request.method() === 'PATCH'
+    ) {
+      rolesBody = request.postDataJSON() as { roles?: string[] };
+      await respondJson(route, { roles: rolesBody.roles });
+    } else if (path === '/api/v001/users/42/password-reset') {
+      resetRequests += 1;
+      await respondEmpty(route);
+    } else if (path === '/api/v001/users/42' && request.method() === 'DELETE') {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto(`${sannyUrl}/settings/admin`);
+  await expect(
+    page.getByRole('heading', { name: 'Admin settings' })
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Load all users' }).click();
+  await page.getByRole('button', { name: 'Select user' }).first().click();
+  await expectAlert(page, 'Could not load user roles');
+  await expect(page.locator('.admin-settings__users')).toBeVisible();
+  await page.getByRole('button', { name: 'Select user' }).first().click();
+  await expect(page.getByLabel('Username')).toHaveValue('Managed User');
+  await expect(
+    page.getByRole('checkbox', { name: 'Role: user', exact: true })
+  ).toBeChecked();
+  await expect(page.locator('.admin-settings__users')).toHaveCount(0);
+  await expect(page.locator('.admin-settings__pagination')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Load all users' }).click();
+  await expect(page.locator('.admin-settings__users')).toBeVisible();
+  await page.getByRole('button', { name: 'Select user' }).first().click();
+  await expect(page.locator('.admin-settings__users')).toHaveCount(0);
+
+  await page.getByLabel('Username').fill('Updated Managed User');
+  await page.getByRole('checkbox', { name: 'Role: moderator' }).check();
+  await page.getByRole('button', { name: 'Save user' }).click();
+
+  await expect
+    .poll(() => usernameBody)
+    .toEqual({
+      username: 'Updated Managed User',
+    });
+  await expect.poll(() => rolesBody).toEqual({ roles: ['user', 'moderator'] });
+
+  await page.getByRole('button', { name: 'Password reset' }).click();
+  await expect.poll(() => resetRequests).toBe(1);
+  await page.getByRole('button', { name: 'Delete user' }).click();
+  await expect.poll(() => deleteRequests).toBe(1);
+});
+
+test('allows an admin to update their own roles', async ({ page }) => {
+  let rolesBody: { roles?: string[] } | undefined;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'admin@example.com',
+        name: 'Admin Test',
+        roles: ['admin'],
+        permissions: ['read:users', 'write:users'],
+      });
+    } else if (path === '/api/v001/users/roles/available') {
+      await respondJson(route, { roles: ['admin', 'user', 'moderator'] });
+    } else if (path === '/api/v001/users/list') {
+      await respondJson(route, [
+        { id: 43, email: 'admin@example.com', username: 'Admin Test' },
+      ]);
+    } else if (
+      path === '/api/v001/users/43/roles' &&
+      request.method() === 'GET'
+    ) {
+      await respondJson(route, { roles: ['admin', 'user'] });
+    } else if (
+      path === '/api/v001/users/43/roles' &&
+      request.method() === 'PATCH'
+    ) {
+      rolesBody = request.postDataJSON() as { roles?: string[] };
+      await respondJson(route, { roles: rolesBody.roles });
+    } else if (path === '/api/v001/users/43' && request.method() === 'PATCH') {
+      const body = request.postDataJSON() as { username?: string };
+      await respondJson(route, {
+        id: 43,
+        email: 'admin@example.com',
+        username: body.username,
+      });
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings/admin`);
+  await page.getByRole('button', { name: 'Load all users' }).click();
+  await page.getByRole('button', { name: 'Select user' }).first().click();
+  await page.getByRole('checkbox', { name: 'Role: moderator' }).check();
+  await page.getByRole('button', { name: 'Save user' }).click();
+
+  await expect
+    .poll(() => rolesBody)
+    .toEqual({
+      roles: ['admin', 'user', 'moderator'],
+    });
+});
+
+test('denies the admin page to a non-admin without loading protected data', async ({
+  page,
+}) => {
+  let protectedRequests = 0;
+
+  await page.route('**/api/v001/**', async (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'user@example.com',
+        name: 'Regular User',
+        roles: ['user'],
+        permissions: [],
+      });
+    } else {
+      protectedRequests += 1;
+      await respondJson(route, { message: 'Forbidden' }, 403);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings/admin`);
+
+  await expect(
+    page.getByRole('heading', {
+      name: 'Administrator access is required for this page.',
+    })
+  ).toBeVisible();
+  expect(protectedRequests).toBe(0);
+});
+
+test('shows server failures during the initial account load', async ({
+  page,
+}) => {
+  await page.route('**/api/v001/auth/me', async (route) => {
+    await respondJson(
+      route,
+      { message: 'Authentication service unavailable' },
+      500
+    );
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expectAlert(page, 'Authentication service unavailable');
+});
+
+test('shows one backend-offline alert when multiple startup requests fail', async ({
+  page,
+}) => {
+  let failedApiRequests = 0;
+
+  await page.addInitScript(() => {
+    localStorage.setItem('language', 'en');
+    document.cookie = 'language=en; path=/';
+  });
+  page.on('requestfailed', (request) => {
+    if (new URL(request.url()).pathname.startsWith('/api/v001/')) {
+      failedApiRequests += 1;
+    }
+  });
+  await page.route('**/api/v001/**', (route) => route.abort());
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect.poll(() => failedApiRequests).toBeGreaterThanOrEqual(2);
+  await page.waitForLoadState('networkidle');
+
+  await expect(page.getByRole('alert')).toHaveCount(1);
+  await expectAlert(page, 'The backend is offline. Please try again later.');
+});
+
+test('switches and persists the settings page language and theme', async ({
+  page,
+}) => {
+  let authMeRequests = 0;
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('language')) {
+      localStorage.setItem('language', 'en');
+    }
+  });
+  await page.route('**/api/v001/auth/me', async (route) => {
+    authMeRequests += 1;
+    await respondJson(route, { message: 'Not authenticated' }, 401);
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Appearance' })).toBeVisible();
+  await expect(page.getByText('Language: en', { exact: true })).toBeVisible();
+  await expect.poll(() => authMeRequests).toBeGreaterThan(0);
+  await page.waitForLoadState('networkidle');
+  const authMeRequestsBeforeLanguageChange = authMeRequests;
+  await page.getByRole('button', { name: 'Account menu' }).click();
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Account', exact: true })
+      .getByRole('button', { name: 'Login', exact: true })
+  ).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Switch to German' }).click();
+  await expect(page.getByText('Sprache: de', { exact: true })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  expect(authMeRequests).toBe(authMeRequestsBeforeLanguageChange);
+  await page.reload();
+  await expect(
+    page.getByRole('heading', { name: 'Einstellungen' })
+  ).toBeVisible();
+  await expect(page.getByText('Sprache: de', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Wechselt zu Englisch' }).click();
+  await expect(page.getByText('Language: en', { exact: true })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Switch to light mode' })
+  ).toBeVisible();
+});
+
+test('starts Email OTP reauthentication when deleting an account requires it', async ({
+  page,
+}) => {
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'account@example.com',
+        name: 'Account Test',
+        roles: ['user'],
+        permissions: ['delete:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      await respondJson(route, {
+        id: 7,
+        email: 'account@example.com',
+        username: 'Account Test',
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'DELETE') {
+      await respondJson(
+        route,
+        {
+          message: 'Email OTP authentication required',
+          emailOtpRequired: true,
+          resumeToken: 'test-resume-token',
+        },
+        401
+      );
+    } else if (path === '/api/v001/auth') {
+      await route.fulfill({ status: 200, contentType: 'text/html', body: '' });
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  page.on('dialog', (dialog) => dialog.accept());
+  await page.goto(`${sannyUrl}/settings`);
+  const authRequestPromise = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname === '/api/v001/auth' && url.searchParams.has('emailMfa')
+    );
+  });
+
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+  const authRequest = await authRequestPromise;
+  const authUrl = new URL(authRequest.url());
+
+  expect(authUrl.searchParams.get('emailMfa')).toBe('true');
+  expect(authUrl.searchParams.has('mfa')).toBe(false);
+  expect(authUrl.searchParams.get('returnTo')).toBe('/settings');
+});
+
+const resumeScenarios = [
+  {
+    name: 'Email OTP account deletion',
+    factor: 'email',
+    authParameter: 'emailMfa',
+    actionMethod: 'DELETE',
+    actionPath: '/api/v001/users/me',
+    initialError: {
+      message: 'Email OTP authentication required',
+      emailOtpRequired: true,
+      resumeToken: 'm'.repeat(32),
+    },
+    triggerButton: 'Delete my account',
+    successMessage: 'Account deleted',
+  },
+  {
+    name: 'email OTP password reset',
+    factor: 'email',
+    authParameter: 'emailMfa',
+    actionMethod: 'POST',
+    actionPath: '/api/v001/users/me/password-reset',
+    initialError: {
+      message: 'Email OTP authentication required',
+      emailOtpRequired: true,
+      resumeToken: 'e'.repeat(32),
+    },
+    triggerButton: 'Password reset',
+    successMessage: 'Password reset email requested',
+  },
+] as const;
+
+for (const scenario of resumeScenarios) {
+  test(`resumes and replays ${scenario.name}`, async ({ page }) => {
+    let authUrl: URL | undefined;
+    let resumeActionBody: unknown;
+    let actionRequests = 0;
+
+    await page.route('**/api/v001/**', async (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+
+      if (path === '/api/v001/auth/me') {
+        await respondJson(route, {
+          email: 'account@example.com',
+          name: 'Account Test',
+          roles: ['admin'],
+          permissions: ['read:users', 'update:me', 'delete:me'],
+        });
+      } else if (path === '/api/v001/users/roles/available') {
+        await respondJson(route, { roles: ['admin', 'user'] });
+      } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+        await respondJson(route, {
+          id: 7,
+          email: 'account@example.com',
+          username: 'Account Test',
+        });
+      } else if (path === '/api/v001/auth') {
+        authUrl = new URL(request.url());
+        await route.fulfill({
+          status: 302,
+          headers: { location: `${sannyUrl}/settings` },
+        });
+      } else if (path === '/api/v001/auth/resume-action') {
+        resumeActionBody = request.postDataJSON();
+        await respondJson(route, {
+          method: scenario.actionMethod,
+          path: scenario.actionPath,
+          body: null,
+        });
+      } else if (
+        path === scenario.actionPath &&
+        request.method() === scenario.actionMethod
+      ) {
+        actionRequests += 1;
+        if (actionRequests === 1) {
+          await respondJson(route, scenario.initialError, 401);
+        } else {
+          await respondEmpty(route);
+        }
+      } else {
+        await respondJson(
+          route,
+          { message: `Unexpected request: ${path}` },
+          500
+        );
+      }
+    });
+
+    page.on('dialog', (dialog) => dialog.accept());
+    await page.goto(`${sannyUrl}/settings`);
+    await page.getByRole('button', { name: scenario.triggerButton }).click();
+
+    await expect
+      .poll(() => authUrl?.searchParams.get(scenario.authParameter))
+      .toBe('true');
+    expect(authUrl?.searchParams.get('returnTo')).toBe('/settings');
+    await expect
+      .poll(() => resumeActionBody)
+      .toEqual({
+        resumeToken: scenario.initialError.resumeToken,
+        factor: scenario.factor,
+      });
+    await expect.poll(() => actionRequests).toBe(2);
+    await expectStatus(page, scenario.successMessage);
+    await expect
+      .poll(() =>
+        page.evaluate(() => sessionStorage.getItem('sanny:pending-action'))
+      )
+      .toBeNull();
+  });
+}
+
+test('resumes loading all admin users after MFA without a second click', async ({
+  page,
+}) => {
+  let authUrl: URL | undefined;
+  let resumeActionBody: unknown;
+  let listRequests = 0;
+  const resumeToken = 'a'.repeat(32);
+
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        roles: ['admin'],
+        permissions: ['read:users'],
+      });
+    } else if (path === '/api/v001/users/roles/available') {
+      await respondJson(route, { roles: ['admin', 'user'] });
+    } else if (path === '/api/v001/users/list') {
+      listRequests += 1;
+      if (listRequests === 1) {
+        await respondJson(
+          route,
+          { message: 'MFA authentication required', resumeToken },
+          401
+        );
+      } else {
+        await respondJson(route, [
+          { id: 42, email: 'managed@example.com', username: 'Managed User' },
+        ]);
+      }
+    } else if (path === '/api/v001/auth') {
+      authUrl = new URL(request.url());
+      await route.fulfill({
+        status: 302,
+        headers: { location: `${sannyUrl}/settings/admin` },
+      });
+    } else if (path === '/api/v001/auth/resume-action') {
+      resumeActionBody = request.postDataJSON();
+      await respondJson(route, {
+        method: 'GET',
+        path: '/api/v001/users/list',
+        body: null,
+      });
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings/admin`);
+  await page.getByRole('button', { name: 'Load all users' }).click();
+
+  await expect.poll(() => authUrl?.searchParams.get('mfa')).toBe('true');
+  expect(authUrl?.searchParams.get('returnTo')).toBe('/settings/admin');
+  await expect
+    .poll(() => resumeActionBody)
+    .toEqual({ resumeToken, factor: 'mfa' });
+  await expect.poll(() => listRequests).toBe(2);
+  await expect(page.locator('.admin-settings__users')).toBeVisible();
+  await expect(page.locator('.admin-settings__users')).toContainText(
+    'managed@example.com'
+  );
+  await expect(page.getByRole('button', { name: 'Select user' })).toBeEnabled();
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem('sanny:pending-action'))
+    )
+    .toBeNull();
+});
+
+test('discards invalid pending-action credentials without replay', async ({
+  page,
+}) => {
+  let resumeRequests = 0;
+  let deleteRequests = 0;
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      'sanny:pending-action',
+      JSON.stringify({ resumeToken: 'i'.repeat(32), factor: 'invalid' })
+    );
+  });
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'account@example.com',
+        name: 'Account Test',
+        roles: ['user'],
+        permissions: ['delete:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      await respondJson(route, {
+        id: 7,
+        email: 'account@example.com',
+        username: 'Account Test',
+      });
+    } else if (path === '/api/v001/auth/resume-action') {
+      resumeRequests += 1;
+      await respondJson(route, { message: 'Unexpected resume request' }, 500);
+    } else if (path === '/api/v001/users/me' && request.method() === 'DELETE') {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expect(page.getByLabel('Username')).toHaveValue('Account Test');
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem('sanny:pending-action'))
+    )
+    .toBeNull();
+
+  expect(resumeRequests).toBe(0);
+  expect(deleteRequests).toBe(0);
+});
+
+test('does not replay an action after the pending resume token expires', async ({
+  page,
+}) => {
+  let resumeRequests = 0;
+  let deleteRequests = 0;
+  await page.addInitScript(() => {
+    sessionStorage.setItem(
+      'sanny:pending-action',
+      JSON.stringify({ resumeToken: 'x'.repeat(32), factor: 'mfa' })
+    );
+  });
+  await page.route('**/api/v001/**', async (route) => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+
+    if (path === '/api/v001/auth/me') {
+      await respondJson(route, {
+        email: 'account@example.com',
+        name: 'Account Test',
+        roles: ['user'],
+        permissions: ['delete:me'],
+      });
+    } else if (path === '/api/v001/users/me' && request.method() === 'GET') {
+      await respondJson(route, {
+        id: 7,
+        email: 'account@example.com',
+        username: 'Account Test',
+      });
+    } else if (path === '/api/v001/auth/resume-action') {
+      resumeRequests += 1;
+      await respondJson(
+        route,
+        { message: 'The pending action expired or is no longer available.' },
+        410
+      );
+    } else if (path === '/api/v001/users/me' && request.method() === 'DELETE') {
+      deleteRequests += 1;
+      await respondEmpty(route);
+    } else {
+      await respondJson(route, { message: `Unexpected request: ${path}` }, 500);
+    }
+  });
+
+  await page.goto(`${sannyUrl}/settings`);
+  await expectAlert(
+    page,
+    'The pending action expired or is no longer available.'
+  );
+  await expect(page.getByLabel('Username')).toHaveValue('Account Test');
+
+  expect(resumeRequests).toBe(1);
+  expect(deleteRequests).toBe(0);
+  await expect
+    .poll(() =>
+      page.evaluate(() => sessionStorage.getItem('sanny:pending-action'))
+    )
+    .toBeNull();
+});

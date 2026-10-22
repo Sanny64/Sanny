@@ -1,5 +1,5 @@
-import { forwardRef } from "react";
-import type { InputHTMLAttributes } from "react";
+import { forwardRef } from 'react';
+import type { InputHTMLAttributes } from 'react';
 
 export interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: React.ReactNode;
@@ -13,12 +13,12 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     {
       label,
       error,
-      containerClassName = "",
-      labelClassName = "",
-      className = "",
+      containerClassName = '',
+      labelClassName = '',
+      className = '',
       ...props
     },
-    ref,
+    ref
   ) => {
     return (
       <div className={`checkbox-container ${containerClassName}`.trim()}>
@@ -34,7 +34,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
         {error && <p className="checkbox-error">{error}</p>}
       </div>
     );
-  },
+  }
 );
 
-Checkbox.displayName = "Checkbox";
+Checkbox.displayName = 'Checkbox';

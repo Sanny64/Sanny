@@ -9,6 +9,10 @@ on:
         description: Deploy this main-branch commit to the VPS after verification
         type: boolean
         default: false
+      backend-directory:
+        description: Absolute approved VPS checkout path, required when deploying the backend
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -36,9 +40,9 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version-file: .nvmrc
+          node-version-file: tooling/config/.nvmrc
       - id: targets
-        run: node scripts/deployment-targets.mjs
+        run: node tooling/scripts/deployment-targets.mjs
         env:
           RELEASE_BEFORE: ${{ github.event.before }}
           RELEASE_DEPLOY_BACKEND: ${{ inputs.deploy-backend }}
@@ -105,6 +109,7 @@ jobs:
     uses: ./.github/workflows/deploy-backend.yml
     with:
       deploy: ${{ needs.plan.outputs.deploy-backend == 'true' }}
+      deployment-directory: ${{ inputs.backend-directory }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PAT: ${{ secrets.DOCKERHUB_PAT }}

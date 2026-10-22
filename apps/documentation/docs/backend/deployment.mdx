@@ -1,0 +1,50 @@
+---
+title: Deployment and Recovery
+description: Deployment boundaries, staging verification, rollback, and data recovery.
+sidebar_position: 6
+---
+
+# Deployment and recovery
+
+## Deployment status
+
+The backend runs locally with Docker. **Release workspace** (`release.yml`) selects image publishing after one shared verification gate and calls the reusable `deploy-backend.yml` child. Backend or shared/tooling changes on `main` publish identical `latest` and commit-SHA tags to GHCR and Docker Hub (`sanny64/backend`). Docker Hub is the image source for Gordon and VPS deployment. Ensure repository write access for the workflow and pull access for the VPS. A manual **Release workspace** run from `main` with **deploy-backend** enabled deploys that exact commit-SHA image; without the input, publishing does not change the VPS. Other branches cannot deploy it. Configure `DOCKERHUB_USERNAME` and `DOCKERHUB_PAT` as GitHub Actions secrets, not backend runtime variables. Child workflows have no independent push/manual triggers. Local production-mode containers do not establish hosted verification or release sign-off; provision isolated staging before public production.
+
+Keep Auth0, database, and Redis resources separate between environments. Load credentials from each environment's secret store. Never put real hostnames, tenant identifiers, or credentials in this repository.
+
+Set the manual release input `backend-directory` to the absolute path of the approved repository checkout on the VPS; the workflow passes it as `BACKEND_DEPLOY_DIRECTORY`. Before requesting deployment, provision that checkout at the exact `github.sha` being released; the workflow does not transfer or update configuration automatically. The Compose, NGINX, Redis, and monitoring configuration must have no tracked changes relative to that commit. Keep `apps/backend/.env` and `apps/backend/redis/secret/certs/ca.crt` outside source control and provision them independently. Both production and development Compose files must be present in the checkout.
+
+Deployment runs from `apps/backend` with `--project-directory .` and `docker/compose/docker-compose.prod.yml`. Relative environment, inherited-service, and certificate paths use that explicit project directory. The workflow validates with `config --quiet`, pulls the bare commit-SHA image tag, and waits up to 120 seconds for the backend health check. Missing configuration, a mismatched or dirty checkout, invalid Compose configuration, or failed health checks stop deployment. This is not an automatic rollback or hosted sign-off.
+
+## Runtime boundaries
+
+- Development builds explicitly tag `sanny64-backend:latest`; runtime Compose containers are named `sanny64-backend`. Production keeps its registry image `sanny64/backend:<tag>` and immutable release selection. The fixed container name limits each Docker host to one runtime instance; disposable test projects keep generated names and separate images. Use root `npm run restart:stack` to rebuild buildable images and recreate the full development stack; it delegates to backend `restart:stack`. Use `npm run restart:backend` to rebuild and recreate only the backend service. Neither removes volumes. Building alone does not rename existing containers, and old image tags remain until deliberately removed.
+- Fastify is behind NGINX. Keep its port private and block direct public access.
+- NGINX terminates TLS, redirects HTTP to HTTPS, and must overwrite forwarding headers. Only enable production proxy trust for the actual trusted proxy IP/CIDR.
+- Redis is private to the compose network and uses TLS with password authentication. Compose constructs the backend Redis URL from `REDIS_PASSWORD`.
+- MariaDB is configured by `DATABASE_URL` and is not a service in the checked-in backend compose stack. Its provisioning, network policy, backups, and recovery need an independent owner.
+- Development npm scripts are not a production release mechanism.
+
+## Staging release gate
+
+1. Load staging-only secrets and verify the selected environment, Auth0 tenant, database, and Redis target.
+2. Review backend changes, Prisma schema changes, Auth0 Action changes, and deployment configuration as separate release components. Rebuilding the backend does not deploy Auth0 Actions.
+3. Confirm the database backup is recent and the restore path has been tested before schema or data migrations.
+4. Validate compose configuration without printing it; review and pin mutable monitoring image tags before production use.
+5. Deploy through the host's approved release procedure and confirm container health, HTTPS `/healthcheck`, security headers, database/Redis connectivity, and monitoring scrapes.
+6. Complete interactive login/logout, PKCE state replay rejection, refresh and reuse rejection, profile/mutation/deletion flows, admin authorization and pagination, rate limits, browser error handling, session-expiry warning, and proxy-header/direct-access checks.
+7. Review logs and alerts for secrets or personal data. Record build ID, results, residual risks, rollback steps, and sign-off in a restricted deployment record.
+8. Promote only after staging passes. Public `/nginx_status` must be unavailable while the internal exporter can scrape it.
+
+## Rollback
+
+Hosted publishing and deployment are automated through **Release workspace** and its reusable deployment workflows. There is no automated hosted rollback workflow. Establish the deployment host's rollback procedure and a named owner before a hosted release. On failure, stop promotion and roll back the application image/configuration using that procedure. Revert a database migration only if it is known to be backward-compatible; otherwise use the approved database recovery plan. Do not restore Redis as a substitute for restoring user records.
+
+## Backup and recovery
+
+- Back up MariaDB through its own protected process. Encrypt backups, restrict access, define retention, and periodically restore into an isolated environment. A successful backup job is not a restore test.
+- Redis holds sessions and rate-limit state, not authoritative user profiles. Losing session state should require users to authenticate again. The checked-in Redis config does not define an explicit retention or recovery objective; establish one before hosted production.
+- Compose named volumes contain Redis and monitoring state. Protect Docker host access and backups; monitoring data can include client IPs and service metadata.
+- Do not place database dumps, Redis snapshots, certificates, or backup credentials in the repository or public incident records.
+
+Last edit: 22.10.2026

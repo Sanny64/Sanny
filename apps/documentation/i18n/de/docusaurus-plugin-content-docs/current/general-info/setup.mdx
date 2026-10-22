@@ -1,0 +1,117 @@
+---
+title: Einrichtung
+description: Einführung in die Dokumentation
+sidebar_position: 1
+---
+
+Klone dieses Repository, um Zugriff auf alle Anwendungen im Workspace zu erhalten. Du benötigst Node.js 24, npm 11.6.3 und Git.
+
+## Installation und Einrichtung
+
+Installiere alle Workspace-Abhängigkeiten im Repository-Stammverzeichnis:
+
+```sh
+npm ci
+```
+
+Die Root-`tsconfig.json` enthält strenge, umgebungsneutrale Grundeinstellungen und Prüfungen für Repository-Tooling. Beide Frontend-Apps und die quellcodeexportierten gemeinsamen Pakete erweitern die einzige Browser-Konfiguration `apps/frontend/tsconfig.frontend.json`; gemeinsame Frontend-Umgebungsdeklarationen liegen in `apps/frontend/frontend-env.d.ts`.
+
+Starte jede benötigte App in einem eigenen Terminal:
+
+- `npm run dev:sanny`
+- `npm run dev:auth`
+- `npm run dev:docs`
+- `npm run dev:docs:de`
+- `npm run start:stack`
+- `npm run restart:stack` für den initialen Image-Build und den vollständigen Entwicklungs-Stack
+
+Sanny läuft unter `https://localhost:5173`, Auth unter `https://localhost:5174` und die englische Dokumentation unter `http://localhost:3000`. Der deutsche Root-Befehl verwendet `http://localhost:3000/de/`; für einen separaten Port starte `npm run dev:de -w documentation`, das `http://localhost:3001/de/` bereitstellt. Frontend-Dev-Server verwenden ein lokales HTTPS-Zertifikat. Beende den Backend-Stack nach der Arbeit mit `npm run stop:stack`.
+
+---
+
+## Qualitätsprüfungen
+
+- `npm run format:check`
+- `npm run check`
+- `npm run test:ci`
+- `npm run test` für das vollständige Gate einschließlich Live-Auth0-Prüfungen
+
+---
+
+## Builds
+
+Führe vor manuellen Builds `npm run check` aus; Build-Befehle führen keine statischen Prüfungen aus.
+
+- `npm run build:auth`, `npm run build:sanny` und `npm run build:docs` bauen einzelne Ziele; `build:docs` erstellt beide konfigurierten Sprachen. Für eine einzelne Sprache `build:docs:en` oder `build:docs:de` verwenden.
+- `npm run build:frontend` baut Auth, Sanny und beide Dokumentationssprachen.
+- `npm run build:backend` baut nur das Backend-Image und startet keine Services.
+- `npm run restart:stack` baut benötigte Images und erstellt den gesamten Entwicklungs-Compose-Stack neu; `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
+
+Das Backend benötigt vor dem Start eine lokale Umgebungskonfiguration und Zertifikate; siehe [Backend-Setup](../backend/backend-setup.mdx).
+
+---
+
+## Workspace-Übersicht
+
+- `apps/frontend/sanny/`: öffentliche React-/Vite-Website und ihre gerouteten Seiten.
+- `apps/frontend/auth/`: Frontend für Account-Link-Bestätigung und Besitznachweis.
+- `apps/backend/`: Fastify-API, Auth0-Skripte, Prisma-Schema, Docker Compose und Monitoring-Konfiguration.
+- `shared/packages/`: `@sanny/i18n`, `@sanny/styles` und `@sanny/ui`.
+- `apps/documentation/`: Docusaurus-Quellen auf Englisch und Deutsch.
+- `shared/tests/`: Repository-Verträge und Playwright-End-to-End-Suites.
+- `tooling/scripts/`: Workspaceweite Runtime-, Test-, Release- und Dokumentationsskripte.
+- `games/`: eigenständige Spieleprojekte.
+
+### Vollständiges Arbeitsverzeichnis
+
+```
+Sanny/                               # Monorepo-Stammverzeichnis und npm-Workspace
+├── .agents/                         # Projektspezifische Agent-Skills
+├── .github/                         # CI-Workflows und Repository-Automatisierung
+├── .vscode/                         # Gemeinsame Editor-Einstellungen und Tasks
+│
+├── apps/
+│   ├── frontend/
+│   │   ├── auth/                    # Authentifizierungsfrontend (React und Vite)
+│   │   ├── sanny/                   # Öffentliches Website-Frontend (React und Vite)
+│   │   ├── frontend-env.d.ts        # Gemeinsame Browser-Umgebungsdeklarationen
+│   │   └── tsconfig.frontend.json   # Gemeinsame Browser-TypeScript-Konfiguration
+│   ├── backend/                     # Fastify-API und Backend-Infrastruktur
+│   │   ├── auth0/                   # Auth0-Datenbank- und Login-Action-Skripte
+│   │   ├── docker/                  # Compose-Dateien, Dockerfiles und Runner
+│   │   ├── monitoring/              # Prometheus, Grafana, Loki und Alloy
+│   │   │   └── tests/               # Monitoring-Integrationstests
+│   │   ├── prisma/                  # Prisma-Schema und Migrationen
+│   │   └── src/                     # Backend-Quellcode und Unit-Tests
+│   └── documentation/              # Docusaurus-Dokumentationsprojekt
+│       ├── build/                   # Generierte statische Dokumentationsausgabe
+│       ├── docs/                    # Englische Dokumentationsquellen
+│       ├── i18n/de/                 # Deutsche Übersetzungen
+│       ├── src/                     # Dokumentationskomponenten, Seiten und Theme
+│       └── static/                  # Statische Dokumentationsressourcen
+│
+├── shared/                          # Gemeinsame Workspace-Konfiguration und Pakete
+│   ├── packages/                    # Gemeinsame quellcodeexportierte npm-Pakete
+│   │   ├── i18n/
+│   │   ├── styles/
+│   │   └── ui/
+│   ├── tests/                       # Workspaceübergreifende Verträge und E2E-Tests
+│   │   ├── contracts/
+│   │   └── e2e/
+│   └── types/                       # Gemeinsame TypeScript-Deklarationen
+├── tooling/
+│   ├── config/                      # Node-Versionsdatei
+│   └── scripts/                     # Runtime-, Test-, Release- und Doku-Automation
+├── games/                           # Eigenständige Spieleprojekte
+│   ├── blockrunner/
+│   └── first/
+├── package.json                     # Root-Skripte und npm-Workspace-Definitionen
+├── package-lock.json                # Root-Abhängigkeitssperrdatei
+├── playwright.config.ts             # Playwright-Konfiguration des Repositorys
+├── eslint.config.js                 # ESLint-Konfiguration des Repositorys
+└── tsconfig.json                    # Neutrale Standards und TypeScript-Projekt fürs Tooling
+```
+
+---
+
+Letzte Bearbeitung / Last edit: 20.10.2026

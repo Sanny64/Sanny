@@ -1,4 +1,4 @@
-export type ToastKind = "error" | "warning" | "info";
+export type ToastKind = 'error' | 'warning' | 'info';
 
 export type ToastAction = {
   label: string;
@@ -54,7 +54,7 @@ export function retriggerToast(id: number) {
   toasts = toasts.map((toast) =>
     toast.id === id
       ? { ...toast, attentionVersion: toast.attentionVersion + 1 }
-      : toast,
+      : toast
   );
   notifySubscribers();
   return true;
@@ -65,7 +65,7 @@ export function showToast(message: string, options: ToastOptions = {}) {
   const toast: Toast = {
     id,
     message,
-    kind: options.kind ?? "error",
+    kind: options.kind ?? 'error',
     attentionVersion: 0,
     ...(options.action ? { action: options.action } : {}),
   };
@@ -80,7 +80,7 @@ export function showToast(message: string, options: ToastOptions = {}) {
   if (durationMs > 0) {
     timers.set(
       id,
-      setTimeout(() => dismissToast(id), durationMs),
+      setTimeout(() => dismissToast(id), durationMs)
     );
   }
 
@@ -91,8 +91,8 @@ export function showToast(message: string, options: ToastOptions = {}) {
 export function showErrorToast(error: unknown, fallbackMessage: string) {
   return showToast(error instanceof Error ? error.message : fallbackMessage, {
     kind:
-      error instanceof Error && "status" in error && error.status === 429
-        ? "warning"
-        : "error",
+      error instanceof Error && 'status' in error && error.status === 429
+        ? 'warning'
+        : 'error',
   });
 }

@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
-import { useSyncExternalStore } from "react";
-import { useLanguage, translations } from "@sanny/i18n";
-import { dismissToast, getToasts, subscribeToToasts } from "../utils/toast";
-import "../styles/toasts.css";
+import { motion } from 'framer-motion';
+import { useSyncExternalStore } from 'react';
+import { useLanguage, translations } from '@sanny/i18n';
+import { dismissToast, getToasts, subscribeToToasts } from '../utils/toast.js';
+import '../css/toasts.css';
 
 export default function ToastViewport() {
   const toasts = useSyncExternalStore(subscribeToToasts, getToasts, getToasts);
@@ -17,8 +17,8 @@ export default function ToastViewport() {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          role={toast.kind === "error" ? "alert" : "status"}
-          aria-live={toast.kind === "error" ? "assertive" : "polite"}
+          role={toast.kind === 'error' ? 'alert' : 'status'}
+          aria-live={toast.kind === 'error' ? 'assertive' : 'polite'}
         >
           <motion.section
             key={toast.attentionVersion}

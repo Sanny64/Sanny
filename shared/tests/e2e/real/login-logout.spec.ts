@@ -1,0 +1,369 @@
+/// <reference types="node" />
+
+import { expect, test } from '@playwright/test';
+import { env } from 'node:process';
+
+const apiUrl =
+  env.SANNY_E2E_API_URL ?? env.VITE_API_URL ?? 'https://localhost:8443';
+
+async function beginSignIn(
+  page: import('@playwright/test').Page,
+  appUrl: string,
+  apiUrl: string
+) {
+  await page.goto(appUrl);
+  const appHost = new URL(appUrl).host;
+  const apiHost = new URL(apiUrl).host;
+  const authStartActivity: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/v001/auth') {
+      authStartActivity.push(`request ${request.method()}`);
+    }
+  });
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname === '/api/v001/auth') {
+      authStartActivity.push(`response ${response.status()}`);
+    }
+  });
+  page.on('requestfailed', (request) => {
+    if (new URL(request.url()).pathname === '/api/v001/auth') {
+      authStartActivity.push(
+        `failed ${request.failure()?.errorText ?? 'unknown'}`
+      );
+    }
+  });
+  const accountMenu = page.getByRole('button', { name: 'Account menu' });
+  try {
+    await Promise.all([
+      page.waitForURL((url) => url.host !== appHost && url.host !== apiHost, {
+        waitUntil: 'commit',
+        timeout: 90_000,
+      }),
+      (async () => {
+        await accountMenu.click();
+        await page
+          .getByRole('navigation', { name: 'Account', exact: true })
+          .getByRole('button', { name: 'Login', exact: true })
+          .click();
+      })(),
+    ]);
+  } catch (error) {
+    const currentUrl = new URL(page.url());
+    throw new Error(
+      `Sign-in did not reach Auth0 from ${currentUrl.host}${currentUrl.pathname}; ` +
+        `auth endpoint activity: ${authStartActivity.join(', ') || 'none'}.`,
+      { cause: error }
+    );
+  }
+}
+
+async function submitCredentialsAndWaitForCallback(
+  page: import('@playwright/test').Page,
+  submit: () => Promise<void>
+) {
+  const callbackResponse = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/v001/auth/callback',
+    { timeout: 45_000 }
+  );
+  await submit();
+
+  try {
+    const response = await callbackResponse;
+    const location = response.headers().location;
+    if (location) {
+      const redirectUrl = new URL(location, response.url());
+      const redirectPath = redirectUrl.pathname;
+      if (redirectPath.endsWith('/authorize')) {
+        throw new Error(
+          'Auth0 requested another login; account linking or reauthentication is required.'
+        );
+      }
+      if (redirectPath === '/error') {
+        const authError = redirectUrl.searchParams.get('authError');
+        const errorStatus = redirectUrl.searchParams.get('status');
+        const rateLimit = response.headers()['x-ratelimit-limit'];
+        throw new Error(
+          `The backend rejected the Auth0 callback and redirected to its error page${authError ? ` (${authError})` : errorStatus ? ` (HTTP ${errorStatus}${rateLimit ? `, rate-limit ${rateLimit}` : ''})` : ''}.`
+        );
+      }
+    }
+    expect(response.status()).toBeLessThan(400);
+  } catch (error) {
+    const currentUrl = new URL(page.url());
+    if (error instanceof Error && error.message.startsWith('The backend')) {
+      throw error;
+    }
+    throw new Error(
+      `Auth0 did not complete the backend callback; browser is at ${currentUrl.host}${currentUrl.pathname}.`,
+      { cause: error }
+    );
+  }
+}
+
+async function expectAuthenticatedUser(
+  context: import('@playwright/test').BrowserContext,
+  apiUrl: string,
+  email: string
+) {
+  await expect
+    .poll(
+      async () =>
+        (await context.request.get(`${apiUrl}/api/v001/auth/me`)).status(),
+      { timeout: 10_000 }
+    )
+    .toBe(200);
+
+  const userResponse = await context.request.get(`${apiUrl}/api/v001/users/me`);
+  expect(userResponse.status()).toBe(200);
+  const user = (await userResponse.json()) as {
+    email: string;
+    username: string;
+  };
+  expect(user.email.toLowerCase()).toBe(email.toLowerCase());
+  expect(user.username).toBeTruthy();
+}
+
+async function dismissGoogleOneTapPrompt(
+  page: import('@playwright/test').Page
+) {
+  const promptFrame = page.locator('iframe[src*="accounts.google.com/gsi/"]');
+  try {
+    await promptFrame.waitFor({ state: 'attached', timeout: 1_500 });
+  } catch {
+    return;
+  }
+
+  const dismissButton = page
+    .frameLocator('iframe[src*="accounts.google.com/gsi/"]')
+    .getByRole('button', { name: /close|schließen|dismiss/i });
+  try {
+    await dismissButton.waitFor({ state: 'visible', timeout: 1_500 });
+  } catch {
+    return;
+  }
+  await dismissButton.click();
+}
+
+test('creates or loads a Google social user through live Auth0 @real', async ({
+  page,
+  context,
+}) => {
+  test.skip(
+    true,
+    'Google blocks Playwright-controlled sign-in by default; run this flow manually.'
+  );
+  test.setTimeout(120_000);
+  const googleEmail = env.TESTGOOGLEUSER_EMAIL;
+  const googlePassword = env.TESTGOOGLEUSER_PASSWORD;
+  test.skip(
+    !googleEmail || !googlePassword,
+    'Set TESTGOOGLEUSER_EMAIL and TESTGOOGLEUSER_PASSWORD to run the live flow.'
+  );
+
+  const appUrl = env.SANNY_E2E_APP_URL ?? 'https://127.0.0.1:5178';
+  await beginSignIn(page, appUrl, apiUrl);
+
+  await page.getByRole('button', { name: /google/i }).click();
+  await page.getByLabel(/email or phone/i).fill(googleEmail!);
+  await page.getByRole('button', { name: /next/i }).click();
+  const googlePasswordInput = page.locator('input[type="password"]');
+  try {
+    await googlePasswordInput.waitFor({ state: 'visible', timeout: 20_000 });
+  } catch {
+    const securityInterstitial = page.getByText(
+      /This browser or app may not be secure/i
+    );
+    if (await securityInterstitial.isVisible().catch(() => false)) {
+      throw new Error(
+        'Google blocked automated sign-in with its security interstitial; use a manual supported-browser flow for this identity.'
+      );
+    }
+    const currentUrl = new URL(page.url());
+    throw new Error(
+      `Google sign-in did not show a password field; browser is at ${currentUrl.host}${currentUrl.pathname}.`
+    );
+  }
+  await googlePasswordInput.fill(googlePassword!);
+  await submitCredentialsAndWaitForCallback(page, () =>
+    page.getByRole('button', { name: /next/i }).click()
+  );
+
+  await expectAuthenticatedUser(context, apiUrl, googleEmail!);
+});
+
+test('creates or loads a password user through live Auth0 @real', async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(120_000);
+  const email = env.TESTUSER_EMAIL;
+  const password = env.TESTUSER_PASSWORD;
+
+  const appUrl = env.SANNY_E2E_APP_URL ?? 'https://127.0.0.1:5178';
+  const auth0StepResponses: string[] = [];
+  let cloudflareChallengeDetected = false;
+  page.on('response', (response) => {
+    const responseUrl = new URL(response.url());
+    if (responseUrl.pathname.startsWith('/u/')) {
+      if (response.headers()['cf-mitigated']?.toLowerCase() === 'challenge') {
+        cloudflareChallengeDetected = true;
+      }
+      if (response.status() >= 400) {
+        void response
+          .text()
+          .then((body) => {
+            if (
+              /\/cdn-cgi\/challenge-platform|cf-turnstile|cf_chl_|challenges\.cloudflare\.com|verify you are human|checking your browser/i.test(
+                body
+              )
+            ) {
+              cloudflareChallengeDetected = true;
+            }
+          })
+          .catch(() => {});
+      }
+      auth0StepResponses.push(
+        `${response.request().method()} ${responseUrl.pathname} ${response.status()}`
+      );
+    }
+  });
+
+  await beginSignIn(page, appUrl, apiUrl);
+  await dismissGoogleOneTapPrompt(page);
+  await page.getByLabel(/email address/i).fill(email!);
+  const usernameInput = page.getByLabel('Username', { exact: true });
+  if (await usernameInput.isVisible().catch(() => false)) {
+    const emailPrefix = email!.split('@')[0] ?? 'test-user';
+    const username = `sanny-e2e-${emailPrefix.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40)}`;
+    await usernameInput.fill(username);
+  }
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  const passwordInput = page.locator('input[type="password"]:visible');
+  try {
+    await passwordInput.waitFor({ state: 'visible', timeout: 20_000 });
+  } catch {
+    const currentUrl = new URL(page.url());
+    const visibleText = (await page.locator('body').innerText())
+      .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[redacted-email]')
+      .replace(/\s+/g, ' ')
+      .slice(0, 400);
+    const cloudflareChallengeUi =
+      (await page
+        .getByText(
+          /verify you are human|verifying you are human|checking your browser|cloudflare/i
+        )
+        .count()) > 0 ||
+      (await page
+        .locator(
+          'iframe[src*="challenges.cloudflare.com"], iframe[src*="turnstile"], #challenge-form, input[name="cf-turnstile-response"], input[name="cf_chl_rc_i"]'
+        )
+        .count()) > 0;
+    if (cloudflareChallengeDetected || cloudflareChallengeUi) {
+      test.skip(
+        true,
+        'Cloudflare verification blocked the automated Auth0 login; verify this identity manually in a supported browser.'
+      );
+    }
+    throw new Error(
+      `Auth0 did not advance to password entry at ${currentUrl.host}${currentUrl.pathname}. ` +
+        `UI: ${visibleText}. Auth0 responses: ${auth0StepResponses.join(', ') || 'none'}.`
+    );
+  }
+  await passwordInput.fill(password!);
+  await submitCredentialsAndWaitForCallback(page, () =>
+    page.getByRole('button', { name: /continue|log in/i }).click()
+  );
+
+  await expectAuthenticatedUser(context, apiUrl, email!);
+
+  const cookies = await context.cookies(apiUrl);
+  const sessionCookie = cookies.find(
+    (cookie) => cookie.name === '__Host-sanny_session'
+  );
+  const csrfCookie = cookies.find(
+    (cookie) => cookie.name === '__Host-sanny_csrf'
+  );
+  expect(sessionCookie?.value).toBeTruthy();
+  expect(sessionCookie).toMatchObject({
+    secure: true,
+    httpOnly: true,
+    sameSite: 'None',
+    path: '/',
+    domain: new URL(apiUrl).hostname,
+  });
+  expect(csrfCookie?.value).toBeTruthy();
+  expect(csrfCookie).toMatchObject({
+    secure: true,
+    httpOnly: false,
+    sameSite: 'None',
+    path: '/',
+    domain: new URL(apiUrl).hostname,
+  });
+
+  const profileResponse = await context.request.get(
+    `${apiUrl}/api/v001/users/me`
+  );
+  expect(profileResponse.status()).toBe(200);
+  const profile = (await profileResponse.json()) as { username: string };
+  const csrfRejectedBody = {
+    error: 'Forbidden',
+    message: 'Invalid CSRF token',
+  };
+  const trustedOrigin =
+    env.SANNY_E2E_TRUSTED_ORIGIN ?? 'https://127.0.0.1:5176';
+  const profileMutation = await context.request.patch(
+    `${apiUrl}/api/v001/users/me`,
+    {
+      headers: { accept: 'application/json', origin: trustedOrigin },
+      data: { username: profile.username },
+    }
+  );
+  expect(profileMutation.status()).toBe(403);
+  expect(await profileMutation.json()).toEqual(csrfRejectedBody);
+
+  const adminMutation = await context.request.patch(
+    `${apiUrl}/api/v001/users/2147483647/roles`,
+    {
+      headers: { accept: 'application/json', origin: trustedOrigin },
+      data: { roles: ['user'] },
+    }
+  );
+  expect(adminMutation.status()).toBe(403);
+  expect(await adminMutation.json()).toEqual(csrfRejectedBody);
+
+  const profileAfterRejection = await context.request.get(
+    `${apiUrl}/api/v001/users/me`
+  );
+  expect(profileAfterRejection.status()).toBe(200);
+  expect(
+    ((await profileAfterRejection.json()) as { username: string }).username
+  ).toBe(profile.username);
+
+  const csrfDenied = await context.request.post(
+    `${apiUrl}/api/v001/auth/logout`,
+    { headers: { accept: 'application/json' } }
+  );
+  expect(csrfDenied.status()).toBe(403);
+  expect(await csrfDenied.json()).toEqual({
+    error: 'Forbidden',
+    message: 'Invalid CSRF token',
+  });
+
+  const logout = await context.request.post(`${apiUrl}/api/v001/auth/logout`, {
+    headers: {
+      accept: 'application/json',
+      'x-csrf-token': csrfCookie!.value,
+    },
+  });
+  const logoutStatus = logout.status();
+  if (logoutStatus !== 200) {
+    const headers = logout.headers();
+    throw new Error(
+      `Logout failed with HTTP ${logoutStatus}; rate-limit=${headers['x-ratelimit-limit'] ?? 'none'}; retry-after=${headers['retry-after'] ?? 'none'}; response=${await logout.text()}`
+    );
+  }
+  expect(new URL((await logout.json()).logoutUrl).pathname).toBe(
+    '/oidc/logout'
+  );
+});

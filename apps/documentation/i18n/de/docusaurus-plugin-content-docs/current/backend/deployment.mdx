@@ -1,0 +1,60 @@
+---
+title: Bereitstellung und Wiederherstellung
+description: Bereitstellungsgrenzen, Staging-Prüfung, Rollback und Datenwiederherstellung.
+sidebar_position: 6
+---
+
+# Bereitstellung und Wiederherstellung
+
+## Bereitstellungsstatus
+
+Das Backend läuft lokal mit Docker. **Release workspace** (`release.yml`) wählt nach einer gemeinsamen Verifikationsprüfung das Image-Publishing aus und ruft den wiederverwendbaren Workflow `deploy-backend.yml` auf. Backend- oder gemeinsame Tooling-Änderungen auf `main` veröffentlichen identische `latest`- und Commit-SHA-Tags nach GHCR und Docker Hub (`sanny64/backend`). Docker Hub ist die Image-Quelle für Gordon und das VPS-Deployment. Der Workflow benötigt Schreibzugriff auf das Repository; der VPS benötigt Lesezugriff auf Docker Hub. Ein manueller **Release workspace**-Lauf auf `main` mit aktiviertem **deploy-backend** deployt genau dieses Commit-SHA-Image; ohne diese Eingabe ändert das Publishing den VPS nicht. Andere Branches können es nicht deployen. `DOCKERHUB_USERNAME` und `DOCKERHUB_PAT` sind GitHub-Actions-Secrets, keine Backend-Laufzeitvariablen. Unterworkflows besitzen keine eigenen Push-/manuellen Trigger. Lokale Container im Produktionsmodus belegen weder eine gehostete Verifikation noch eine Release-Freigabe; vor dem öffentlichen Produktivbetrieb muss eine isolierte Staging-Umgebung eingerichtet werden.
+
+Auth0-, Datenbank- und Redis-Ressourcen müssen je Umgebung getrennt sein. Zugangsdaten kommen aus dem zugehörigen Secret-Store. Echte Hostnamen, Tenant-Kennungen oder Zugangsdaten gehören nicht in dieses Repository.
+
+Setze die manuelle Release-Eingabe `backend-directory` auf den absoluten Pfad des freigegebenen Repository-Checkouts auf dem VPS; der Workflow übergibt sie als `BACKEND_DEPLOY_DIRECTORY`. Stelle vor dem Deployment genau den freizugebenden Stand `github.sha` bereit; der Workflow überträgt oder aktualisiert die Konfiguration nicht automatisch. Compose-, NGINX-, Redis- und Monitoring-Konfiguration dürfen gegenüber diesem Commit keine versionierten Änderungen enthalten. `apps/backend/.env` und `apps/backend/redis/secret/certs/ca.crt` bleiben außerhalb der Versionskontrolle und werden separat bereitgestellt. Produktions- und Entwicklungs-Compose-Datei müssen beide im Checkout vorhanden sein.
+
+Das Deployment läuft aus `apps/backend` mit `--project-directory .` und `docker/compose/docker-compose.prod.yml`. Relative Pfade für Umgebung, geerbte Dienste und Zertifikate verwenden dieses explizite Projektverzeichnis. Der Workflow validiert mit `config --quiet`, lädt das Image mit dem unveränderten Commit-SHA als Tag und wartet bis zu 120 Sekunden auf den Backend-Healthcheck. Fehlende Konfiguration, ein abweichender oder veränderter Checkout, ungültige Compose-Konfiguration oder fehlgeschlagene Healthchecks stoppen das Deployment. Dies ist weder ein automatischer Rollback noch eine gehostete Freigabe.
+
+---
+
+## Laufzeitgrenzen
+
+- Entwicklungscontainer heißen `sanny64-backend`; das Image heißt `sanny64-backend:latest`. Produktion verwendet das Registry-Image `sanny64/backend:<tag>`. Der feste Containername erlaubt nur eine Runtime-Instanz je Docker-Host. `npm run restart:stack` baut benötigte Images und erstellt den ganzen Entwicklungs-Stack neu; das Root-Skript delegiert dabei an `restart:stack` im Backend. `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
+- Fastify läuft hinter NGINX. Sein Port bleibt privat und darf nicht direkt öffentlich erreichbar sein.
+- NGINX beendet TLS, leitet HTTP auf HTTPS um und überschreibt Forwarding-Header. Produktionsseitiges Proxy-Vertrauen darf nur die tatsächliche vertrauenswürdige Proxy-IP bzw. das CIDR erlauben.
+- Redis ist auf das private Compose-Netz beschränkt und verwendet TLS mit Passwortschutz. Compose erstellt die Redis-Verbindungs-URL aus `REDIS_PASSWORD`.
+- MariaDB wird über `DATABASE_URL` konfiguriert und ist kein Dienst der Backend-Compose-Datei. Bereitstellung, Netzrichtlinien, Backups und Wiederherstellung benötigen eigene Verantwortliche.
+- Die npm-Skripte für Entwicklung sind kein Produktions-Release-Verfahren.
+
+---
+
+## Staging-Freigabe
+
+1. Ausschließlich Staging-Secrets laden und Umgebung, Auth0-Tenant, Datenbank und Redis-Ziel prüfen.
+2. Backend-, Prisma-Schema-, Auth0-Action- und Deployment-Änderungen getrennt prüfen. Ein Backend-Neubau deployt keine Auth0 Actions.
+3. Vor Schema- oder Datenmigrationen ein aktuelles Datenbank-Backup und einen getesteten Wiederherstellungsweg bestätigen.
+4. Compose-Konfiguration ohne Ausgabe validieren und veränderliche Monitoring-Image-Tags vor Produktion fest pinnen.
+5. Über das freigegebene Host-Verfahren deployen und Container-Health, HTTPS-`/healthcheck`, Security-Header, Datenbank-/Redis-Verbindung und Monitoring-Scrapes prüfen.
+6. Interaktives Login/Logout, Ablehnung wiederverwendeter PKCE-Zustände, Ablehnung wiederverwendeter Refresh-Tokens, Profil-/Änderungs-/Löschabläufe, Admin-Berechtigung und Pagination, Rate Limits, Browserfehlerbehandlung, Warnung vor Sitzungsablauf sowie Proxy-Header und direkte Zugriffsmöglichkeiten prüfen.
+7. Logs und Alarme auf Secrets und personenbezogene Daten prüfen. Build-ID, Ergebnisse, offene Risiken, Rollback-Schritte und Freigabe in einem zugriffsbeschränkten Deployment-Protokoll festhalten.
+8. Erst nach bestandenem Staging freigeben. Öffentliches `/nginx_status` muss gesperrt sein; der interne Exporter muss es erreichen können.
+
+---
+
+## Rollback
+
+Das Publishing und Deployment gehosteter Releases wird über **Release workspace** und dessen wiederverwendbare Deployment-Workflows automatisiert. Einen automatisierten gehosteten Rollback-Workflow gibt es nicht. Vor einem gehosteten Release ein Rollback-Verfahren für den Deployment-Host und eine verantwortliche Person festlegen. Bei Fehlern die Freigabe stoppen und Image/Konfiguration über dieses Verfahren zurückrollen. Datenbankmigrationen nur dann rückgängig machen, wenn dies nachweislich rückwärtskompatibel ist; andernfalls den freigegebenen Wiederherstellungsplan verwenden. Redis ist kein Ersatz für die Wiederherstellung von Benutzerkonten.
+
+---
+
+## Backup und Wiederherstellung
+
+- MariaDB über einen eigenen geschützten Prozess sichern. Backups verschlüsseln, Zugriffe begrenzen, Aufbewahrungsfristen festlegen und regelmäßig isoliert wiederherstellen. Ein erfolgreicher Backup-Job ist noch kein Wiederherstellungstest.
+- Redis speichert Sessions und Rate-Limit-Zustand, nicht die maßgeblichen Benutzerprofile. Nach Verlust der Session-Daten müssen sich Benutzer erneut anmelden. Die eingecheckte Redis-Konfiguration definiert kein explizites Aufbewahrungs- oder Wiederherstellungsziel; dieses muss vor dem gehosteten Produktivbetrieb festgelegt werden.
+- Compose-Volumes enthalten Redis- und Monitoring-Daten. Docker-Host und Volume-Backups schützen; Monitoring-Daten können Client-IP-Adressen und Dienstmetadaten enthalten.
+- Datenbank-Dumps, Redis-Snapshots, Zertifikate und Backup-Zugangsdaten gehören weder ins Repository noch in öffentliche Incident-Berichte.
+
+---
+
+Letzte Bearbeitung / Last edit: 22.10.2026

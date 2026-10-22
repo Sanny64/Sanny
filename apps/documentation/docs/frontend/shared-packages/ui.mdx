@@ -1,0 +1,150 @@
+---
+title: ui
+description: Information on the shared custom npm package @sanny/ui.
+sidebar_position: 3
+---
+
+# @sanny/ui
+
+`@sanny/ui` is a shared npm package that provides UI components used across all frontend projects.<br/> It keeps the overall component styles in sync and supports shared HTTP error and settings handling.
+
+`AppShell` is the shared application frame for Sanny and Auth. It provides branding, localized skip navigation, a focusable main landmark, optional `headerActions`, and reduced-motion-aware route entry. Use `variant="auth"` for the narrower authentication layout. Import globals and layout CSS from `@sanny/styles` in the app entrypoint; see the [shared theme and motion policy](./styles).
+
+Shared buttons, settings, and toast surfaces consume semantic light/dark tokens. Theme changes preserve the same action hierarchy; do not switch a primary action to secondary just because the theme changes.
+
+## What it exports
+
+The package’s public API exports shared UI components and shared UI pages used by frontend apps.<br/> It also ships the CSS used by those components and pages.
+
+- `components`
+  - `AppShell`, `Button`, `ButtonGroup`, `Checkbox`, and `ToastViewport`.
+- `pages`: Full pages that are used in all frontend projects, for example `Error.tsx` and `Settings.tsx`.
+- Toast helpers: `showToast`, `showErrorToast`, `dismissToast`, and `retriggerToast`.
+- Component CSS is colocated under the package's `src/styles/` directory and bundled by the consuming app.
+
+## Usage
+
+In a page you already set up routing for, import the needed component, for example `Button`:
+
+```typescript
+{/* Example Hello.tsx */}
+import { Button } from '@sanny/ui';
+import { useTheme, getThemeVariant } from '@sanny/styles';
+import { useLanguage, translations } from '@sanny/i18n';
+
+function sayHello() {
+  alert('Hello World');
+}
+
+export default function Hello() {
+  const { theme, toggleTheme } = useTheme(); // only needed if a component changes the global theme or its own theme.
+  const themeVariant = getThemeVariant(theme); // only needed if components change style based on global theme changes.
+  const { language } = useLanguage();
+  const t = translations[language]; // only needed if components change text based on global language changes.
+  return (
+    <div className="content">
+      // Standard button
+      <Button
+        className="say-hello-button"
+        variant={themeVariant} // getThemeVariant returns 'primary' or 'secondary'; 'destructive' is also supported.
+        onClick={sayHello}
+      >
+        Hello World Button
+      </Button>
+
+      // Dynamic button rendering
+      <Button
+        className="toggle-theme-button"
+        aria-label={t.shared.settings.descriptionToggleThemeButton(theme)} // switches the description based on the theme
+        variant={themeVariant} // switches the look of the button (or any other component) based on the theme
+        onClick={toggleTheme} // switches the theme
+      >
+        {t.shared.settings.toggleThemeButton(theme)} // switches the displayed button text based on the theme
+      </Button>
+    </div>
+  );
+}
+```
+
+As usual, for `onClick` functions that pass a parameter, use a setup like this:
+
+```tsx
+onClick={() => myFunction(parameter)}
+```
+
+For simple functions like `sayHello()`, you do not need to externalize the function outside the button:
+
+```tsx
+// standard
+onClick={() =>
+  alert('Button clicked')
+}
+
+// In an JS expression wrapper
+onClick={() => {
+  alert('Button clicked'); // allows you to use semicolons and other JS-specific syntax.
+}}
+```
+
+In general, externalizing functions is better for consistency and maintainability.
+
+## Notes for developers
+
+Prefer visible button text and associated form labels: they already provide the accessible name. Add a localized `aria-label` when a control has no sufficient visible text, such as an icon-only button. Do not use an `aria-label` that conflicts with visible text or an associated label, because it overrides the name assistive technology announces.
+
+Shared UI components use the semantic tokens from `@sanny/styles`. Auxiliary route styles currently scope only the layout background and text color through `--auxiliary-layout-bg` and `--auxiliary-layout-text`; they do not override shared component colors.
+
+Set these variables in a route stylesheet and map the route to its layout class in `Auxiliary.tsx`. Keep component styling on the shared semantic tokens rather than adding route-specific component-token APIs. Current route styles set the variables on classes such as `.auxiliary-layout--party`:
+
+```css
+.auxiliary-layout--auxiliary-page-name {
+  --auxiliary-layout-bg:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 42%),
+    linear-gradient(180deg, #0c7a00 0%, #059600 100%);
+  --auxiliary-layout-text: #eff8ee;
+}
+```
+
+Unlike `Main.tsx`, which stays mostly the same, `Auxiliary.tsx` files can diverge heavily based on the routes they render:
+
+```tsx
+import { Outlet, useLocation } from 'react-router-dom';
+import '@sanny/styles/globals.css';
+import '@sanny/styles/auxiliary.css';
+import '../styles/auxiliary-pages-one-to-three.css';
+
+export default function Layout() {
+  const { pathname } = useLocation();
+
+  function getRouteClass() {
+    switch (pathname) {
+      case '/auxiliary-page-1':
+        return 'auxiliary-layout--1';
+      case '/auxiliary-page-2':
+        return 'auxiliary-layout--2';
+      case '/auxiliary-page-3':
+        return 'auxiliary-layout--3';
+      default:
+        try {
+          console.error('Unknown route:', pathname);
+          return '';
+        } catch (e) {
+          console.error('Error occurred while determining route class:', e);
+          return '';
+        }
+    }
+  }
+
+  const routeClass = getRouteClass();
+
+  return (
+    <div className={`auxiliary-layout ${routeClass}`}>
+      <Outlet />
+    </div>
+  );
+}
+```
+
+More information about route behavior can be found [here](/docs/frontend/projects/sanny#special-behavior).
+
+Last edit: 17.10.2026

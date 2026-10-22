@@ -1,13 +1,13 @@
-import { useTheme } from "@sanny/styles";
-import { useLanguage, translations } from "@sanny/i18n";
-import { Button } from "../components/Button";
-import { ButtonGroup } from "../components/ButtonGroup";
-import "../styles/settings.css";
+import { useTheme } from '@sanny/styles';
+import { useLanguage, translations } from '@sanny/i18n';
+import { Button } from '../components/Button.js';
+import { ButtonGroup } from '../components/ButtonGroup.js';
+import '../css/settings.css';
 
 export default function Settings() {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage } = useLanguage();
-  const nextLanguage = language === "en" ? "de" : "en";
+  const nextLanguage = language === 'en' ? 'de' : 'en';
   const t = translations[language];
 
   return (
@@ -28,7 +28,7 @@ export default function Settings() {
         <Button
           type="button"
           variant="secondary"
-          aria-pressed={theme === "dark"}
+          aria-pressed={theme === 'dark'}
           aria-label={t.shared.settings.descriptionToggleThemeButton(theme)}
           onClick={toggleTheme}
         >
@@ -38,7 +38,7 @@ export default function Settings() {
           type="button"
           variant="secondary"
           aria-label={t.shared.settings.descriptionSwitchLanguageButton(
-            nextLanguage,
+            nextLanguage
           )}
           onClick={() => setLanguage(nextLanguage)}
         >

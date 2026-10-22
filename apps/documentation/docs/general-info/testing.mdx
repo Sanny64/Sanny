@@ -1,0 +1,90 @@
+---
+title: Local Testing
+description: Shared test gates, result boundaries, and evidence-handling guidance.
+sidebar_position: 7
+---
+
+## Root Test Gates
+
+Run commands from the repository root with Node.js 24 and npm 11.6.3.
+
+- `npm run test:ci` runs formatting and static checks, repository/frontend contracts, backend and component tests, mocked browser tests, frontend and documentation builds, and Linux visual baselines. Docker and installed Playwright browsers are required; live Auth0 credentials are not.
+- `npm run test` runs `test:ci`, then live Auth0, and invokes the 429 spike scenario. The selected live password flow requires a reachable development API/Auth0 tenant and dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials. Missing credentials are a configuration error, not a skip. Google automation is intentionally skipped because Google may block controlled browsers; an Auth0 Cloudflare challenge is an explicit manual-verification skip.
+- The 429 spike scenario is intentionally skipped unless `RUN_429_SPIKE_E2E=true`; enabling it may trigger alerts. Only this opted-in config reads `NGINX_BASIC_AUTH_USER`, `NGINX_BASIC_AUTH_PASSWORD`, `GRAFANA_ADMIN_USER`, and `GRAFANA_ADMIN_PASSWORD` from `apps/backend/.env` as fallbacks; environment values take precedence. The NGINX pair must match an entry in `apps/backend/nginx/secret/.htpasswd`; Grafana credentials are exchanged for a session cookie. Missing or rejected credentials fail with an actionable explanation.
+- The API URL is an origin, resolved in this order everywhere: `SANNY_E2E_API_URL`, `VITE_API_URL`, then `https://localhost:8443`. The live browser server receives that origin as `VITE_API_URL`; live API requests and backend health checks use the same origin.
+- `npm run test:e2e:real`, `npm run test:e2e:429`, and `npm run test:e2e` use the same backend lifecycle manager as `npm run test`. It checks `/healthcheck`, reuses a healthy backend, starts development Compose services only for an unhealthy loopback target, waits up to three minutes, and stops only services started by that command. A remote unhealthy target is never started. Create a missing stack with `npm run restart:stack`.
+- Docker test stacks (`sanny-monitoring-tests-<pid>` and `sanny-redis-tests-<pid>`) are removed when their runner finishes or is interrupted. Stacks left by a hard-killed runner are removed at the next start of that runner.
+
+You set RUN_429_SPIKE_E2E=true like this:
+
+```powershell
+$env:RUN_429_SPIKE_E2E = "true"
+npm run test:e2e:429
+```
+
+---
+
+## Test Tiers
+
+| Tier                                  | Root entry points                                                                                                                      | Prerequisites and boundaries                                                                                                                                                                                                                                                                    |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit, component, and source contracts | `test:auth`, `test:sanny`, `test:components`, `test:frontend:contracts`, `test:tooling`; backend unit tests run through `test:backend` | No live API, Auth0, or developer credentials. Backend integration portions of `test:backend` additionally require Docker.                                                                                                                                                                       |
+| Isolated backend integration          | `test:backend` or its monitoring, Redis, and Discord workspace scripts                                                                 | Monitoring and Redis use disposable Docker resources; Redis tests do not load the developer environment file or require the development stack.                                                                                                                                                  |
+| Mocked browser                        | `test:e2e:mocked`                                                                                                                      | Installed Playwright browsers and local frontend servers; API responses are mocked, with no live backend or Auth0 credentials.                                                                                                                                                                  |
+| Documentation browser                 | `test:e2e:docs`                                                                                                                        | Builds and serves the documentation locally, then tests mobile Chromium; no backend or Auth0 credentials.                                                                                                                                                                                       |
+| Live browser                          | `test:e2e:real`                                                                                                                        | Chromium, Firefox, Edge, network access, reachable development API/Auth0, and dedicated password-test credentials. Only this explicitly selected config reads `TESTUSER_EMAIL` and `TESTUSER_PASSWORD` from `apps/backend/.env` as a local fallback; it does not import other backend settings. |
+| Live monitoring                       | `test:e2e:429`                                                                                                                         | Opt-in only; requires the development API, Grafana credentials, and deliberate alert traffic. It can trigger alerts.                                                                                                                                                                            |
+
+Test suites do not globally load developer `.env` files. Only the explicitly selected live Auth0 and opted-in monitoring configurations load their named credential fallbacks; CI runs `test:ci` and does not load live Auth0 credentials. Vitest uses shared jsdom defaults; only the shared UI suite loads its own setup file for cleanup. Browser configurations remain tier-specific because mocked apps, live Auth0, monitoring, and documentation have different servers and isolation needs.
+
+Deployment contracts require the Docker Compose CLI and Bash; on Windows they use Git Bash. They execute staging and a simulated remote deployment in temporary directories and resolve production Compose with synthetic inputs, without contacting a VPS or reading real environment files. These checks run through `test:tooling` and do not require a running Docker daemon.
+
+---
+
+## Latest full run
+
+### 2026-10-22, refactor verification against d1e798e
+
+- `npm run test:ci` passed: 54 tooling contracts, fast workspace tests, isolated monitoring/Redis integration, 798 mocked browser passes with 15 intentional skips, 2 documentation browser passes, both locale/app builds, and 5 Linux visual passes. Backend unit results were 155 passed and one intentional skip. Final workflow-input and documentation changes were rechecked with the tooling suite and focused post-edit checks.
+- `npm run test:e2e:real` ran separately after CI and finished with exit code 0: Chromium/Firefox password flows passed; three Google cases and the provider-challenged Edge password case were skipped. The runner started the local backend, confirmed readiness, and stopped only the services it started.
+- An isolated 406-file source snapshot excluded environment files, secrets, dependencies, and generated output. `npm ci`, Prisma generation, `npm run check`, `build:auth`, and `build:sanny` passed; the snapshot was removed. This is install/build evidence, not external-service provisioning or hosted sign-off.
+- The monolithic `npm run test` was not rerun and no 429 spike was generated. Production security findings and hosted deployment verification remain separate open work.
+
+### 2026-10-22, Node 24/npm 11.6.3
+
+- `npm run test:ci` passed in the full gate, including static checks, backend/frontend tests, 798 mocked browser passes (15 skips), 2 documentation browser passes, and 5 Linux visual passes. The backend suite reported 155 passes and one intentional skip; isolated monitoring and Redis integration tests passed.
+- `npm run test` passed in 19 minutes and 37 seconds. The live password flow passed in Chromium and Firefox; Edge was skipped by the provider challenge, Google automation was intentionally skipped in all browsers, and the opt-in 429 spike was skipped because it was not enabled.
+- The failure was an incorrect Auth0 token URL: first-party code used `/oapps/frontend/auth/token`, which returned 404. Backend calls and deployed Auth0 Actions now use the documented `/oauth/token` endpoint. The standalone `npm run test:e2e:real` passed in Chromium and Firefox with the same expected provider skips.
+- The full run reused an already-healthy local backend. Deterministic contracts cover readiness success, timeout, and cancellation; live cancellation was not forced.
+
+### 2026-10-20, Node 24/npm 11.6.3 (previous successful full run)
+
+- passed in an uninterrupted isolated run completed at 9:10 pm within 18 minutes and 31 seconds.
+- Formatting and static checks, 38 tooling contracts, 11 UI component tests, 166 backend unit tests, backend integration tests, and the Auth, documentation, and Sanny builds passed. One Redis-dependent unit test was intentionally skipped.
+- Mocked browser tests: 798 passed and 15 intentional skips. Documentation browser tests: 2 passed. Linux visual tests: 5 passed.
+- Live Auth0 password login passed in Chromium, Firefox, and Edge. Google automation was skipped in all three browsers, and the 429 spike test was skipped by its conditions; this run does not establish rate-limit-spike behavior or hosted sign-off.
+
+---
+
+## Interpreting Results
+
+A passing gate establishes that its configured checks passed for the current checkout and local test environment. Mocked frontend tests verify UI behavior and request/response contracts, not backend persistence or live Auth0. Live authentication covers only the configured test identity and selected flows. No local gate proves behavior for every browser, device, identity provider, input, or deployment configuration, and local results are not staging or production sign-off.
+
+Automated test coverage does not replace manual checks with other identity providers, assistive technologies, or hosted security controls. Linux visual baselines are Chromium-only. The 429 spike behavior is not established by the latest full run because that test was skipped.
+
+---
+
+## Test Data and Evidence
+
+Use isolated development or staging services and dedicated test identities. Never use personal accounts or record passwords, tokens, cookies, email addresses, or other personal data in test evidence. Record the date, build/revision, environment, browser/device or assistive technology, scenario, outcome, and residual issues in the restricted test record. Keep checks open until their evidence is recorded and reviewed.
+
+---
+
+## Testing Guides
+
+- [Frontend automated testing](../frontend/local-testing/automated-testing.mdx) and [frontend manual testing](../frontend/local-testing/manual-testing.mdx)
+- [Backend automated testing](../backend/local-testing/automated-testing.mdx) and [backend manual testing](../backend/local-testing/manual-testing.mdx)
+
+---
+
+Last edit: 22.10.2026

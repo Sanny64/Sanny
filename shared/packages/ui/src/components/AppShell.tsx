@@ -1,20 +1,20 @@
-import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { Link, useLocation } from "react-router-dom";
-import { translations, useLanguage } from "@sanny/i18n";
-import brandMark from "../brand.png";
+import type { ReactNode } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Link, useLocation } from 'react-router-dom';
+import { translations, useLanguage } from '@sanny/i18n';
+import brandMark from '../brand.png';
 
 const MotionLink = motion.create(Link);
 
 interface AppShellProps {
   children: ReactNode;
-  variant?: "public" | "auth";
+  variant?: 'public' | 'auth';
   headerActions?: ReactNode;
 }
 
 export function AppShell({
   children,
-  variant = "public",
+  variant = 'public',
   headerActions,
 }: AppShellProps) {
   const { pathname } = useLocation();
@@ -24,19 +24,19 @@ export function AppShell({
   return (
     <div className={`layout layout--${variant}`}>
       <a href="#main-content" className="skip-link" tabIndex={0}>
-        {language === "de" ? "Zum Hauptinhalt" : "Skip to main content"}
+        {language === 'de' ? 'Zum Hauptinhalt' : 'Skip to main content'}
       </a>
       <header className="app-header">
         <MotionLink
           className="app-brand"
           to="/"
           tabIndex={0}
-          whileHover={reducedMotion ? undefined : { scale: 1.05 }}
+          {...(!reducedMotion && { whileHover: { scale: 1.05 } })}
         >
           <img src={brandMark} alt="" width={28} height={28} />
           Sanny64
         </MotionLink>
-        {variant === "auth" && (
+        {variant === 'auth' && (
           <span className="app-brand__context">
             {translations[language].shared.auth.title}
           </span>

@@ -11,10 +11,10 @@
       "types": "./index.ts",
       "default": "./index.ts"
     },
-    "./globals.css": "./globals.css",
-    "./main.css": "./main.css",
-    "./auxiliary.css": "./auxiliary.css",
-    "./party.css": "./party.css"
+    "./globals.css": "./src/css/globals.css",
+    "./main.css": "./src/css/main.css",
+    "./auxiliary.css": "./src/css/auxiliary.css",
+    "./party.css": "./src/css/party.css"
   },
   "peerDependencies": {
     "react": "^19.0.0",

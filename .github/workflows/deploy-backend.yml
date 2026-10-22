@@ -8,6 +8,9 @@ on:
       deploy:
         type: boolean
         default: false
+      deployment-directory:
+        type: string
+        default: ''
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -48,7 +51,7 @@ jobs:
             docker.io/sanny64/backend
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha,format=long
+            type=raw,value=${{ github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -70,7 +73,7 @@ jobs:
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
-          file: ./backend/docker/Dockerfile
+          file: ./apps/backend/docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -82,6 +85,7 @@ jobs:
     if: inputs.deploy && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     env:
       BACKEND_IMAGE_TAG: ${{ github.sha }}
+      BACKEND_DEPLOY_DIRECTORY: ${{ inputs.deployment-directory }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PAT: ${{ secrets.DOCKERHUB_PAT }}
     steps:
@@ -91,10 +95,15 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: BACKEND_IMAGE_TAG,DOCKERHUB_USERNAME,DOCKERHUB_PAT
+          envs: BACKEND_IMAGE_TAG,BACKEND_DEPLOY_DIRECTORY,DOCKERHUB_USERNAME,DOCKERHUB_PAT
           script: |
+            set -eu
+            : "${BACKEND_DEPLOY_DIRECTORY:?Supply backend-directory for the approved release checkout}"
+            cd "$BACKEND_DEPLOY_DIRECTORY"
+            test "$(git rev-parse HEAD)" = "$BACKEND_IMAGE_TAG"
+            git diff --quiet HEAD -- apps/backend/docker/compose apps/backend/nginx/nginx.conf apps/backend/redis/redis.conf apps/backend/monitoring
             echo "$DOCKERHUB_PAT" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
-            cd /var/www/sanny/backend/docker
-            docker compose -f docker-compose.prod.yml pull sanny64-backend
-            docker compose -f docker-compose.prod.yml up -d --no-build sanny64-backend
-            docker image prune -f
+            cd apps/backend
+            docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.prod.yml config --quiet
+            docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.prod.yml pull sanny64-backend
+            docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.prod.yml up -d --no-build --wait --wait-timeout 120 sanny64-backend

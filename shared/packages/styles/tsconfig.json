@@ -1,4 +1,13 @@
 {
-  "extends": "../../../tooling/config/tsconfig.frontend.base.json",
-  "include": ["*.ts", "*.tsx"]
+  "extends": "../../../apps/frontend/tsconfig.frontend.json",
+  "include": [
+    "*.ts",
+    "*.tsx",
+    "src/config/theme.config.ts",
+    "src/types/theme.types.ts",
+    "src/utils/theme.utils.ts",
+    "src/ThemeContext.tsx",
+    "src/ThemeProvider.tsx",
+    "src/hooks/useTheme.ts"
+  ]
 }
