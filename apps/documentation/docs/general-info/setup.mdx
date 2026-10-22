@@ -14,6 +14,15 @@ Install all workspace dependencies from the repository root:
 npm ci
 ```
 
+If your globally active Node.js version differs from the repository pin, run npm commands with the pinned Node.js and npm versions through `npx`:
+
+```sh
+npx --yes --package=node@24 --package=npm@11.6.3 -- npm ci
+npx --yes --package=node@24 --package=npm@11.6.3 -- npm run test:ci
+```
+
+Use the same prefix before other `npm` commands.
+
 The root `tsconfig.json` owns strict, environment-neutral defaults and repository tooling checks. Both frontend apps and the source-exported shared packages extend the single browser configuration at `apps/frontend/tsconfig.frontend.json`; frontend environment declarations live in `apps/frontend/frontend-env.d.ts`.
 
 Run each app you need in its own terminal:

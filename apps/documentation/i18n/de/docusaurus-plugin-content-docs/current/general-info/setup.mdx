@@ -14,6 +14,15 @@ Installiere alle Workspace-Abhängigkeiten im Repository-Stammverzeichnis:
 npm ci
 ```
 
+Wenn deine global aktive Node.js-Version von der Repository-Vorgabe abweicht, kannst du npm-Befehle mit den festgelegten Node.js- und npm-Versionen über `npx` ausführen:
+
+```sh
+npx --yes --package=node@24 --package=npm@11.6.3 -- npm ci
+npx --yes --package=node@24 --package=npm@11.6.3 -- npm run test:ci
+```
+
+Verwende dasselbe Präfix auch für andere `npm`-Befehle.
+
 Die Root-`tsconfig.json` enthält strenge, umgebungsneutrale Grundeinstellungen und Prüfungen für Repository-Tooling. Beide Frontend-Apps und die quellcodeexportierten gemeinsamen Pakete erweitern die einzige Browser-Konfiguration `apps/frontend/tsconfig.frontend.json`; gemeinsame Frontend-Umgebungsdeklarationen liegen in `apps/frontend/frontend-env.d.ts`.
 
 Starte jede benötigte App in einem eigenen Terminal:
