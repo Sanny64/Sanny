@@ -1,5 +1,5 @@
 ---
-title: Manual Testing
+title: Manual Backend Testing
 description: Start the local Sanny services and choose the right testing guide.
 sidebar_position: 3
 ---
@@ -7,6 +7,8 @@ sidebar_position: 3
 ## Purpose
 
 Backend and hosted-environment procedures are listed below. See the [Local Testing guide](../../general-info/testing.mdx) for shared test-data and evidence-handling rules, root-gate interpretation, and the latest full-run result.
+
+---
 
 ## Before Staging
 
@@ -16,10 +18,14 @@ Backend and hosted-environment procedures are listed below. See the [Local Testi
 - [ ] Verify successful profile update, account deletion, admin lookup/list pagination, role changes, password reset, and denied access for non-admins. Confirm persistence and cleanup in the isolated environment.
 - [ ] Exercise live MFA and email-OTP step-up, including cancellation, recovery, expiry, and retry behavior for sensitive actions.
 
+---
+
 ## Hosted Staging
 
 - [ ] Complete every item in [Deployment and Recovery](../deployment.mdx), including environment isolation, proxy/direct-access boundaries, HTTPS/security headers, rate limits, PKCE replay rejection, refresh/reuse handling, session expiry, and backup/restore readiness.
 - [ ] Verify real Discord/email contact-point delivery in the development or staging stack. The isolated automated test proves rule firing and test-sink delivery, not external contact-point delivery; see [Monitoring](../monitoring.mdx) and the dated monitoring record.
 - [ ] Review logs and metrics for secrets, personal data, unbounded labels, or query-string leakage; confirm protected monitoring endpoints are not publicly reachable.
+
+---
 
 Last edit: 20.10.2026

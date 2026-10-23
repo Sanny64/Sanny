@@ -79,7 +79,7 @@
     "check": "npm run check:runtime && npm run check --workspaces && npm run check:tooling",
     "compare:docs": "node tooling/scripts/warn-docs-translation.mjs",
     "review:docs:translations": "node tooling/scripts/record-doc-translation-review.mjs",
-    "restart:stack": "npm run restart:stack -w backend",
+    "initialize:stack": "npm run initialize:stack -w backend",
     "restart:backend": "npm run restart -w backend",
     "start:stack": "npm run start -w backend",
     "stop:stack": "npm run stop -w backend",

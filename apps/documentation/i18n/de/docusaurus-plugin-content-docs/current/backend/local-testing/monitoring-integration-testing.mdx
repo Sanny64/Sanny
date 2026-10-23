@@ -4,8 +4,6 @@ description: Grafana-Kontaktpunkte und Monitoring-Regeln lokal sicher prüfen.
 sidebar_position: 5
 ---
 
-# Monitoring-Integrationstests
-
 Die Suite für Monitoring-Regeln verwendet ein wegwerfbares Compose-Projekt und einen lokalen Benachrichtigungs-Test-Sink. Sie versendet keine externen E-Mails oder Discord-Nachrichten und lädt `apps/backend/.env` nicht. Der separate direkte Discord-Webhooktest versendet eine echte Nachricht; führe ihn nur aus, wenn dieser Nebeneffekt beabsichtigt ist.
 
 ## Voraussetzungen
@@ -86,4 +84,4 @@ Der Test verwendet `shared/tests/e2e/playwright.monitoring.config.ts` und nur Ch
 
 ---
 
-Letzte Bearbeitung / Last edit: 22.10.2026
+Letzte Bearbeitung: 22.10.2026

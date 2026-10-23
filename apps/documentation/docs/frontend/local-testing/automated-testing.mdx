@@ -32,9 +32,13 @@ Run commands from the repository root. For runtime versions and shared root-gate
 
 Each app's workspace `check` script composes its `lint` and `typecheck` base scripts; neither app exposes a test alias for lint. The mocked browser suite includes the accessibility specs; the direct Playwright commands above are useful when iterating on one suite. For shared test-gate behavior and result boundaries, see the [Local Testing guide](../../general-info/testing.mdx). See [Backend Automated Testing](../../backend/local-testing/automated-testing.mdx) for backend test coverage.
 
+---
+
 ## Component Coverage
 
 `shared/packages/ui/src/tests/component/ui-components.test.tsx` verifies shared button keyboard operation and disabled state, checkbox labeling and feedback, toast alert/status announcements and actions, language/theme persistence, and not-found content. These focused tests do not cover every prop or state combination.
+
+---
 
 ## Browser Coverage
 
@@ -44,12 +48,16 @@ Mocked Playwright tests live in `shared/tests/e2e/mock/`. Accessibility ownershi
 
 The axe tests use WCAG 2.2 AA tags across all registered Sanny public routes and the tested settings/admin states, plus Auth helper routes. App-owned accessibility specs cover English/German preference and light/dark theme combinations in Chromium, Firefox, and Edge. The shared `accessibility.spec.ts` also checks language/theme initialization in both apps and system color-scheme changes with a persisted override on Sanny Settings. These automated checks do not substitute for screen-reader testing or 200% zoom checks.
 
+---
+
 ## What a Passing Run Establishes
 
 - Frontend lint/build checks the current app and shared-package source with the configured tooling; component and mocked browser tests verify the tested UI states and request/response contracts in the configured browsers.
 - Axe checks automated WCAG 2.2 AA rules only for the routes, states, languages, and themes included in the suite. Specific keyboard flows are tested, but this is not a complete keyboard audit.
 
 Axe and browser coverage is limited to the tested rules and UI states; it does not establish complete WCAG conformance or screen-reader compatibility. Visual baselines are captured in Chromium only. See the [Local Testing guide](../../general-info/testing.mdx) for shared test-result limits and evidence guidance.
+
+---
 
 ## Remaining Verification
 
@@ -63,5 +71,7 @@ Axe and browser coverage is limited to the tested rules and UI states; it does n
 - [ ] Verify the same frontend checks in CI on the exact revision intended for deployment and record any unresolved findings.
 
 Use [Frontend Manual Testing](./manual-testing.mdx) for keyboard, screen-reader, zoom, responsive, and reduced-motion checks.
+
+---
 
 Last edit: 20.10.2026

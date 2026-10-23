@@ -12,10 +12,10 @@ Führe Befehle im Repository-Stammverzeichnis mit Node.js 24 und npm 11.6.3 aus.
 - `npm run test` führt `test:ci` aus, danach Live-Auth0 und das 429-Spike-Szenario. Der ausgewählte Live-Passwortablauf benötigt eine erreichbare Entwicklungs-API/einen Auth0-Tenant und dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`. Fehlende Zugangsdaten sind ein Konfigurationsfehler und kein Skip. Die Google-Automatisierung wird absichtlich übersprungen, da Google kontrollierte Browser blockieren kann; eine Auth0-Cloudflare-Challenge wird ausdrücklich zur manuellen Prüfung übersprungen.
 - Das 429-Spike-Szenario wird absichtlich übersprungen, sofern `RUN_429_SPIKE_E2E=true` nicht gesetzt ist; bei Aktivierung können Alarme ausgelöst werden. Nur diese ausdrücklich aktivierte Konfiguration liest ersatzweise `NGINX_BASIC_AUTH_USER`, `NGINX_BASIC_AUTH_PASSWORD`, `GRAFANA_ADMIN_USER` und `GRAFANA_ADMIN_PASSWORD` aus `apps/backend/.env`; Umgebungsvariablen haben Vorrang. Das NGINX-Paar muss zu einem Eintrag in `apps/backend/nginx/secret/.htpasswd` passen; Grafana-Zugangsdaten werden gegen ein Sitzungscookie getauscht. Fehlende oder abgelehnte Zugangsdaten führen zu einer konkreten Erklärung.
 - Die API-URL ist ein Origin und wird überall in dieser Reihenfolge aufgelöst: `SANNY_E2E_API_URL`, `VITE_API_URL`, dann `https://localhost:8443`. Der Live-Browser-Server erhält diesen Origin als `VITE_API_URL`; Live-API-Aufrufe und Backend-Healthchecks verwenden denselben Origin.
-- `npm run test:e2e:real`, `npm run test:e2e:429` und `npm run test:e2e` verwenden denselben Backend-Lifecycle-Manager wie `npm run test`. Er prüft `/healthcheck`, verwendet ein gesundes Backend weiter, startet Entwicklungs-Compose-Dienste nur für ein nicht erreichbares Loopback-Ziel, wartet bis zu drei Minuten und stoppt nur Dienste, die dieser Befehl gestartet hat. Ein nicht erreichbares Remote-Ziel wird niemals gestartet. Einen fehlenden Stack erstellt `npm run restart:stack`.
+- `npm run test:e2e:real`, `npm run test:e2e:429` und `npm run test:e2e` verwenden denselben Backend-Lifecycle-Manager wie `npm run test`. Er prüft `/healthcheck`, verwendet ein gesundes Backend weiter, startet Entwicklungs-Compose-Dienste nur für ein nicht erreichbares Loopback-Ziel, wartet bis zu drei Minuten und stoppt nur Dienste, die dieser Befehl gestartet hat. Ein nicht erreichbares Remote-Ziel wird niemals gestartet. Einen fehlenden Stack erstellt `npm run initialize:stack`.
 - Docker-Test-Stacks (`sanny-monitoring-tests-<pid>` und `sanny-redis-tests-<pid>`) werden entfernt, wenn ihr Runner endet oder unterbrochen wird. Stacks eines hart beendeten Runners werden beim nächsten Start dieses Runners entfernt.
 
-Du kannst RUN_429_SPIKE_E2E=true so setzen:
+Man setzt RUN_429_SPIKE_E2E=true wie folgt:
 
 ```powershell
 $env:RUN_429_SPIKE_E2E = "true"
@@ -43,7 +43,7 @@ Deployment-Verträge benötigen die Docker-Compose-CLI und Bash; unter Windows v
 
 ## Letzter vollständiger Lauf
 
-### 22.10.2026, Refaktorierungsprüfung gegenüber d1e798e
+### 22.10.2026, Refaktorierungsprüfung gegenüber `d1e798e`
 
 - `npm run test:ci` bestand: 54 Tooling-Verträge, schnelle Workspace-Tests, isolierte Monitoring-/Redis-Integration, 798 gemockte Browser-Erfolge mit 15 absichtlichen Skips, 2 Dokumentations-Browsertests, beide Sprach-/App-Builds und 5 Linux-Visualtests. Die Backend-Unit-Tests meldeten 155 Erfolge und einen absichtlichen Skip. Abschließende Workflow-Eingabe- und Dokumentationsänderungen wurden erneut mit der Tooling-Suite und gezielten Prüfungen nach den Änderungen geprüft.
 - `npm run test:e2e:real` lief nach CI separat und endete mit Exit-Code 0: Die Passwortabläufe in Chromium/Firefox bestanden; drei Google-Fälle und der durch die Anbieter-Challenge blockierte Edge-Passwortfall wurden übersprungen. Der Runner startete das lokale Backend, bestätigte die Bereitschaft und stoppte nur selbst gestartete Dienste.
@@ -66,8 +66,6 @@ Deployment-Verträge benötigen die Docker-Compose-CLI und Bash; unter Windows v
 
 ---
 
----
-
 ## Aussagekraft der Ergebnisse
 
 Ein erfolgreiches Gate belegt, dass seine konfigurierten Prüfungen für den aktuellen Checkout und die lokale Testumgebung bestanden wurden. Gemockte Frontend-Tests prüfen UI-Verhalten und Request-/Response-Verträge, nicht Backend-Persistenz oder Live-Auth0. Die Live-Authentifizierung deckt nur die konfigurierte Testidentität und ausgewählte Abläufe ab. Kein lokales Gate belegt das Verhalten für jeden Browser, jedes Gerät, jeden Identitätsanbieter, jede Eingabe oder jede Deployment-Konfiguration. Lokale Ergebnisse sind keine Staging- oder Produktionsfreigabe.
@@ -76,13 +74,9 @@ Automatisierte Testabdeckung ersetzt keine manuellen Prüfungen mit weiteren Ide
 
 ---
 
----
-
 ## Testdaten und Nachweise
 
 Verwende isolierte Entwicklungs- oder Staging-Dienste und dedizierte Testkonten. Nutze keine persönlichen Konten und dokumentiere keine Passwörter, Tokens, Cookies, E-Mail-Adressen oder andere personenbezogene Daten in Testnachweisen. Halte Datum, Build/Revision, Umgebung, Browser/Gerät oder assistive Technologie, Szenario, Ergebnis und Restrisiken im zugriffsbeschränkten Testnachweis fest. Eine Prüfung bleibt offen, bis ihr Nachweis erfasst und geprüft wurde.
-
----
 
 ---
 
@@ -93,4 +87,4 @@ Verwende isolierte Entwicklungs- oder Staging-Dienste und dedizierte Testkonten.
 
 ---
 
-Letzte Bearbeitung / Last edit: 22.10.2026
+Letzte Bearbeitung: 22.10.2026

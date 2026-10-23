@@ -8,6 +8,8 @@ Das Backend läuft als Docker-Compose-Stack und stellt die Fastify-API hinter NG
 
 Verwende dedizierte Entwicklungsdienste und Testidentitäten. Verbinde eine lokale Instanz nicht mit Produktionsressourcen.
 
+---
+
 ## Voraussetzungen
 
 - Node.js 24 und npm
@@ -43,7 +45,7 @@ Der Compose-Stack erwartet außerdem die NGINX-TLS-Dateien und das Redis-CA-Zert
 
 1. Öffne Docker Desktop.
 
-2. Führe im Repository-Stammverzeichnis `npm run restart:stack` aus, um das benötigte Image zu bauen und den gesamten Entwicklungs-Stack zu erstellen. Der Befehl delegiert an das Workspace-Skript `restart:stack` im Backend. `npm run build:backend` baut nur das Backend-Image; es startet oder erstellt keine Dienste neu.
+2. Führe im Repository-Stammverzeichnis `npm run initialize:stack` aus, um das benötigte Image zu bauen und den gesamten Entwicklungs-Stack zu erstellen. Der Befehl delegiert an das Workspace-Skript `initialize:stack` im Backend. `npm run build:backend` baut nur das Backend-Image; es startet oder erstellt keine Dienste neu.
 
 ### Täglicher Start
 
@@ -71,4 +73,4 @@ Die Grenzen des Produktionsdeployments und die Release-Prüfungen sind unter [De
 
 ---
 
-Letzte Bearbeitung / Last edit: 17.10.2026
+Letzte Bearbeitung: 17.10.2026

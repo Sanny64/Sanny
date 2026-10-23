@@ -1,15 +1,15 @@
-**/dist
-**/build
-**/.docusaurus
-test-results
-playwright-report
+**/dist/
+**/build/
+**/.docusaurus/
+test-results/
+playwright-report/
 package-lock.json
 **/package-lock.json
-**/.agents
+**/.agents/
 **/.env
 **/.env.*
 
-documentation/docs/start.mdx
-documentation/i18n/de/docusaurus-plugin-content-docs/current/start.mdx
+apps/documentation/docs/start.mdx
+apps/documentation/i18n/de/docusaurus-plugin-content-docs/current/start.mdx
 
-games
+games/

@@ -15,7 +15,6 @@ Verwende Node.js 24 (`tooling/config/.nvmrc`) und npm 11.6.3 (`packageManager`).
 | `.editorconfig`, `.prettierignore`, Root-`package.json`, `prettier.config.ts` | Editor-/Prettier-Whitespace, Formatierungsausschlüsse, Repository-Skripte und der experimentelle Ternär-Override nur für Auth0.                                                    |
 | `tsconfig.json`                                                               | Strenge, laufzeitneutrale Grundeinstellungen und Typechecks für Repository-Tooling/E2E.                                                                                            |
 | `apps/frontend/tsconfig.frontend.json`                                        | Gemeinsame Browser-Basis: DOM-/Vite-Typen, JSX und Compiler-Optionen für beide Frontend-Apps und gemeinsame Frontend-Pakete.                                                       |
-| Frontend-Paket-`tsconfig.json`-Dateien                                        | Grenzen der Quellbereiche, die die gemeinsame Browser-Basis erweitern; das Backend erbt NodeNext und strenge Prüfungen optionaler/indexierter Eigenschaften vom Root.              |
 | `apps/frontend/vite.config.ts`                                                | Gemeinsame React-/HTTPS-Plugins, API-URL-Prüfung und das vorgerenderte Theme-Bootstrap.                                                                                            |
 | `apps/frontend/vitest.config.ts`                                              | Gemeinsame Vitest-Standards für Frontend-Tests und das gemeinsame Contract-Test-Root.                                                                                              |
 
@@ -66,7 +65,7 @@ Jeder Workspace besitzt seine Basisbefehle. Root-Wrapper rufen diese Workspace-S
 | `build`      | Erzeugt App-/Image-Ausgabe; statische Prüfungen separat starten.                           | Vorhandene Wrapper `build:auth`, `build:sanny`, `build:docs` und `build:backend`.                            |
 | `dev`        | Startet einen Frontend- oder Dokumentations-Entwicklungsserver.                            | `dev:auth`, `dev:sanny`, `dev:docs` und `dev:docs:de`.                                                       |
 
-Für den Entwicklungs-Compose-Lebenszyklus delegiert `npm run restart:stack` an `restart:stack` des Backend-Workspaces. Das Skript baut baubare Images neu und erstellt den gesamten Stack erneut, wobei Volumes erhalten bleiben. `npm run restart:backend` baut nur den Backend-Service neu und erstellt ihn erneut; `npm run build:backend` baut das Image, ohne Services zu starten oder neu zu erstellen.
+Für den Entwicklungs-Compose-Lebenszyklus delegiert `npm run initialize:stack` an `initialize:stack` des Backend-Workspaces. Das Skript baut baubare Images neu und erstellt den gesamten Stack erneut, wobei Volumes erhalten bleiben. `npm run restart:backend` baut nur den Backend-Service neu und erstellt ihn erneut; `npm run build:backend` baut das Image, ohne Services zu starten oder neu zu erstellen.
 
 Das Backend-`lint` prüft Source, backend-eigene Tests, Prisma-Konfiguration, Docker-Runner und Monitoring-Tooling. Test-Doubles dürfen in Backend-Testdateien explizites `any` verwenden; für Produktionscode bleibt die Regel aktiv. Frontend-Quellverträge liegen in `apps/frontend/tests`, Auth-Routen-/Proof-Tests im Auth-Workspace und gemeinsame UI-Utility-Tests in `shared/packages/ui`. Docusaurus erlaubt `require` nur für die Asset-Loader-Konvention `@site/static/*.svg`. Diese eng begrenzten Ausnahmen deaktivieren keine anderen Lint-Regeln.
 
@@ -147,4 +146,4 @@ Alloy behält `job="nginx"`, `job="backend"`, Logpfade und privaten Loki-Zugriff
 
 ---
 
-Letzte Bearbeitung / Last edit: 20.10.2026
+Letzte Bearbeitung: 21.10.2026

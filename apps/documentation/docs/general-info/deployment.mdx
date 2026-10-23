@@ -4,15 +4,14 @@ description: Deployment/Release flow and Git guide
 sidebar_position: 6
 ---
 
-# Deployment
-
 This project uses a simple release train for a monorepo with:
 
 - `sanny` frontend.
 - `auth` frontend.
-- `documentation` site.
+- Docusaurus `documentation` site.
 - Fastify backend.
 - Shared packages under `shared/packages/**`.
+- Shared tests under `shared/tests/**`.
 
 The goal is to keep `main` very tidy (one commit per release), support a real web test environment, and keep the workflow easy to run for a solo developer.
 
@@ -45,6 +44,8 @@ This is the repository's documented release convention, not a branch-protection 
 - Never merged into. Every release commit is created from the file tree of `test` (see [Promote `test` to `main`](#5-promote-test-to-main)).
 - Every release commit carries a tag in the form `release-1.0.0.x`.
 - `main` and `test` intentionally do not share commit history. They only share identical file contents at release time.
+
+---
 
 ## Deployment mapping
 
@@ -96,6 +97,8 @@ On `main`, app-specific paths select Auth or Sanny, documentation paths select d
 
 Backend tags use the bare full commit SHA, not a prefixed shorthand. Supply `backend-directory` in the manual release; it becomes `BACKEND_DEPLOY_DIRECTORY` and must point to an operator-provisioned VPS checkout matching that commit, with clean tracked deployment configuration and separately provisioned secrets/certificates. The workflow stops on a revision mismatch, validates Compose silently, and waits for backend health. It does not copy configuration or provide automatic rollback. See [Deployment and recovery](../backend/deployment.mdx) before enabling VPS deployment.
 
+---
+
 ## Shared packages rule
 
 `shared/packages/**` always affects frontend builds.
@@ -107,6 +110,8 @@ That means:
 - If a shared package changes, the dependent frontend must rebuild in test and production.
 
 This keeps shared code in sync with the apps that consume it.
+
+---
 
 ## Release flow
 
@@ -159,6 +164,8 @@ This keeps shared code in sync with the apps that consume it.
     alt="Release flowchart showing feature branches merged into dev, then test, with fix loops and the final release commit on main; VPS deployment is enabled through Release workspace."
   />
 </center>
+
+---
 
 ## Step-by-step Git Guide
 
@@ -308,6 +315,8 @@ dev:   A -- a1 -- ... -- a70 -- d1 -- ...  (full history, never rewritten)
 
 Never change `main` directly. Every file change on `main` that is not on `test` is overwritten by the next release commit. Hotfixes follow the normal path: fix on `test` (branch `fix/<name>`), merge back into `dev`, then create the next release commit.
 
+---
+
 ## Resync feature branches
 
 If feature branches drift apart and you want them to share the same working state again, use `dev` as the integration point.
@@ -319,6 +328,8 @@ If feature branches drift apart and you want them to share the same working stat
 
 This is a recovery step using the normal `dev` integration branch. It is useful when several branches depend on the same shared-package or workspace changes and you need local dev servers to work consistently again.
 
+---
+
 ## Production deploy behavior
 
 Production deploy starts from `main` after the release commit is pushed.
@@ -328,6 +339,8 @@ Production deploy starts from `main` after the release commit is pushed.
 - A push to `main` that changes backend files builds and publishes the same backend image to GHCR and Docker Hub; VPS deployment requires a manual **Release workspace** run from `main` with **deploy-backend** enabled.
 
 This makes `main` the source of truth for production while keeping the actual release history small and clean.
+
+---
 
 ## Backend note
 
@@ -339,5 +352,7 @@ That means:
 - A push to `main` that changes backend files builds and publishes the image to GHCR and Docker Hub but does not deploy it to the VPS.
 - A manual **Release workspace** run from `main` with **deploy-backend** enabled deploys the exact Docker Hub commit-SHA image and requires Docker Hub and VPS secrets plus a configured host. `deploy-backend.yml` is a reusable child, not an independent manual workflow.
 - Frontend and docs releases should still follow the normal `dev -> test -> main` path regardless of backend status.
+
+---
 
 Last edit: 20.10.2026

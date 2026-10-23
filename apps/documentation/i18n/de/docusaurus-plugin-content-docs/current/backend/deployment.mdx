@@ -1,10 +1,8 @@
 ---
-title: Bereitstellung und Wiederherstellung
-description: Bereitstellungsgrenzen, Staging-Prüfung, Rollback und Datenwiederherstellung.
+title: Deployment und Recovery
+description: Deployment-grenzen, Staging-Prüfung, Rollback und Datenwiederherstellung.
 sidebar_position: 6
 ---
-
-# Bereitstellung und Wiederherstellung
 
 ## Bereitstellungsstatus
 
@@ -20,7 +18,7 @@ Das Deployment läuft aus `apps/backend` mit `--project-directory .` und `docker
 
 ## Laufzeitgrenzen
 
-- Entwicklungscontainer heißen `sanny64-backend`; das Image heißt `sanny64-backend:latest`. Produktion verwendet das Registry-Image `sanny64/backend:<tag>`. Der feste Containername erlaubt nur eine Runtime-Instanz je Docker-Host. `npm run restart:stack` baut benötigte Images und erstellt den ganzen Entwicklungs-Stack neu; das Root-Skript delegiert dabei an `restart:stack` im Backend. `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
+- Entwicklungscontainer heißen `sanny64-backend`; das Image heißt `sanny64-backend:latest`. Produktion verwendet das Registry-Image `sanny64/backend:<tag>`. Der feste Containername erlaubt nur eine Runtime-Instanz je Docker-Host. `npm run initialize:stack` baut benötigte Images und erstellt den ganzen Entwicklungs-Stack neu; das Root-Skript delegiert dabei an `initialize:stack` im Backend. `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
 - Fastify läuft hinter NGINX. Sein Port bleibt privat und darf nicht direkt öffentlich erreichbar sein.
 - NGINX beendet TLS, leitet HTTP auf HTTPS um und überschreibt Forwarding-Header. Produktionsseitiges Proxy-Vertrauen darf nur die tatsächliche vertrauenswürdige Proxy-IP bzw. das CIDR erlauben.
 - Redis ist auf das private Compose-Netz beschränkt und verwendet TLS mit Passwortschutz. Compose erstellt die Redis-Verbindungs-URL aus `REDIS_PASSWORD`.
@@ -57,4 +55,4 @@ Das Publishing und Deployment gehosteter Releases wird über **Release workspace
 
 ---
 
-Letzte Bearbeitung / Last edit: 22.10.2026
+Letzte Bearbeitung: 22.10.2026

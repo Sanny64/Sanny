@@ -4,8 +4,6 @@ description: Backend-Metriken, sichere Logs, Alarme und Netzwerkzugriff.
 sidebar_position: 7
 ---
 
-# Monitoring
-
 ## Erfassung
 
 Beide Compose-Konfigurationen starten Prometheus, Grafana, Loki und Alloy neben Backend und NGINX. Die Produktionskonfiguration erbt gemeinsame Dienste aus der Entwicklungskonfiguration. Prometheus fragt Fastify, Redis Exporter, NGINX Exporter, Node Exporter und sich selbst alle 15 Sekunden ab. Der Redis Exporter verbindet sich mit Redis über TLS, die konfigurierte CA und das Laufzeitpasswort; sein Endpunkt ist nur intern erreichbar.
@@ -56,4 +54,4 @@ Backend-Logs und Alarme dürfen keine Access-/Refresh-Tokens, Session-IDs, CSRF-
 
 ---
 
-Letzte Bearbeitung / Last edit: 08.10.2026
+Letzte Bearbeitung: 08.10.2026

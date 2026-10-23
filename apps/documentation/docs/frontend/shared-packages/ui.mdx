@@ -22,6 +22,8 @@ The package’s public API exports shared UI components and shared UI pages used
 - Toast helpers: `showToast`, `showErrorToast`, `dismissToast`, and `retriggerToast`.
 - Component CSS is colocated under the package's `src/styles/` directory and bundled by the consuming app.
 
+---
+
 ## Usage
 
 In a page you already set up routing for, import the needed component, for example `Button`:
@@ -88,6 +90,8 @@ onClick={() => {
 
 In general, externalizing functions is better for consistency and maintainability.
 
+---
+
 ## Notes for developers
 
 Prefer visible button text and associated form labels: they already provide the accessible name. Add a localized `aria-label` when a control has no sufficient visible text, such as an icon-only button. Do not use an `aria-label` that conflicts with visible text or an associated label, because it overrides the name assistive technology announces.
@@ -147,4 +151,6 @@ export default function Layout() {
 
 More information about route behavior can be found [here](/docs/frontend/projects/sanny#special-behavior).
 
-Last edit: 17.10.2026
+---
+
+Last edit: 20.10.2026

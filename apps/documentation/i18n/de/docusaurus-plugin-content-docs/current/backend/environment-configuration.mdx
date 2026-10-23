@@ -6,6 +6,8 @@ sidebar_position: 4
 
 Das Backend liest seine lokale Konfiguration aus `apps/backend/.env`. Beginne mit `apps/backend/.env.template` und ersetze anschließend die Beispielwerte durch Zugangsdaten und Ressourcenkennungen deiner eigenen Umgebung. Committe niemals `apps/backend/.env`, echte Zugangsdaten, Tenant-Kennungen oder private Schlüssel. Produktionsgeheimnisse gehören in den Secret-Store der Bereitstellungsumgebung, nicht in diese Datei oder in ins Repository eingecheckte Compose-Overrides.
 
+---
+
 ## Umgebung auswählen
 
 `NODE_ENV` muss exakt `development` oder `production` sein. Das Backend verwendet den Wert, um die passenden Werte mit dem Präfix `DEV_` oder `PROD_` auszuwählen. Richte für jede Umgebung eigene Auth0-, Datenbank- und Redis-Ressourcen ein; verwende in der Entwicklung keine Produktionsdaten. Die Produktions-Compose- Konfiguration setzt `NODE_ENV` auf `production`.
@@ -147,4 +149,4 @@ Die Werte müssen zur ausgewählten Backend-Umgebung und deren CORS-Konfiguratio
 
 ---
 
-Letzte Bearbeitung / Last edit: 20.10.2026
+Letzte Bearbeitung: 20.10.2026

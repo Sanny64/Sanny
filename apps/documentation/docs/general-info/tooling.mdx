@@ -15,9 +15,10 @@ Use Node.js 24 (`tooling/config/.nvmrc`) and npm 11.6.3 (`packageManager`). `pre
 | `.editorconfig`, `.prettierignore`, root `package.json`, `prettier.config.ts` | Editor/Prettier whitespace, formatting exclusions, repository scripts, and the Auth0-only experimental ternary override.                                   |
 | `tsconfig.json`                                                               | Environment-neutral strict defaults and repository tooling/E2E typechecks.                                                                                 |
 | `apps/frontend/tsconfig.frontend.json`                                        | The single shared browser base: DOM/Vite types, JSX, and browser compiler options for both frontend apps and shared frontend packages.                     |
-| Frontend package `tsconfig.json` files                                        | Source boundaries that extend the shared frontend base; backend inherits NodeNext and strict indexed/optional-property checks from the root.               |
 | `apps/frontend/vite.config.ts`                                                | Shared React/HTTPS plugins, API URL validation, and the pre-render theme bootstrap.                                                                        |
 | `apps/frontend/vitest.config.ts`                                              | Shared frontend Vitest defaults and the cross-app contract test root.                                                                                      |
+
+---
 
 ## Tooling And Test Layout
 
@@ -37,6 +38,8 @@ Root `eslint.config.js` owns the flat lint policy. Root `playwright.config.ts` r
 
 **Path migration:** shared browser compiler settings moved into `apps/frontend/tsconfig.frontend.json`; frontend apps and shared packages extend that one base. Root `tsconfig.json` provides the neutral defaults and tooling/E2E project. Configuration contracts live in `shared/tests/contracts/config.test.mjs`; E2E specs and screenshots live in `shared/tests/e2e/`. Direct live/monitoring runs must use the configs under `shared/tests/e2e/`. Release planning treats both `tooling/` and `shared/tests/` changes as shared tooling changes; Docker builds use the repository root as context.
 
+---
+
 ## Shared Packages
 
 `apps/frontend/frontend-env.d.ts` is included by the browser base and strictly declares `VITE_API_URL`; unknown environment keys fail typechecking. Both app Vite configurations pass their own directories to the shared factory, so root and environment lookup do not depend on the invoking working directory. Root tooling TypeScript settings provide the Node types used by tooling.
@@ -46,6 +49,8 @@ Root `eslint.config.js` owns the flat lint policy. Root `playwright.config.ts` r
 Run `npm run typecheck:shared` for all shared packages, or `npm run typecheck -w @sanny/ui` for one. Builds produce output only; run `npm run check` before a manual app build. Keep UI tests in their separate Vitest config.
 
 Package source `exports` are the sole modern entrypoint policy; duplicate `main` and top-level `types` fields are removed. The backend is an application launched by Docker and has no package entrypoint. Retain package TypeScript configs, both Vite entrypoint configs, separate Playwright configurations, and UI Vitest configuration: each owns a real discovery or isolation boundary. Prettier uses root defaults plus `.editorconfig`, with only the hosted Auth0 scripts opting into experimental ternaries. Workspace ignore files retain only unique generated/certificate policies.
+
+---
 
 ## Verification
 
@@ -60,7 +65,7 @@ Every workspace owns its base commands. Root wrappers call those workspace scrip
 | `build`     | Produce app/image output only; run static checks separately.                           | Existing `build:auth`, `build:sanny`, `build:docs`, and `build:backend` wrappers.                     |
 | `dev`       | Run a frontend or documentation development server.                                    | `dev:auth`, `dev:sanny`, `dev:docs`, and `dev:docs:de`.                                               |
 
-For the development Compose lifecycle, `npm run restart:stack` delegates to backend `restart:stack`, which rebuilds buildable images and recreates the full stack while preserving volumes. `npm run restart:backend` rebuilds and recreates only the backend service; `npm run build:backend` builds its image without starting or recreating services.
+For the development Compose lifecycle, `npm run initialize:stack` delegates to backend `initialize:stack`, which rebuilds buildable images and recreates the full stack while preserving volumes. `npm run restart:backend` rebuilds and recreates only the backend service; `npm run build:backend` builds its image without starting or recreating services.
 
 Backend `lint` covers source, backend-owned tests, Prisma configuration, Docker runners, and monitoring tooling. Test doubles may use explicit `any` only in backend test files; production source retains the rule. Frontend source contracts live in `apps/frontend/tests`, Auth route/proof tests in the Auth workspace, and shared UI utility tests in `shared/packages/ui`. Docusaurus permits `require` only for its `@site/static/*.svg` asset loader convention. These narrow exceptions do not disable other lint rules.
 
@@ -89,6 +94,8 @@ The default Playwright config selects only `shared/tests/e2e/mock`. `shared/test
 
 Mocked projects run in one Playwright invocation with a global two-worker limit and one frontend-server lifecycle. Their synthetic API setting is not inherited by live frontend servers. Browser source receives React/browser lint rules; Node configs do not. Frontend and backend production source use the TypeScript project service with `await-thenable` and `no-floating-promises` checks.
 
+---
+
 ## Configuration Migration
 
 ### October 2026 Configuration Review
@@ -110,11 +117,15 @@ Root scripts use existing test-runner names directly: live authentication is `np
 - All action dependencies are immutable SHAs; FTPS verifies the certificate chain and hostname. Production deployments are serialized per target. A mismatched/untrusted hosting certificate must be corrected, not bypassed.
 - Monitoring tests generate a private temporary YAML from production Loki alert definitions, changing only evaluation interval and pending duration. Queries, thresholds, labels, and annotations stay identical. The runner supplies the Compose mount and deletes the temporary file after teardown. Run the npm monitoring command rather than invoking the test Compose file directly. Production rules, isolated notification routing, and legacy Alloy offset volumes are unchanged.
 
+---
+
 ## Backend Containers
 
 Build from the repository root with `docker build -f apps/backend/docker/Dockerfile .`. Docker installs the backend workspace from the root lockfile with `npm ci`, generates Prisma, then prunes development dependencies. The default `runtime` target removes `src/tests` and `monitoring/tests`; test Compose files explicitly build the `builder` target, which retains those test sources. Both images use Debian-compatible Node 24 bases. `tsx` remains a runtime dependency. Root `.dockerignore` excludes environment files, certificates, local dependencies, and generated output.
 
 Production Compose inherits common services from the development file; deploy both files together. Its app remains image-only with explicit production mode and fixed proxy trust. Monitoring integration uses dedicated test configuration and does not consume backend runtime credentials. Redis integration builds a disposable backend test image and Redis service with test-only environment values. Its runner generates a one-day test CA and Redis certificate in a temporary directory, mounts those temporary files into the isolated stack, and removes them during cleanup; it does not use repository or developer certificates. The release planner's changed-path rules include relevant root tooling. Dependabot targets the root npm workspace, backend Dockerfile directory, and GitHub Actions.
+
+---
 
 ## Breaking Changes And Migration
 
@@ -132,3 +143,7 @@ Backend integration commands use `test:integration:monitoring`, `test:integratio
 6. From `apps/backend/docker`, an operator runs `docker compose --env-file ../.env -f docker-compose.prod.yml up -d --remove-orphans alloy`, then verifies both log jobs in Loki. This removes orphaned Promtail without deleting volumes. The backend workflow deploys only the app, not this infrastructure migration.
 
 Alloy preserves `job="nginx"`, `job="backend"`, log paths, and private Loki access. Without legacy offsets it reads existing matching files from the beginning. Stop Alloy before rolling back to Promtail; Alloy offsets are not copied back, so rollback can replay logs. Monitoring digests are pinned and require deliberate verified updates.
+
+---
+
+Last edit: 21.10.2026

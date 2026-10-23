@@ -1,6 +1,6 @@
 ---
 title: styles
-description: Gemeinsames visuelles System, Theme-Zustand und Animationen fuer Sanny und Auth.
+description: Gemeinsames visuelles System, Theme-Zustand und Animationen für Sanny und Auth.
 sidebar_position: 1
 ---
 
@@ -10,7 +10,7 @@ Sanny und Auth verwenden ein gemeinsames visuelles System. `@sanny/styles` verwa
 
 ## Gestaltung
 
-Neutrale helle und dunkle Oberflaechen, gruene Akzente, dezente Rahmen und Radien von 4-8px bilden die Basis. Informationen, Warnungen und Fehler erhalten eigene blaue, gelbe und rote Statusfarben. Schriftgroessen bleiben ueber Viewport-Breiten stabil; Layouts passen sich durch Umbruch, Abstaende und begrenzte Breiten an.
+Neutrale helle und dunkle Oberflächen, grüne Akzente, dezente Rahmen und Radien von 4-8px bilden die Basis. Informationen, Warnungen und Fehler erhalten eigene blaue, gelbe und rote Statusfarben. Schriftgrößen bleiben über Viewport-Breiten stabil; Layouts passen sich durch Umbruch, Abstände und begrenzte Breiten an.
 
 ---
 
@@ -18,7 +18,7 @@ Neutrale helle und dunkle Oberflaechen, gruene Akzente, dezente Rahmen und Radie
 
 Die API exportiert `ThemeProvider`, `ThemeContext`, `useTheme`, `getThemeVariant` sowie `Theme` und `ThemeContextType`.
 
-Der Provider prueft zuerst das `theme`-Cookie, dann localStorage und anschliessend das Systemfarbschema. Manuelle Auswahlen werden fuer 365 Tage gespeichert und in `html[data-theme]` sowie der Klasse `.dark` abgebildet. Ohne manuelle Auswahl folgt die App dem System. Die Umbenennung des Workspaces aendert keine Speicherschluessel.
+Der Provider prüft zuerst das `theme`-Cookie, dann localStorage und anschliessend das Systemfarbschema. Manuelle Auswahlen werden für 365 Tage gespeichert und in `html[data-theme]` sowie der Klasse `.dark` abgebildet. Ohne manuelle Auswahl folgt die App dem System. Die Umbenennung des Workspaces ändert keine Speicherschlüssel.
 
 ---
 
@@ -26,14 +26,14 @@ Der Provider prueft zuerst das `theme`-Cookie, dann localStorage und anschliesse
 
 | Zweck                    | Variablen                                                                                           |
 | ------------------------ | --------------------------------------------------------------------------------------------------- |
-| Oberflaechen             | `--bg`, `--surface`, `--surface-raised`, `--surface-muted`                                          |
+| Oberflächen              | `--bg`, `--surface`, `--surface-raised`, `--surface-muted`                                          |
 | Text und Rahmen          | `--text`, `--text-h`, `--border`, `--border-strong`                                                 |
 | Aktionen                 | `--accent`, `--accent-hover`, `--accent-bg`, `--accent-border`, `--on-accent`                       |
 | Status                   | `--info`, `--info-bg`, `--warning`, `--warning-bg`, `--danger`, `--danger-bg`                       |
 | Geometrie                | definierte Stufen von `--space-1` bis `--space-12`, `--radius-sm`, `--radius-md`, `--content-width` |
 | Typografie und Animation | `--sans`, `--heading`, `--mono`, `--motion-duration`, `--motion-ease`                               |
 
-App-Styles verwenden diese Variablen statt eigener Hell-/Dunkel-Paletten. Bestehende `--color-*`- und Button-Ueberschreibungen bleiben kompatibel. Party-Routen behalten ihre eigenen Farbvariablen.
+App-Styles verwenden diese Variablen statt eigener Hell-/Dunkel-Paletten. Bestehende `--color-*`- und Button-Überschreibungen bleiben kompatibel. Party-Routen behalten ihre eigenen Farbvariablen.
 
 ---
 
@@ -41,9 +41,9 @@ App-Styles verwenden diese Variablen statt eigener Hell-/Dunkel-Paletten. Besteh
 
 - `globals.css`: Schriftdateien, Farben, Typografie, Formulare, Fokus, Reduced Motion und erzwungene Farben.
 - `main.css`: gemeinsamer Rahmen, Header, responsive Geometrie und schmaleres Auth-Layout.
-- `auxiliary.css`: eigenstaendiges Layout und Hintergrund fuer zusaetzliche Routen.
+- `auxiliary.css`: eigenständiges Layout und Hintergrund für zusätzliche Routen.
 
-Globale und Main-Styles werden in `src/main.tsx` importiert, damit auch Fehler- und eigenstaendige Proof-Routen gestaltet sind. Die Provider-Reihenfolge bleibt `ThemeProvider`, dann `LanguageProvider`.
+Globale und Main-Styles werden in `src/main.tsx` importiert, damit auch Fehler- und eigenständige Proof-Routen gestaltet sind. Die Provider-Reihenfolge bleibt `ThemeProvider`, dann `LanguageProvider`.
 
 ```tsx
 import '@sanny/styles/globals.css';
@@ -68,14 +68,14 @@ export default function Main() {
 
 `ThemeProvider` umschließt untergeordnete Elemente mit `MotionConfig` mit `reducedMotion="user"` und einem 180ms-Ease-out-Übergang. Die Shell unterdrückt Eintrittsbewegungen für Nutzer mit reduzierter Bewegung. Buttons reagieren beim Drücken innerhalb von 160ms, ohne beim Hover zu wachsen oder Textschatten zu werfen. Deaktivierte Buttons haben keine Druck-Transformation.
 
-Bei `prefers-reduced-motion: reduce` sind CSS-Animationen und Uebergaenge abgeschaltet. Texte werden beim Routenwechsel nicht ausgeblendet. Button-Hintergruende wechseln ohne Farbinterpolation zwischen Themes, damit auch waehrend des Wechsels ausreichender Kontrast besteht. Fuege fuer dieselben Anforderungen keine separate app-eigene Motion-Konfiguration hinzu.
+Bei `prefers-reduced-motion: reduce` sind CSS-Animationen und Uebergänge abgeschaltet. Texte werden beim Routenwechsel nicht ausgeblendet. Button-Hintergründe wechseln ohne Farbinterpolation zwischen Themes, damit auch während des Wechsels ausreichender Kontrast besteht. Füge für dieselben Anforderungen keine separate app-eigene Motion-Konfiguration hinzu.
 
 ---
 
-## Pruefung
+## Prüfung
 
-`npm run test:ci` prueft Lint, Builds, gemeinsame Komponenten und gemockte Browser. Die Browsertests pruefen Theme-Speicherung, Kontrast, Tastaturbedienung, Reduced Motion, Schriftdateien, Desktop/Mobil und 200% Textgroesse. Chromium-Baselines decken den gemeinsamen Rahmen und Auth-/Account-/Admin-Oberflaechen ab. Screenreader-Tests bleiben eine manuelle Aufgabe.
+`npm run test:ci` prüft Lint, Builds, gemeinsame Komponenten und gemockte Browser. Die Browsertests prüfen Theme-Speicherung, Kontrast, Tastaturbedienung, Reduced Motion, Schriftdateien, Desktop/Mobil und 200% Textgröße. Chromium-Baselines decken den gemeinsamen Rahmen und Auth-/Account-/Admin-Oberflächen ab. Screenreader-Tests bleiben eine manuelle Aufgabe.
 
 ---
 
-Letzte Bearbeitung / Last edit: 17.10.2026
+Letzte Bearbeitung: 17.10.2026

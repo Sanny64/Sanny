@@ -231,7 +231,7 @@ test('German documentation separates every section and ends with a dated edit fo
     }
 
     const footer = content.match(
-      /\r?\n\r?\n---[ \t]*\r?\n\r?\nLetzte Bearbeitung \/ Last edit: (\d{2})\.(\d{2})\.(\d{4})\r?\n$/
+      /\r?\n\r?\n---[ \t]*\r?\n\r?\n(?:Letzte Bearbeitung|Last edit): (\d{2})\.(\d{2})\.(\d{4})\r?\n$/
     );
     if (!footer) {
       violations.push(`${page}: missing the required dated edit footer at EOF`);
@@ -256,6 +256,148 @@ test('German documentation separates every section and ends with a dated edit fo
     violations,
     [],
     'Every German documentation section must be separated and every page must end with a valid edit date'
+  );
+});
+
+test('English and German documentation contain the exact same line counts', () => {
+  const listPages = (directory) =>
+    readdirSync(directory, { withFileTypes: true })
+      .flatMap((entry) => {
+        if (entry.isDirectory()) {
+          return listPages(resolve(directory, entry.name)).map(
+            (page) => `${entry.name}/${page}`
+          );
+        }
+        return entry.isFile() && /\.mdx?\$/.test(entry.name)
+          ? [entry.name]
+          : [];
+      })
+      .sort();
+
+  const englishRoot = resolve(root, 'apps/documentation/docs');
+  const germanRoot = resolve(
+    root,
+    'apps/documentation/i18n/de/docusaurus-plugin-content-docs/current'
+  );
+
+  const mismatches = listPages(englishRoot).flatMap((page) => {
+    const englishContent = readFileSync(resolve(englishRoot, page), 'utf8');
+    const germanContent = readFileSync(resolve(germanRoot, page), 'utf8');
+
+    // Split by cross-platform carriage returns to get accurate line items
+    const englishLines = englishContent.split(/\r?\n/).length;
+    const germanLines = germanContent.split(/\r?\n/).length;
+
+    return englishLines === germanLines
+      ? []
+      : [
+          `${page}: EN has ${englishLines} lines vs. DE has ${germanLines} lines`,
+        ];
+  });
+
+  assert.deepEqual(
+    mismatches,
+    [],
+    'German documentation pages must have the exact same line count as their English counterparts'
+  );
+});
+
+test('Dokumente erfüllen die strikten Titel- und Abstandsregeln nach dem Frontmatter', () => {
+  const listPages = (directory) =>
+    readdirSync(directory, { withFileTypes: true })
+      .flatMap((entry) => {
+        if (entry.isDirectory()) {
+          return listPages(resolve(directory, entry.name)).map(
+            (page) => `${entry.name}/${page}`
+          );
+        }
+        return entry.isFile() && /\.mdx?\$/.test(entry.name)
+          ? [entry.name]
+          : [];
+      })
+      .sort();
+
+  const englishRoot = resolve(root, 'apps/documentation/docs');
+  const germanRoot = resolve(
+    root,
+    'apps/documentation/i18n/de/docusaurus-plugin-content-docs/current'
+  );
+
+  const violations = [];
+
+  const checkFileRules = (filePath, relativePagePath) => {
+    const content = readFileSync(filePath, 'utf8');
+
+    // Match Frontmatter-Inhalt zwischen den ersten beiden "---"
+    const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!frontmatterMatch) return; // Überspringen, falls kein Frontmatter existiert
+
+    const frontmatterRaw = frontmatterMatch[1];
+    const frontmatterEndIndex = frontmatterMatch[0].length;
+
+    // Extrahiere den reinen Text NACH dem schließenden "---"
+    const contentAfterFrontmatter = content.slice(frontmatterEndIndex);
+
+    // Parse den Titel aus dem Frontmatter
+    const titleMatch = frontmatterRaw.match(/^title:\s*(.+)\$/m);
+    const frontmatterTitle = titleMatch
+      ? titleMatch[1].trim().replace(/^['"]|['"]\$/g, '')
+      : null;
+
+    // Finde die allererste Überschrift (egal ob #, ##, etc.) nach dem Frontmatter
+    const lines = contentAfterFrontmatter.split(/\r?\n/);
+    let firstHeadingLineIndex = -1;
+    let headingText = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (/^#{1,6}\s+/.test(line)) {
+        firstHeadingLineIndex = i;
+        headingText = line.replace(/^#+\s+/, '').trim();
+        break;
+      }
+    }
+
+    if (firstHeadingLineIndex !== -1) {
+      // REGEL 1: Leerraum zwischen "---" und der ersten Überschrift erzwingen
+      // lines[0] ist die direkte Zeile nach dem "---". Sie darf kein Heading sein.
+      // Zudem muss mindestens eine echte Leerzeile (oder nur Whitespace) dazwischen liegen.
+      if (firstHeadingLineIndex === 0) {
+        violations.push(
+          `${relativePagePath}: Kein Abstand (Leerzeile) zwischen dem schließenden '---' und der ersten Überschrift.`
+        );
+      } else {
+        // Prüfen, ob alle Zeilen vor der Überschrift leer sind (mindestens eine erforderlich)
+        const leadingBlock = lines.slice(0, firstHeadingLineIndex);
+        const hasEmptyLine = leadingBlock.some((l) => l.trim() === '');
+        if (!hasEmptyLine) {
+          violations.push(
+            `${relativePagePath}: Es muss mindestens eine leere Zeile Platz zwischen '---' und der ersten Überschrift sein.`
+          );
+        }
+      }
+
+      // REGEL 2: Doppelter Titel verboten (Frontmatter-Titel darf NICHT exakt als H1/#-Überschrift wiederholt werden)
+      if (frontmatterTitle && headingText === frontmatterTitle) {
+        violations.push(
+          `${relativePagePath}: Der Titel '${frontmatterTitle}' aus dem Frontmatter darf nicht identisch als Überschrift wiederholt werden.`
+        );
+      }
+    }
+  };
+
+  // Führe die Prüfung für englische und deutsche Dokumente aus
+  listPages(englishRoot).forEach((page) =>
+    checkFileRules(resolve(englishRoot, page), `EN: ${page}`)
+  );
+  listPages(germanRoot).forEach((page) =>
+    checkFileRules(resolve(germanRoot, page), `DE: ${page}`)
+  );
+
+  assert.deepEqual(
+    violations,
+    [],
+    'Dokumente verstoßen gegen die Formatierungsregeln für Titel und Abstände.'
   );
 });
 
@@ -1917,13 +2059,13 @@ test('Compose restart scripts distinguish full-stack and backend-only recreation
     'docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml';
 
   assert.equal(
-    rootScripts['restart:stack'],
-    'npm run restart:stack -w backend'
+    rootScripts['initialize:stack'],
+    'npm run initialize:stack -w backend'
   );
   assert.equal(rootScripts['start:stack'], 'npm run start -w backend');
   assert.equal(rootScripts['stop:stack'], 'npm run stop -w backend');
   assert.equal(
-    backendScripts['restart:stack'],
+    backendScripts['initialize:stack'],
     `${composeCommand} up -d --build --force-recreate --remove-orphans`
   );
   assert.equal(backendScripts.start, `${composeCommand} start`);

@@ -32,7 +32,7 @@ Starte jede benötigte App in einem eigenen Terminal:
 - `npm run dev:docs`
 - `npm run dev:docs:de`
 - `npm run start:stack`
-- `npm run restart:stack` für den initialen Image-Build und den vollständigen Entwicklungs-Stack
+- `npm run initialize:stack` für den initialen Image-Build und den vollständigen Entwicklungs-Stack
 
 Sanny läuft unter `https://localhost:5173`, Auth unter `https://localhost:5174` und die englische Dokumentation unter `http://localhost:3000`. Der deutsche Root-Befehl verwendet `http://localhost:3000/de/`; für einen separaten Port starte `npm run dev:de -w documentation`, das `http://localhost:3001/de/` bereitstellt. Frontend-Dev-Server verwenden ein lokales HTTPS-Zertifikat. Beende den Backend-Stack nach der Arbeit mit `npm run stop:stack`.
 
@@ -54,7 +54,7 @@ Führe vor manuellen Builds `npm run check` aus; Build-Befehle führen keine sta
 - `npm run build:auth`, `npm run build:sanny` und `npm run build:docs` bauen einzelne Ziele; `build:docs` erstellt beide konfigurierten Sprachen. Für eine einzelne Sprache `build:docs:en` oder `build:docs:de` verwenden.
 - `npm run build:frontend` baut Auth, Sanny und beide Dokumentationssprachen.
 - `npm run build:backend` baut nur das Backend-Image und startet keine Services.
-- `npm run restart:stack` baut benötigte Images und erstellt den gesamten Entwicklungs-Compose-Stack neu; `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
+- `npm run initialize:stack` baut benötigte Images und erstellt den gesamten Entwicklungs-Compose-Stack neu; `npm run restart:backend` erstellt nur den Backend-Service neu. Beide erhalten Volumes.
 
 Das Backend benötigt vor dem Start eine lokale Umgebungskonfiguration und Zertifikate; siehe [Backend-Setup](../backend/backend-setup.mdx).
 
@@ -123,4 +123,4 @@ Sanny/                               # Monorepo-Stammverzeichnis und npm-Workspa
 
 ---
 
-Letzte Bearbeitung / Last edit: 20.10.2026
+Letzte Bearbeitung: 23.10.2026

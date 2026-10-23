@@ -1,11 +1,13 @@
 ---
-title: Frontend Manual Testing
+title: Manual Frontend Testing
 description: Manually verify frontend behavior and accessibility beyond automated browser checks.
 ---
 
 ## Scope
 
 Frontend manual checks complement the automated frontend gate in [Automated Frontend Testing](./automated-testing.mdx). Use dedicated test identities for authentication flows. API behavior and persistence belong to backend or live integration verification, not mocked UI tests.
+
+---
 
 ## Accessibility and Interaction
 
@@ -17,11 +19,15 @@ Frontend manual checks complement the automated frontend gate in [Automated Fron
 - [ ] Decide whether forced-colors/high-contrast mode is supported and verify it if in scope.
 - [ ] Review Chromium desktop/mobile visual baselines after intentional visual changes. These baselines do not establish Firefox/Edge visual parity.
 
+---
+
 ## Product Flows
 
 - [ ] Verify public content routes render and switch language correctly. Their page bodies currently contain translated placeholders rather than shipped portfolio, blog, game, or party interactions; standalone games are separate projects.
 - [ ] Verify UI state and feedback for sign-in/session controls, settings, account-linking confirmation/cancellation, and admin allowed/denied states.
 
 Verify successful backend mutations, live Auth0 behavior, and hosted security controls with the [backend and integration checklists](../../backend/local-testing/manual-testing.mdx). Shared test-result limits and evidence handling are in the [Local Testing guide](../../general-info/testing.mdx).
+
+---
 
 Last edit: 20.10.2026

@@ -4,13 +4,13 @@ description: Funktionsweise und Aufrufvertrag der Auth0-Custom-Database-Skripte.
 sidebar_position: 5
 ---
 
-# Auth0-Datenbank-Aktionsskripte
-
 Diese Skripte werden von der Laufzeit der Auth0-Custom-Database-Verbindung verwendet. Sie werden nicht direkt von der Fastify-API aufgerufen.
 
 Quellverzeichnis:
 
 - `apps/backend/auth0/database-action/`
+
+---
 
 ## Wo sie aufgerufen werden
 
@@ -137,8 +137,7 @@ callback(
 - Vorhandene Benutzer anhand der E-Mail-Adresse suchen (`SELECT ... FOR UPDATE`), um die Zeile zu sperren.
 - `user.password` (oder unabhängig vom Ergebnis einen zufälligen Ersatzwert) mit bcrypt hashen, um Timing-Side-Channel-Angriffe zu vermeiden.
 - Normalisierte E-Mail-Adresse und Benutzernamen validieren; ein übermitteltes Passwort ebenfalls validieren. Eine Google-Registrierung wird anhand eines `auth0Sub` vom Typ `google-oauth2|...` erkannt.
-- Das übermittelte Passwort oder bei einer Google-Registrierung einen zufälligen Ersatzwert hashen, bevor der Kontenfall bestimmt wird.
-  Nur bei einer Passwortregistrierung wird dieser Hash gespeichert.
+- Das übermittelte Passwort oder bei einer Google-Registrierung einen zufälligen Ersatzwert hashen, bevor der Kontenfall bestimmt wird. Nur bei einer Passwortregistrierung wird dieser Hash gespeichert.
 - Bei Konfliktfällen (1–5) zurückrollen und einen `ValidationError` zurückgeben; bei neuen Benutzern (6–7) eine Zeile mit `emailVerified = true` einfügen und committen.
 - Die Verbindung immer schließen, bevor der Callback aufgerufen wird.
 
@@ -247,4 +246,4 @@ Das Skript muss immer über den bereitgestellten `callback` beendet werden:
 
 ---
 
-Letzte Bearbeitung / Last edit: 09.10.2026
+Letzte Bearbeitung: 09.10.2026

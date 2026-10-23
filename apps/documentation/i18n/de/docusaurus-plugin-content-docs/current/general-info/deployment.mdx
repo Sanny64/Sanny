@@ -1,10 +1,8 @@
 ---
-title: Bereitstellung
-description: Bereitstellungs-/Release-Ablauf und Git-Anleitung
+title: Deployment
+description: Deployments-/Release-Ablauf und Git-Anleitung
 sidebar_position: 6
 ---
-
-# Bereitstellung
 
 Dieses Projekt verwendet einen einfachen Release-Zug für ein Monorepo mit:
 
@@ -12,7 +10,8 @@ Dieses Projekt verwendet einen einfachen Release-Zug für ein Monorepo mit:
 - Frontend `auth`.
 - Docusaurus-Dokumentationsseite `documentation`.
 - Fastify-Backend.
-- Gemeinsam genutzten Paketen unter `shared/packages/**`.
+- Gemeinsam genutzte Pakete unter `shared/packages/**`.
+- Gemeinsam genutzte Tests unter `shared/tests/**`.
 
 Ziel ist es, `main` sehr übersichtlich zu halten (ein Commit pro Release), eine echte Web-Testumgebung zu unterstützen und den Ablauf für eine einzelne entwickelnde Person einfach ausführbar zu machen.
 
@@ -96,7 +95,7 @@ Auf `main` wählen App-Pfade Auth oder Sanny, Dokumentationspfade die Docs und B
 - Ein Push nach `main`, der das Backend-Ziel auswählt, führt die gemeinsame Verifikation aus und veröffentlicht dieselben `latest`- und Commit-SHA-Tags nach GHCR und Docker Hub (`sanny64/backend`). Backend-, Shared-/Tooling- und Workflow-Änderungen können dieses Ziel auswählen. Docker Hub bleibt die Image-Quelle für Gordons Analyse und das VPS-Deployment.
 - Ein manueller **Release workspace**-Lauf auf `main` mit aktiviertem **deploy-backend** veröffentlicht und deployed genau diesen Commit-SHA-Tag von Docker Hub. Ohne diese Eingabe wird das Image veröffentlicht, der VPS bleibt unverändert. Docker-Hub-Zugangsdaten sind GitHub-Actions-Secrets, keine Backend-Laufzeitvariablen.
 
-Backend-Tags verwenden den vollständigen unveränderten Commit-SHA, keine Kurzform mit Präfix. Gib im manuellen Release `backend-directory` an; die Eingabe wird als `BACKEND_DEPLOY_DIRECTORY` übergeben und muss auf einen vom Betreiber bereitgestellten VPS-Checkout dieses Commits mit unveränderter versionierter Deployment-Konfiguration und separat bereitgestellten Secrets/Zertifikaten zeigen. Der Workflow stoppt bei abweichendem Stand, validiert Compose ohne Konfigurationsausgabe und wartet auf den Backend-Healthcheck. Er kopiert keine Konfiguration und bietet keinen automatischen Rollback. Beachte vor der Aktivierung des VPS-Deployments [Bereitstellung und Wiederherstellung](../backend/deployment.mdx).
+Backend-Tags verwenden den vollständigen unveränderten Commit-SHA, keine Kurzform mit Präfix. Gib im manuellen Release `backend-directory` an; die Eingabe wird als `BACKEND_DEPLOY_DIRECTORY` übergeben und muss auf einen vom Betreiber bereitgestellten VPS-Checkout dieses Commits mit unveränderter versionierter Deployment-Konfiguration und separat bereitgestellten Secrets/Zertifikaten zeigen. Der Workflow stoppt bei abweichendem Stand, validiert Compose ohne Konfigurationsausgabe und wartet auf den Backend-Healthcheck. Er kopiert keine Konfiguration und bietet keinen automatischen Rollback. Beachte vor der Aktivierung des VPS-Deployments [Deployment und Wiederherstellung](../backend/deployment.mdx).
 
 ---
 
@@ -356,4 +355,4 @@ Das bedeutet:
 
 ---
 
-Letzte Bearbeitung / Last edit: 20.10.2026
+Letzte Bearbeitung: 20.10.2026

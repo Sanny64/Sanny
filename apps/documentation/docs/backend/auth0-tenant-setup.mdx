@@ -4,11 +4,11 @@ description: Configure Auth0 for the Sanny backend and account flows.
 sidebar_position: 2
 ---
 
-# Auth0 Tenant Setup
-
 This guide configures Auth0 for the existing Sanny backend. It follows the repository's OAuth, Custom Database, token-claim, account-linking, and MFA contracts. Apply it separately to each environment you operate. Keep client secrets, database passwords, certificates, and API tokens out of this guide, source control, and Action logs.
 
 Auth0 hosts login and runs the Custom Database scripts, while the Sanny database remains the application user store. The Auth0 `create` script creates the local record during signup. Do not add a second signup flow that creates a separate Auth0 Database user.
+
+---
 
 ## 1. Set Environment URLs
 
@@ -26,6 +26,8 @@ The backend selects URL values prefixed with `DEV_` or `PROD_` according to `NOD
 These examples match the repository's local HTTPS services. Replace every production placeholder with the actual host and path; do not register wildcards. The account-link endpoint is the Post Login Action's redirect target, not the frontend confirmation page.
 
 The current Actions use tenant-wide secrets, including one `NODE_ENV` value. Each Custom Database connection also has only one set of database settings. A tenant with one Action flow is therefore configured for one environment; two applications in the same tenant do not receive separate Action secrets. Use separate tenants for concurrently running development and production environments. If a shared tenant is required, first adapt the Actions to select configuration by application, and verify that database connections and flows are isolated. Different backend `.env` values do not isolate the Auth0 configuration.
+
+---
 
 ## 2. Create the Application
 
@@ -50,6 +52,8 @@ Configure the application:
 
 The backend uses Authorization Code with PKCE (`S256`) and requests the scopes `openid profile email offline_access update:me delete:me`. The backend, not the Auth frontend, handles the OAuth callback. Add frontend origins to **Allowed Web Origins** only if a browser client in your deployment calls Auth0 directly; these origins are not callback URLs. **Allowed Origins (CORS)** is not needed for the current backend-driven flow unless a browser client calls Auth0 directly.
 
+---
+
 ## 3. Create the API
 
 Under **Applications > APIs**, create an API. Its identifier must exactly match `AUTH0_AUDIENCE`. The identifier can be a URI but does not need to resolve in a browser. Sign access tokens with RS256.
@@ -66,6 +70,8 @@ Create the API permissions used by the backend:
 | `delete:users` | Delete users as an administrator                 |
 
 Assign the self-service permissions to the regular `user` role and administrator permissions only to the reviewed `admin` role. The backend reads permissions from the `permissions` token claim or, if it is absent, from `scope`. Email and name claims must never grant access.
+
+---
 
 ## 4. Configure the Custom Database Connection
 
@@ -95,9 +101,13 @@ The scripts require TLS certificate validation; do not disable it. The database 
 
 Enable the connection for the Regular Web Application. Record its name and ID as `AUTH0_DATABASE_CONNECTION` and `AUTH0_DATABASE_CONNECTION_ID`. Test every script through **Try** with a test account before connecting a production database. The [script contract](./auth0-database-action-scripts) describes expected inputs and callback results.
 
+---
+
 ## 5. Configure Google Login
 
 Under **Authentication > Social**, configure the Google connection with its Google OAuth client credentials and enable it for the same Regular Web Application. The account-linking Action recognizes the `google-oauth2` and `auth0` (Custom Database) providers. Account linking must require confirmation: users must prove ownership of the other account. Matching email addresses alone are not sufficient.
+
+---
 
 ## 6. Create Management API Clients
 
@@ -118,6 +128,8 @@ The Post User Registration and Role Claims Actions need `update:users`. Grant ad
 The backend Management API client needs `create:user_tickets` for password-reset tickets. Add scopes only for enabled backend features. If `AUTH0_ROLE_SYNC_ENABLED=true`, also grant the read and update scopes needed to list and replace user roles. Leave role synchronization disabled unless it is an intentional part of the deployment. Do not use broadly privileged tenant-administrator credentials.
 
 Set `AUTH0_MGMT_AUDIENCE` to `https://<AUTH0_DOMAIN>/api/v2/`, including the trailing slash. Use the same tenant domain throughout an Auth0 transaction.
+
+---
 
 ## 7. Deploy Actions
 
@@ -198,6 +210,8 @@ Required Post User Registration Action secrets:
 
 Use the same reviewed `user` role ID as for `roleClaims.js`. This Action assigns the role to Database users during registration; `roleClaims.js` adds it at login for non-Database users when it is missing.
 
+---
+
 ## 8. Configure Backend Values
 
 Store shared backend values in the deployment's secret or configuration store:
@@ -225,6 +239,8 @@ Set environment-specific values with the matching prefix:
 
 `DEV_ACCOUNT_LINK_FRONTEND_URL` and `PROD_ACCOUNT_LINK_FRONTEND_URL` point to the frontend confirmation page. The Post Login Action uses separate `DEV_ACCOUNT_LINK_CONFIRMATION_URL` or `PROD_ACCOUNT_LINK_CONFIRMATION_URL` secrets pointing to the backend `/api/v001/auth/confirm-account-linking` endpoint. Do not swap the frontend and backend URLs. See [Environment Configuration](./environment-configuration) for the full variable reference.
 
+---
+
 ## 9. Verify the Tenant
 
 Before enabling real users, verify every item in the intended environment:
@@ -249,3 +265,7 @@ Before enabling real users, verify every item in the intended environment:
    and Application Login URI.
 
 Record the tenant, environment, and verification date in the deployment log. For further checks, see the [Auth0 tenant contract](./auth0-tenant-contract), [Database script reference](./auth0-database-action-scripts), [Environment Configuration](./environment-configuration), and [backend quickstart](./local-testing/quickstart-testing). Keep credentials, certificates, and tenant-specific secrets out of source control and documentation.
+
+---
+
+Last edit: 17.10.2026

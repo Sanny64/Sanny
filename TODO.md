@@ -1,29 +1,3 @@
-## Workspace Test Setup Refactor (Historical)
-
-- [x] check npm run check
-- [x] check npm run test:tooling
-- [x] check npm run test:ci
-- [x] check npm run test
-  - [x] Inventory test suites by purpose and prerequisites: unit/component, isolated integration, mocked browser, and live browser; identify Docker, backend, network, and credential requirements, and distinguish intentional skips from configuration failures.
-  - [x] Define an explicit environment policy: do not implicitly load developer `.env` files across suites; load only the minimum required variables for explicitly selected local live tests, never log secrets, and give actionable errors or documented opt-in skips when configuration is missing.
-  - [x] Choose and document one coherent API-base URL contract, including precedence for `VITE_API_URL` and `SANNY_E2E_API_URL`; ensure browser servers, live tests, and backend health checks target the same configured origin.
-  - [x] Verify backend lifecycle automation for success, test failure, startup timeout, and cancellation: start only for supported local targets when unhealthy, preserve an already-healthy backend, and stop only services started by this test run without disrupting services that were already running.
-  - [x] Audit Vitest setup files and Playwright hooks across suites; add shared setup only where needed, remove duplication, and document intentional differences rather than requiring every suite to load a setup file.
-  - [x] Normalize test commands and configuration ownership: provide a clear entry point per test tier, keep root scripts as the workspace interface, minimize duplicated configuration, and document unavoidable manual prerequisites.
-  - [x] npm run test:e2e:real currently does not trigger the same backend startup logic as the npm run test does; that should be adjusted.
-  - [x] Run the documented gates after the refactor and record failures, skips, and prerequisites separately; keep CI tests free of live Auth0 credentials, and ensure missing live-test credentials produce explicit, actionable outcomes rather than silent skips.
-
-Note: Normalize test workflows across projects while preserving security, UX, and isolation between local, CI, and live environments. Automation should reduce manual setup without silently consuming developer secrets or masking missing live-test prerequisites.
-
-## Refactor Verification (2026-10-22)
-
-The refactor relative to `d1e798e` is verified for the current working tree within the scope below. This is not a production/security release approval; the remaining application findings and hosted evidence stay open.
-
-- [x] Correct relocated staging/Compose/VPS paths and immutable image selection; add four deployment contracts, including fresh-directory staging, actual Compose resolution with synthetic inputs, and simulated deployment rejection/success paths.
-- [x] Pass `npm run test:ci`: formatting/static checks, 54 tooling contracts, fast frontend/backend suites, isolated monitoring/Redis integrations, 798 mocked browser passes with 15 intentional skips, 2 documentation browser passes, both documentation locales/app builds, and 5 Linux visual passes. Recheck final workflow-input/documentation changes with the tooling suite and focused post-edit checks.
-- [x] Pass `npm run test:e2e:real` separately after CI: Chromium/Firefox password flows passed; three Google cases and the provider-challenged Edge password case were skipped as documented. The runner started the local backend and stopped only its newly started services. No alert spike was generated; the monolithic `npm run test` was not rerun.
-- [x] Verify an isolated 406-file source snapshot, excluding environment files, secrets, dependencies, and generated output: `npm ci`, Prisma generation, `npm run check`, `build:auth`, and `build:sanny` passed; the snapshot was removed afterward. This verifies install/build reproducibility, not first-time provisioning of external services.
-
 Before actual VPS deployment, supply the manual `backend-directory` input for an operator-provisioned checkout at the release commit, with clean tracked deployment configuration and independently provisioned secrets/certificates. No registry publish, FTP upload, or VPS deployment was performed for this verification.
 
 ## Product and Release Roadmap

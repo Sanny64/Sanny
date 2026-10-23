@@ -12,7 +12,7 @@ Run commands from the repository root with Node.js 24 and npm 11.6.3.
 - `npm run test` runs `test:ci`, then live Auth0, and invokes the 429 spike scenario. The selected live password flow requires a reachable development API/Auth0 tenant and dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials. Missing credentials are a configuration error, not a skip. Google automation is intentionally skipped because Google may block controlled browsers; an Auth0 Cloudflare challenge is an explicit manual-verification skip.
 - The 429 spike scenario is intentionally skipped unless `RUN_429_SPIKE_E2E=true`; enabling it may trigger alerts. Only this opted-in config reads `NGINX_BASIC_AUTH_USER`, `NGINX_BASIC_AUTH_PASSWORD`, `GRAFANA_ADMIN_USER`, and `GRAFANA_ADMIN_PASSWORD` from `apps/backend/.env` as fallbacks; environment values take precedence. The NGINX pair must match an entry in `apps/backend/nginx/secret/.htpasswd`; Grafana credentials are exchanged for a session cookie. Missing or rejected credentials fail with an actionable explanation.
 - The API URL is an origin, resolved in this order everywhere: `SANNY_E2E_API_URL`, `VITE_API_URL`, then `https://localhost:8443`. The live browser server receives that origin as `VITE_API_URL`; live API requests and backend health checks use the same origin.
-- `npm run test:e2e:real`, `npm run test:e2e:429`, and `npm run test:e2e` use the same backend lifecycle manager as `npm run test`. It checks `/healthcheck`, reuses a healthy backend, starts development Compose services only for an unhealthy loopback target, waits up to three minutes, and stops only services started by that command. A remote unhealthy target is never started. Create a missing stack with `npm run restart:stack`.
+- `npm run test:e2e:real`, `npm run test:e2e:429`, and `npm run test:e2e` use the same backend lifecycle manager as `npm run test`. It checks `/healthcheck`, reuses a healthy backend, starts development Compose services only for an unhealthy loopback target, waits up to three minutes, and stops only services started by that command. A remote unhealthy target is never started. Create a missing stack with `npm run initialize:stack`.
 - Docker test stacks (`sanny-monitoring-tests-<pid>` and `sanny-redis-tests-<pid>`) are removed when their runner finishes or is interrupted. Stacks left by a hard-killed runner are removed at the next start of that runner.
 
 You set RUN_429_SPIKE_E2E=true like this:
@@ -43,7 +43,7 @@ Deployment contracts require the Docker Compose CLI and Bash; on Windows they us
 
 ## Latest full run
 
-### 2026-10-22, refactor verification against d1e798e
+### 2026-10-22, refactor verification against `d1e798e`
 
 - `npm run test:ci` passed: 54 tooling contracts, fast workspace tests, isolated monitoring/Redis integration, 798 mocked browser passes with 15 intentional skips, 2 documentation browser passes, both locale/app builds, and 5 Linux visual passes. Backend unit results were 155 passed and one intentional skip. Final workflow-input and documentation changes were rechecked with the tooling suite and focused post-edit checks.
 - `npm run test:e2e:real` ran separately after CI and finished with exit code 0: Chromium/Firefox password flows passed; three Google cases and the provider-challenged Edge password case were skipped. The runner started the local backend, confirmed readiness, and stopped only the services it started.

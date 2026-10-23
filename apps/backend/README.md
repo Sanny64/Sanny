@@ -4,7 +4,7 @@ Install with root `npm ci` using Node 24/npm 11 and the root lockfile. Build fro
 
 ## Docker naming
 
-The development Compose image is `sanny64-backend:latest`, and the runtime container is `sanny64-backend`. Production uses the same container name but keeps the deployed registry image `sanny64/backend:<tag>`. Test projects retain generated names and independent images. Fixed runtime container names permit only one instance per Docker host, so do not run development and production stacks concurrently on that host. Run root `npm run restart:stack` to rebuild buildable images and recreate the full development Compose stack; it delegates to the workspace `restart:stack` script. Use `npm run restart:backend` to rebuild and recreate only the backend service. Both preserve volumes. `build:backend` builds the backend image without recreating containers. The old image tag is not automatically deleted.
+The development Compose image is `sanny64-backend:latest`, and the runtime container is `sanny64-backend`. Production uses the same container name but keeps the deployed registry image `sanny64/backend:<tag>`. Test projects retain generated names and independent images. Fixed runtime container names permit only one instance per Docker host, so do not run development and production stacks concurrently on that host. Run root `npm run initialize:stack` to rebuild buildable images and recreate the full development Compose stack; it delegates to the workspace `initialize:stack` script. Use `npm run restart:backend` to rebuild and recreate only the backend service. Both preserve volumes. `build:backend` builds the backend image without recreating containers. The old image tag is not automatically deleted.
 
 ## Account linking
 

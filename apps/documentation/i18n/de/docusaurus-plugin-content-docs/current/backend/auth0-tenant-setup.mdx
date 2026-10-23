@@ -4,11 +4,11 @@ description: Schritt-für-Schritt-Konfiguration von Auth0 für das bestehende Sa
 sidebar_position: 2
 ---
 
-# Auth0-Tenant einrichten
-
 Diese Anleitung richtet Auth0 passend zum bestehenden Sanny-Backend ein. Sie folgt den aktuellen OAuth-, Custom-Database-, Token-Claim-, Account-Linking- und MFA-Verträgen des Repositorys. Führe sie für jede betriebene Umgebung aus. Client-Secrets, Datenbankpasswörter, Zertifikate und API-Tokens gehören weder in diese Anleitung noch in den Quellcode oder Action-Logs.
 
 Auth0 hostet den Login und führt die Custom-Database-Skripte aus; die Sanny-Datenbank bleibt jedoch der Userspeicher. Das Auth0-`create`-Skript legt beim Signup den lokalen Datensatz an. Füge keinen zweiten Signup-Ablauf hinzu, der einen getrennten Auth0-Datenbanknutzer erstellt.
+
+---
 
 ## 1. URLs der Umgebung festlegen
 
@@ -269,4 +269,4 @@ Dokumentiere Tenant/Umgebung und Prüfdatum im Deployment-Protokoll. Weitere Que
 
 ---
 
-Letzte Bearbeitung / Last edit: 17.10.2026
+Letzte Bearbeitung: 17.10.2026

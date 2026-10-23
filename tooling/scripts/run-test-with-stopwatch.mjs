@@ -185,7 +185,7 @@ async function ensureBackendRunning(
   if (isCancelled()) return 1;
   if (startExitCode !== 0) {
     console.error(
-      'Unable to start the backend; create the stack with `npm run restart:stack`.'
+      'Unable to start the backend; create the stack with `npm run initialize:stack`.'
     );
     return startExitCode;
   }

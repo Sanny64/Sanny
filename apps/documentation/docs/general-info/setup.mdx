@@ -32,9 +32,11 @@ Run each app you need in its own terminal:
 - `npm run dev:docs`
 - `npm run dev:docs:de`
 - `npm run start:stack`
-- `npm run restart:stack` for the initial backend image build and full development stack startup
+- `npm run initialize:stack` for the initial backend image build and full development stack startup
 
 Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, and English docs at `http://localhost:3000`. The German docs command serves `http://localhost:3000/de/`; to use a separate port, run `npm run dev:de -w documentation` for `http://localhost:3001/de/`. Frontend development servers use a local HTTPS certificate. Stop the backend stack with `npm run stop:stack` when finished.
+
+---
 
 ## Quality Checks
 
@@ -43,6 +45,8 @@ Sanny is served at `https://localhost:5173`, Auth at `https://localhost:5174`, a
 - `npm run test:ci`
 - `npm run test` for the full gate, including live Auth0 checks
 
+---
+
 ## Builds
 
 Run `npm run check` before manual builds; build commands do not run static checks.
@@ -50,9 +54,11 @@ Run `npm run check` before manual builds; build commands do not run static check
 - `npm run build:auth`, `npm run build:sanny`, and `npm run build:docs` build individual targets; `build:docs` builds both configured locales. Use `build:docs:en` or `build:docs:de` for a single locale.
 - `npm run build:frontend` builds Auth, Sanny, and both documentation locales.
 - `npm run build:backend` builds the backend image but does not start services.
-- `npm run restart:stack` rebuilds required images and recreates the full development Compose stack; `npm run restart:backend` recreates only the backend service. Both preserve volumes.
+- `npm run initialize:stack` rebuilds required images and recreates the full development Compose stack; `npm run restart:backend` recreates only the backend service. Both preserve volumes.
 
 The backend needs local environment configuration and certificates before it can start; see [Backend Setup](../backend/backend-setup.mdx).
+
+---
 
 ## Workspace Map
 
@@ -117,4 +123,4 @@ Sanny/                               # Monorepo root and npm workspace
 
 ---
 
-Last edit: 20.10.2026
+Last edit: 23.10.2026

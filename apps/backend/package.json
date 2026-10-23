@@ -8,7 +8,7 @@
   "scripts": {
     "build": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml build --no-cache sanny64-backend",
     "restart": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml up -d --build --force-recreate sanny64-backend",
-    "restart:stack": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml up -d --build --force-recreate --remove-orphans",
+    "initialize:stack": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml up -d --build --force-recreate --remove-orphans",
     "start": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml start",
     "stop": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml stop",
     "lint": "eslint src auth0 prisma.config.ts monitoring",

@@ -1,5 +1,5 @@
 ---
-title: Automated Testing
+title: Automated Backend Testing
 description: Run backend type, unit, monitoring, and Redis integration tests locally.
 sidebar_position: 2
 ---
@@ -20,6 +20,8 @@ The Redis check starts a disposable Docker Compose project using `apps/backend/d
 
 The live Playwright suite covers Chromium, Firefox, and Edge in one invocation. Keep dedicated `TESTUSER_EMAIL` / `TESTUSER_PASSWORD` credentials for that integration suite.
 
+---
+
 ## Test Boundaries
 
 - **Backend:** `npm run check:backend` runs lint/types; `npm run test:backend` runs unit, monitoring, Redis, and Discord integration tests. The Redis suite uses a disposable real Redis service.
@@ -28,8 +30,12 @@ The live Playwright suite covers Chromium, Firefox, and Edge in one invocation. 
 
 Passing backend unit, monitoring, and Redis tests does not prove every branch, production workload, or failure mode. Monitoring test rules are derived from production definitions in a temporary file; only timing is accelerated. See the [Local Testing guide](../../general-info/testing.mdx) for shared root-gate interpretation and limits.
 
+---
+
 ## Continue
 
 Use [Backend Manual Testing](./manual-testing.mdx) for backend and hosted-environment verification. Use [Frontend Manual Testing](../../frontend/local-testing/manual-testing.mdx) for keyboard, screen-reader, zoom, and other frontend checks. Shared test evidence and result boundaries are in the [Local Testing guide](../../general-info/testing.mdx); hosted monitoring evidence belongs in [Monitoring and Verification](../monitoring.mdx).
+
+---
 
 Last edit: 20.10.2026

@@ -8,9 +8,13 @@ sidebar_position: 3
 
 Tenant configuration is managed in Auth0 and must be verified independently of the source code. Never put client secrets, database passwords, certificates, private keys, or access tokens in this document.
 
+---
+
 ## Verification Status
 
 Source contracts and automated tests verify local OAuth and token behavior. The hosted Auth0 tenant still requires an authorized staging review. Mark a check complete only after verifying the intended tenant and recording the date and outcome in the restricted deployment record. Keep tenant identifiers and reviewer details out of public docs.
+
+---
 
 ## Browser Authentication
 
@@ -21,6 +25,8 @@ Source contracts and automated tests verify local OAuth and token behavior. The 
 - Deploy the Database Actions and connect them to the intended MariaDB database.
 
 Email verification is not a blanket login-denial policy. The supported account-creation paths are expected to verify email through the tenant's required OTP flow for email/password signup or through Google social login. These are Auth0 tenant and connection settings, so verify them in every environment. In the repository implementation, `create.js` marks a newly created local row as verified, and the first-login `verifyEmail.js` Action attempts to synchronize the Auth0 verification state and token claim. If that synchronization fails, the Action logs the failure and continues. The OAuth callback does not deny a session solely because `email_verified` is false; local-account provisioning does require a verified claim.
+
+---
 
 ## API and Claims
 
@@ -33,11 +39,15 @@ Email verification is not a blanket login-denial policy. The supported account-c
 - The Login Action `roleClaims.js` assigns the Auth0 `user` role to non-Database users when needed and includes it in the roles claim. `AUTH0_DEFAULT_ROLE_ID` must match the reviewed role. The M2M app needs `update:users`; Database registration continues to use `assignDefaultUserRole.js`.
 - Before assigning roles, `roleClaims.js` validates that the Management API token response is an object containing a non-empty string `access_token`. Malformed responses stop the Action before role assignment or claims are issued. Deploy Action changes separately in Auth0.
 
+---
+
 ## Privileged Management API
 
 - Keep role synchronization disabled unless `AUTH0_ROLE_SYNC_ENABLED=true` is explicitly intended.
 - When enabled, administrators with `write:users` and recent MFA may assign any role present in Auth0; there is no role allowlist.
 - Grant the M2M application only the minimum Management API permissions required.
+
+---
 
 ## MFA Step-Up and Password Reset
 
@@ -50,6 +60,8 @@ Email verification is not a blanket login-denial policy. The supported account-c
 - If the tenant reports `MFA customized via PostLogin action but feature is not enabled`, enable **Customize MFA Factors using Actions** in the tenant.
 - Do not use the public `/dbconnections/change_password` endpoint. Bot Detection errors there cannot be interactively completed by a server-side call. Do not disable Bot Detection.
 - Reset endpoints return safe `502` errors or `429` on rate limiting; SMTP errors return safe `503`. An Auth0 `401` must not be surfaced as a Sanny session `401`.
+
+---
 
 ## Linked Identities and Canonical Subjects
 
@@ -68,5 +80,7 @@ Email verification is not a blanket login-denial policy. The supported account-c
 - The popup stores opaque pending state and expiry in `sessionStorage`. After reset, that popup resumes ownership proof through the resume route.
 - Password reset alone is not ownership proof. Expired state requires restarting linking; a reset in another tab does not resume the original popup automatically.
 - Continuations use `AUTH0_DOMAIN`. Do not mix tenant and custom domains within one Auth0 transaction.
+
+---
 
 Last edit: 17.10.2026
