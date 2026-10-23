@@ -47,7 +47,7 @@ services:
       - --import=tsx
       - --test
       - --test-timeout=120000
-      - src/tests/session-rotation.test.ts
+      - src/tests/sanny64/sessions/session-rotation.test.ts
     depends_on:
       redis:
         condition: service_healthy

@@ -7,7 +7,8 @@
     "build": "vite build",
     "dev": "vite --port 5173 --strictPort",
     "preview": "vite preview",
-    "test": "vitest run --config=vitest.config.ts",
+    "test:unit": "vitest run --config=vitest.config.ts",
+    "test": "npm run test:unit",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck"

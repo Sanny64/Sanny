@@ -14,8 +14,8 @@ Sanny64 aims to be an accessible, personal digital space for a portfolio, projec
 - `apps/documentation/` English and German Docusaurus site
 - `shared/packages/` source-exported `@sanny/i18n`, `@sanny/styles`, and `@sanny/ui`
 - `shared/tests/` Playwright suites and repository configuration contracts
-- `tooling/config/` shared compiler configuration and the canonical `.nvmrc`
-- `tooling/scripts/` repository automation, test runners, and release helpers
+- `tooling/config/` canonical Node version pin
+- `tooling/scripts/{runtime,release,test}/` repository runtime checks, release planning, and test orchestration; workspace-specific scripts remain with their apps
 
 ## Setup
 
@@ -34,7 +34,7 @@ npm run dev:docs
 npm run start:stack
 ```
 
-Run `npm run check` before manual builds. `npm run test:ci` runs formatting, workspace checks, contracts, Vitest, backend tests, mocked browser tests, documentation browser tests, builds, and visual tests. `npm run test` adds live Auth0 and the opt-in monitoring spike.
+Run `npm run check` before manual builds. The test commands have predictable tiers: `npm run test:unit`, `test:contracts`, `test:integration`, and `test:browser` run focused groups; `npm run test:core` composes the safe local suite, while `npm run test:ci` runs it non-interactively. `npm run test` opens the development/production and safe/full menu; full mode requires confirmation before live Auth0, Discord, and 429 traffic.
 
 ## Outlook
 

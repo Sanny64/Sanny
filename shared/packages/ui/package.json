@@ -28,7 +28,8 @@
     "vitest": "^5.0.3"
   },
   "scripts": {
-    "test": "vitest run",
+    "test:unit": "vitest run --config=vitest.config.ts",
+    "test": "npm run test:unit",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "npm run lint && npm run typecheck"

@@ -3,7 +3,10 @@ import { config as loadDotenv } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import baseConfig from '../../../playwright.config.ts';
 
-if (process.env.RUN_429_SPIKE_E2E === 'true') {
+if (
+  process.env.RUN_CRITICAL_TESTS === 'true' ||
+  process.env.RUN_429_SPIKE_E2E === 'true'
+) {
   const backendEnvironment: Record<string, string | undefined> = {};
   loadDotenv({
     path: fileURLToPath(new URL('../../../apps/backend/.env', import.meta.url)),

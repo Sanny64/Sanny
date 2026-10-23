@@ -101,7 +101,7 @@ jobs:
             : "${BACKEND_DEPLOY_DIRECTORY:?Supply backend-directory for the approved release checkout}"
             cd "$BACKEND_DEPLOY_DIRECTORY"
             test "$(git rev-parse HEAD)" = "$BACKEND_IMAGE_TAG"
-            git diff --quiet HEAD -- apps/backend/docker/compose apps/backend/nginx/nginx.conf apps/backend/redis/redis.conf apps/backend/monitoring
+            git diff --quiet HEAD -- apps/backend/docker/compose apps/backend/nginx/nginx.conf apps/backend/redis/redis.conf apps/backend/src/monitoring
             echo "$DOCKERHUB_PAT" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
             cd apps/backend
             docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.prod.yml config --quiet

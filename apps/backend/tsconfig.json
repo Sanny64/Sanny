@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2023"]
   },
-  "include": ["src/**/*.ts", "monitoring/tests/**/*.ts", "prisma.config.ts"]
+  "include": ["src/**/*.ts", "prisma.config.ts"]
 }

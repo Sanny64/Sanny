@@ -42,8 +42,9 @@ test('auth initiation produces a real NGINX 429 alert spike', async ({
   request,
 }) => {
   test.skip(
-    testEnvironment.RUN_429_SPIKE_E2E !== 'true',
-    'Set RUN_429_SPIKE_E2E=true to generate an alerting traffic burst.'
+    testEnvironment.RUN_CRITICAL_TESTS !== 'true' &&
+      testEnvironment.RUN_429_SPIKE_E2E !== 'true',
+    'Enable the critical tests to generate an alerting traffic burst.'
   );
   test.setTimeout(5 * 60_000);
 

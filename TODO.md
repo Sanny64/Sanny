@@ -39,7 +39,7 @@ Area-specific findings are tracked in [Backend](apps/backend/TODO.md), [Sanny](a
 A reproducible critical/high finding is not complete until a committed behavioral regression test fails against the vulnerable implementation and passes with the fix. Record the failing assertion and focused passing command when implementing each fix. Existing green tests, source-string checks, or an ad hoc audit probe alone are not regression coverage. Tests reduce recurrence risk; they do not guarantee the absence of future defects.
 
 - [ ] Add regression tests alongside every critical/high fix, using existing test files/helpers where practical. Include rejected misuse with no unauthorized side effects and a legitimate success case; test the actual route/guard/service boundary instead of mocking away the behavior being fixed. Follow the concrete matrix in the [backend TODO](apps/backend/TODO.md).
-- [ ] Ensure security regressions run in the appropriate required CI suite without production credentials, live Auth0 accounts, or implicit developer environment files. Keep backend behavior in backend tests, repository/deployment contracts in [tooling contracts](shared/tests/contracts/config.test.mjs), and browser workflows in `shared/tests/e2e`; use isolated services when mocks cannot validate the relevant behavior.
+- [ ] Ensure security regressions run in the appropriate required CI suite without production credentials, live Auth0 accounts, or implicit developer environment files. Keep backend behavior in backend tests, repository/deployment contracts in [tooling contracts](shared/tests/maintenance/), and browser workflows in `shared/tests/e2e`; use isolated services when mocks cannot validate the relevant behavior.
 - [x] Add executable clean-directory staging and configuration/tag-resolution checks for deployment fixes. Four contracts now cover actual staging, actual Compose model resolution, image/input wiring, and simulated remote execution with rejection/failure/success assertions; no live deployment is needed.
 - [ ] Do not replace a missing security regression with `skip`, expected failure, or weaker assertions merely to get a green gate. If a scenario cannot be automated safely, document why, retain automated coverage for the reproducible local boundary, and keep the external verification item open until reviewed evidence exists.
 
@@ -50,6 +50,44 @@ A reproducible critical/high finding is not complete until a committed behaviora
 - [ ] Consider optional monitoring Compose profiles so daily API/frontend work does not require the entire observability stack. Keep full integration/CI coverage explicit.
 - [ ] Verify clean-checkout onboarding, including Prisma client generation, external MariaDB provisioning, certificates, Auth0 prerequisites, and Node.js 24/npm 11.6.3. Keep setup instructions aligned with actual mount paths and commands.
 - [ ] Decide whether the Git-ignored `games/` directory is maintained product source or local experimentation. Maintained games need a reproducible source/deployment/test boundary; local-only games must not be implied to ship from a clean checkout.
+
+### Test suite optimization
+
+Einrichtung eines interaktiven CLI-Test-Menüs für die lokale Entwicklung zur sicheren Steuerung von Umgebungen (`dev`/`prod`) und kritischen Lasttests (z. B. 429-Spike). Vollständige Automatisierung des `.env`-Mappings (`VITE_DEV_API_URL` / `VITE_PROD_API_URL` ➡️ `VITE_API_URL`) und Absicherung der CI/CD-Pipeline.
+
+#### 1. Skript-Infrastruktur anlegen
+
+- [x] Neue Datei `tooling/scripts/test/menu.mjs` im Root erstellen.
+- [x] Logik für das interaktive Menü implementieren:
+  - [x] `@clack/prompts` für die Terminal-Abfragen konfigurieren (Umgebungs-Auswahl und Testumfang).
+  - [x] Die Vite-Umgebungen für Auth und Sanny getrennt mit `loadEnv` auflösen.
+  - [x] `VITE_API_URL` hat Vorrang; sonst `VITE_DEV_API_URL`/`VITE_PROD_API_URL` nach Ziel wählen und gleiche Origins beider Frontends sicherstellen.
+  - [x] `RUN_CRITICAL_TESTS` auf `true` setzen, falls der Full-Run ausgewählt wurde; bestehende Discord- und 429-Gates werden ebenfalls aktiviert.
+  - [x] Prozess-Ausführung via `execFileSync(process.execPath, ...)` mit `stdio: 'inherit'` und festem Repository-Verzeichnis aufsetzen; keine Shell-Interpolation verwenden.
+  - [x] CLI-Hilfe, Argumentprüfung und sofortige Ablehnung nicht interaktiver Menüaufrufe mit Hinweis auf `test:ci` ergänzen.
+  - [x] Alten Stopwatch-Einstieg entfernen; Monitoring und Redis teilen einen getesteten Compose-Lifecycle mit Cleanup und festen Pfaden. Redis läuft ohne eigenen npm-Befehl im Integrationslauf von `test:ci`.
+
+#### 2. Konfiguration der `package.json` (Root)
+
+- [x] Scripts in der Root-`package.json` sauber trennen und anpassen:
+  - [x] `"test"`: Verweist auf das neue Menü (`node tooling/scripts/test/menu.mjs`).
+  - [x] `"test:ci"`: Überspringt das Menü und setzt die Variablen plattformneutral auf Safe-Mode:
+        Der plattformneutrale Wrapper liegt in `tooling/scripts/test/run-ci.mjs`.
+  - [x] `"test:core"`: Enthält den bisherigen vollständigen Core-/CI-Befehl.
+
+#### 3. Test-Suiten absichern (Konditionelles Überspringen)
+
+- [x] **Kritische Integrationen:** Discord und Playwright-429 bleiben standardmäßig übersprungen und laufen bei `RUN_CRITICAL_TESTS=true`; der gezielte Legacy-Opt-in bleibt ebenfalls unterstützt.
+- [x] **Playwright (E2E-Frontends):** Der 429-Lasttest ist standardmäßig übersprungen und wird durch den Full-Run aktiviert:
+
+#### 4. Verifikation & Testing
+
+- [ ] **Lokal (Safe):** `npm run test` ausführen ➡️ `development` & `safe` wählen. Prüfen, ob der API-Spike-Test sauber übersprungen wird.
+- [ ] **Lokal (Full):** `npm run test` ausführen ➡️ `development` & `full` wählen. Prüfen, ob bspw. der Spike-Test erfolgreich läuft und die richtige API-URL gezogen wird.
+  - Die Full-Suite aktiviert die kritischen Opt-ins für 429 und Discord; Redis läuft bereits als isolierte Integration im Safe-/CI-Core. Unnötige Visual-Benchmark-Dopplungen bleiben ausgeschlossen.
+- [ ] **CI-Simulation:** `npm run test:ci` lokal triggern und sicherstellen, dass das CLI-Menü _nicht_ erscheint und die Pipeline fehlerfrei (ohne Blockieren) durchläuft.
+
+Automatisierte Menüverträge prüfen Safe/Full, beide API-Ziele, URL-Override, Produktionsbestätigung und Abbruch mit simulierten Eingaben und Prozessen. Sie ersetzen keine manuelle Live-Abnahme. Frontend-API-Ziele werden ausschließlich über die jeweilige Vite-Konfiguration aufgelöst; Backend-Umgebungsdateien sind dafür nicht maßgeblich. Der Abschnitt ist erst nach den offenen Verifikationsnachweisen vollständig erfüllt.
 
 ### Scope and Sign-Off
 

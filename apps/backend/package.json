@@ -11,14 +11,14 @@
     "initialize:stack": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml up -d --build --force-recreate --remove-orphans",
     "start": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml start",
     "stop": "docker compose --project-directory . --env-file .env -f docker/compose/docker-compose.dev.yml stop",
-    "lint": "eslint src auth0 prisma.config.ts monitoring",
+    "lint": "eslint src auth0 prisma.config.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck",
-    "test:integration:discord": "tsx --test monitoring/tests/integration/discord-webhook.integration.test.ts",
-    "test:integration:monitoring": "node ../../tooling/scripts/run-integration.mjs",
-    "test:integration:redis": "node ../../tooling/scripts/run-redis-tests.mjs",
-    "test:unit": "tsx --test \"src/tests/*.test.ts\"",
-    "test": "npm run test:unit && npm run test:integration:monitoring && npm run test:integration:redis && npm run test:integration:discord"
+    "test:integration:discord": "tsx --test src/tests/grafana/integration/grafana-discord.integration.test.ts",
+    "test:integration:monitoring": "node src/tests/grafana/run-integration.mjs",
+    "test:integration": "npm run test:integration:monitoring && node src/tests/redis/run-integration.mjs && npm run test:integration:discord",
+    "test:unit": "tsx --test \"src/tests/sanny64/**/*.test.ts\"",
+    "test": "npm run test:unit && npm run test:integration"
   },
   "dependencies": {
     "@auth0/auth0-fastify-api": "^1.3.0",

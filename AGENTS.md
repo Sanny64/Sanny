@@ -11,7 +11,7 @@ Personal website and authentication workspace using npm workspaces, React, TypeS
 - `shared/packages` contains source-exported shared frontend packages.
 - `shared/tests` owns Playwright suites and repository/tooling contracts.
 - `apps/frontend/tsconfig.frontend.json` is the shared browser compiler base; root `tsconfig.json` owns neutral/tooling defaults. `tooling/config/.nvmrc` pins Node.js 24.
-- `tooling/scripts` owns runtime, test, release, and documentation automation.
+- `tooling/scripts/{runtime,release,test}` owns repository-wide automation. Workspace-specific scripts stay with their app; test support stays under `shared/tests`.
 
 ## Rules
 
@@ -24,5 +24,5 @@ Root configuration files are authoritative. Workspace configurations extend them
 Document structural changes in both English and German documentation, then refresh reviewed source hashes with:
 
 ```sh
-npm run review:docs:translations -- <path-relative-to-apps/documentation/docs>
+npm run review:docs -- <path-relative-to-apps/documentation/docs>
 ```

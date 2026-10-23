@@ -24,6 +24,7 @@
   "include": [
     "apps/frontend/**/*.ts",
     "shared/tests/**/*.ts",
-    "shared/packages/ui/vitest.config.ts"
+    "shared/packages/ui/vitest.config.ts",
+    "shared/tests/contracts/test.helper.mjs"
   ]
 }

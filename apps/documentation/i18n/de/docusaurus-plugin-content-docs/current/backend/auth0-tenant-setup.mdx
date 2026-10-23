@@ -100,7 +100,7 @@ Hinterlege für die Skripte diese Connection-Konfiguration:
 
 Die Skripte erfordern eine TLS-Zertifikatsprüfung; deaktiviere sie nicht. Das Datenbankkonto benötigt nur SELECT-, INSERT-, UPDATE- und DELETE-Rechte auf der Tabelle `User`. `DB_SSL_CA` muss das vertrauenswürdige PEM-CA-Zertifikat enthalten. Optionale Signup-Konfigurationswerte sind `EMAIL_MAX_LENGTH` (Standard `254`), `USERNAME_MIN_LENGTH` (Standard `3`), `USERNAME_MAX_LENGTH` (Standard `30`), `PASSWORD_MIN_LENGTH` (Standard `15`), `PASSWORD_MAX_BYTES` (Standard `72`) und `PASSWORD_MIN_CLASS_COUNT` (Standard `3`). Behalte dieselbe Richtlinie in den Create- und Change-Password-Skripten bei.
 
-Aktiviere die Connection für die Regular Web Application. Notiere ihren Namen und ihre ID für `AUTH0_DATABASE_CONNECTION` und `AUTH0_DATABASE_CONNECTION_ID`. Teste jedes Skript über **Try** mit einem Testkonto, bevor du eine Produktionsdatenbank verbindest. Die erwarteten Eingaben und Callback-Ergebnisse stehen im [Skriptvertrag](/docs/backend/auth0-database-action-scripts).
+Aktiviere die Connection für die Regular Web Application. Notiere ihren Namen und ihre ID für `AUTH0_DATABASE_CONNECTION` und `AUTH0_DATABASE_CONNECTION_ID`. Teste jedes Skript über **Try** mit einem Testkonto, bevor du eine Produktionsdatenbank verbindest. Die erwarteten Eingaben und Callback-Ergebnisse stehen im [Skriptvertrag](./auth0-database-action-scripts).
 
 ---
 
@@ -265,8 +265,8 @@ Prüfe vor dem Aktivieren echter Nutzer jeden Punkt in der vorgesehenen Umgebung
 7. Teste den Passwort-Reset vollständig einschließlich Auth0-Ticket,
    E-Mail-Zustellung und Application Login URI.
 
-Dokumentiere Tenant/Umgebung und Prüfdatum im Deployment-Protokoll. Weitere Quellcodeverträge findest du im [Auth0-Tenant-Vertrag](/docs/backend/auth0-tenant-contract), in der [Referenz der Database-Skripte](/docs/backend/auth0-database-action-scripts), in der [Umgebungskonfiguration](/docs/backend/environment-configuration) und im [Backend-Schnellstart](./local-testing/quickstart-testing). Halte Zugangsdaten, Zertifikate und tenantspezifische Secrets aus Quellcodeverwaltung und Dokumentation heraus.
+Dokumentiere Tenant/Umgebung und Prüfdatum im Deployment-Protokoll. Weitere Quellcodeverträge findest du im [Auth0-Tenant-Vertrag](./auth0-tenant-contract), in der [Referenz der Database-Skripte](./auth0-database-action-scripts), in der [Umgebungskonfiguration](./environment-configuration) und im [Backend-Schnellstart](./local-testing/quickstart-testing). Halte Zugangsdaten, Zertifikate und tenantspezifische Secrets aus Quellcodeverwaltung und Dokumentation heraus.
 
 ---
 
-Letzte Bearbeitung: 17.10.2026
+Letzte Bearbeitung: 23.10.2026

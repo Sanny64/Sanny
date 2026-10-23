@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "docusaurus build",
+    "compare:translations": "node src/scripts/warn-docs-translation.mjs",
     "clear": "docusaurus clear",
     "deploy": "docusaurus deploy",
     "dev": "docusaurus start",
@@ -14,6 +15,7 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "write-translations": "docusaurus write-translations",
     "lint": "eslint .",
+    "review:translations": "node src/scripts/record-doc-translation-review.mjs",
     "typecheck": "tsc --noEmit",
     "check": "npm run lint && npm run typecheck"
   },

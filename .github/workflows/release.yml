@@ -42,7 +42,7 @@ jobs:
         with:
           node-version-file: tooling/config/.nvmrc
       - id: targets
-        run: node tooling/scripts/deployment-targets.mjs
+        run: node tooling/scripts/release/select-targets.mjs
         env:
           RELEASE_BEFORE: ${{ github.event.before }}
           RELEASE_DEPLOY_BACKEND: ${{ inputs.deploy-backend }}

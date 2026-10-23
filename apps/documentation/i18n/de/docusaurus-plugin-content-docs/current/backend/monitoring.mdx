@@ -10,13 +10,13 @@ Beide Compose-Konfigurationen starten Prometheus, Grafana, Loki und Alloy neben 
 
 Fastify `/metrics` stellt begrenzte HTTP-Anfragen- und Latenzmetriken, Prozessmetriken, Prisma-Operationsdauer und -Ergebnis, Status und Dauer der Datenbank-/Redis-Prüfungen, Redis-Fallback-Zähler, Refresh-Token-Ergebnisse und Auth0-Management-API-Ergebnisse bereit. Prisma-Labels verwenden ausschließlich feste Operationsnamen und Erfolg/Fehler; SQL, Parameter, Identitäten und Tokens werden nicht exportiert. Datenbank und Redis werden bei jedem Scrape geprüft.
 
-Alloy versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehlerlogs an Loki und behält dabei die bestehenden Job-Labels bei. Die Konfiguration liegt in `apps/backend/monitoring/config.alloy`. Das alte Promtail-Positions-Volume muss während der [vom Betreiber kontrollierten Migration](../general-info/tooling#breaking-changes-und-migration) erhalten bleiben. Grafana ist mit Prometheus- und Loki-Datenquellen sowie den NGINX-Sicherheits- und Node-Exporter-Dashboards vorkonfiguriert.
+Alloy versendet strukturierte Pino-Anwendungslogs sowie NGINX-Zugriffs- und Fehlerlogs an Loki und behält dabei die bestehenden Job-Labels bei. Die Konfiguration liegt in `apps/backend/src/monitoring/config/config.alloy`. Das alte Promtail-Positions-Volume muss während der [vom Betreiber kontrollierten Migration](../general-info/tooling#breaking-changes-und-migration) erhalten bleiben. Grafana ist mit Prometheus- und Loki-Datenquellen sowie den NGINX-Sicherheits- und Node-Exporter-Dashboards vorkonfiguriert.
 
 ---
 
 ## Alarme und Benachrichtigungen
 
-Grafana-Regeln aus `apps/backend/monitoring/alerting/rules/` werden einmal pro Minute ausgewertet.
+Grafana-Regeln aus `apps/backend/src/monitoring/alerting/rules/` werden einmal pro Minute ausgewertet.
 
 Die NGINX-Logregeln melden:
 

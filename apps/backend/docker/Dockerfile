@@ -27,7 +27,7 @@ WORKDIR /app/backend
 
 FROM builder AS production
 
-RUN rm -rf /app/backend/src/tests /app/backend/monitoring/tests
+RUN rm -rf /app/backend/src/tests
 
 FROM dhi.io/node:24-debian12@sha256:7f480846df997cc986a0accdd55cd2649548fdbd9545b4dd778bba4524262286 AS runtime
 

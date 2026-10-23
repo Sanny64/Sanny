@@ -94,7 +94,7 @@ services:
   prometheus:
     image: prom/prometheus@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./src/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -107,7 +107,7 @@ services:
   loki:
     image: grafana/loki:2.9.8
     volumes:
-      - ./monitoring/loki.yml:/etc/loki/local-config.yaml:ro
+      - ./src/monitoring/loki.yml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
     command: -config.file=/etc/loki/local-config.yaml
     networks:
@@ -117,7 +117,7 @@ services:
   alloy:
     image: grafana/alloy:v1.21.0
     volumes:
-      - ./monitoring/config/config.alloy:/etc/alloy/config.alloy:ro
+      - ./src/monitoring/config/config.alloy:/etc/alloy/config.alloy:ro
       - nginx-logs:/var/log/nginx:ro
       - application-logs:/var/log/app:ro
       - promtail-data:/var/lib/promtail:ro
@@ -149,15 +149,15 @@ services:
       - GF_SMTP_FROM_NAME=Sanny Monitoring
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
-      - ./monitoring/dashboards:/var/lib/grafana/dashboards:ro
-      - ./monitoring/alerting/contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
-      - ./monitoring/alerting/policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
-      - ./monitoring/alerting/rules/429-spikes.yml:/etc/grafana/provisioning/alerting/429-spikes.yml:ro
-      - ./monitoring/alerting/rules/auth-abuse.yml:/etc/grafana/provisioning/alerting/auth-abuse.yml:ro
-      - ./monitoring/alerting/rules/backend-operational.yml:/etc/grafana/provisioning/alerting/rules/backend-operational.yml:ro
-      - ./monitoring/alerting/rules/callback-flood.yml:/etc/grafana/provisioning/alerting/rules/callback-flood.yml:ro
+      - ./src/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./src/monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ./src/monitoring/dashboards:/var/lib/grafana/dashboards:ro
+      - ./src/monitoring/alerting/contactpoints.yml:/etc/grafana/provisioning/alerting/contactpoints.yml:ro
+      - ./src/monitoring/alerting/policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
+      - ./src/monitoring/alerting/rules/429-spikes.yml:/etc/grafana/provisioning/alerting/429-spikes.yml:ro
+      - ./src/monitoring/alerting/rules/auth-abuse.yml:/etc/grafana/provisioning/alerting/auth-abuse.yml:ro
+      - ./src/monitoring/alerting/rules/backend-operational.yml:/etc/grafana/provisioning/alerting/rules/backend-operational.yml:ro
+      - ./src/monitoring/alerting/rules/callback-flood.yml:/etc/grafana/provisioning/alerting/rules/callback-flood.yml:ro
     depends_on:
       - prometheus
       - loki

@@ -8,23 +8,26 @@ sidebar_position: 2
 
 Alle Befehle im Repository-Stammverzeichnis ausführen. Gemeinsame Anforderungen der Root-Gates, das Ergebnis des letzten vollständigen Laufs und allgemeine Grenzen stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
-| Befehl                                      | Zweck                                                                       |
-| ------------------------------------------- | --------------------------------------------------------------------------- |
-| `npm run check:backend`                     | Backend-ESLint und TypeScript-Prüfung über das Workspace ausführen.         |
-| `npm run test:backend`                      | Backend-Unit-, Monitoring-, Redis- und Discord-Integrationstests ausführen. |
-| `npm run test:integration:redis -w backend` | Nur den isolierten Redis-Test ausführen; Docker ist erforderlich.           |
+| Befehl                                | Zweck                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| `npm run check:backend`               | Backend-ESLint und TypeScript-Prüfung über das Workspace ausführen.         |
+| `npm run test:backend`                | Backend-Unit-, Monitoring-, Redis- und Discord-Integrationstests ausführen. |
+| `npm run test:unit -w backend`        | Nur Backend-Unit-Tests ausführen.                                           |
+| `npm run test:integration -w backend` | Monitoring-, Redis- und Opt-in-Discord-Integrationen ausführen.             |
 
-Backend-eigene Unit-Tests liegen in `apps/backend/src/tests/`; sie prüfen API-Routen, Services, Sitzungen, Sicherheit, Rate-Limits sowie die Auth0-Integration und -Skripte. Grafana-Regel- und Discord-Webhook-Prüfungen liegen in `apps/backend/monitoring/tests/`. Frontend-Feedback-/Lokalisierungsverträge liegen in `apps/frontend/tests/`, Auth-Routen- und Proof-Resume-Tests im Auth-App-Workspace und gemeinsame Toast-Tests in `shared/packages/ui/src/tests/`.
+Backend-eigene Unit-Tests liegen in `apps/backend/src/tests/sanny64/`, gegliedert in `auth/`, `auth0/`, `sessions/`, `users/`, `security/` und `observability/`. Der manuelle Proxy-Test liegt in `sanny64/security/`. Grafana-Regel- und Discord-Webhook-Prüfungen, Provisionierungsdateien, der Notification-Sink und der Monitoring-Runner gehören nach `apps/backend/src/tests/grafana/`. Der isolierte Redis-Runner gehört nach `apps/backend/src/tests/redis/`; er führt die Session-Rotationstests aus `sanny64/sessions/` aus. Gemeinsame Lifecycle- und Stale-Project-Hilfen liegen in `apps/backend/src/tests/`, ohne allgemeinen Skriptordner. Frontend-Feedback-/Lokalisierungsverträge liegen in `apps/frontend/tests/`, Auth-Routen- und Proof-Resume-Tests im Auth-App-Workspace und gemeinsame Toast-Tests in `shared/packages/ui/src/tests/`.
 
-Der Redis-Test startet ein isoliertes Docker-Compose-Projekt mit `apps/backend/docker/compose/docker-compose.test.redis.yml`. Es baut das Dockerfile-Ziel `builder`, das Backend-Testquellen enthält, sowie einen Redis-Dienst, ohne `apps/backend/.env` zu laden oder Laufzeit-Compose-Dienste zu erweitern. Das Standard-Produktionsimage entfernt dagegen `src/tests` und `monitoring/tests`. Das feste Testpasswort ist auf das interne Docker-Netzwerk begrenzt. Die Redis-TLS-Konfiguration wird gemeinsam verwendet; der Runner erzeugt jedoch eine eigene eintägige Test-CA und ein Redis-Zertifikat in einem temporären Verzeichnis. Entwicklerzertifikate werden nicht eingebunden; OpenSSL auf dem Host ist nicht erforderlich. Die temporären Zertifikate werden nach dem Compose-Teardown entfernt. Redis muss vor Testbeginn einen authentifizierten TLS-Healthcheck bestehen. Das Projekt verwendet ein eigenes Netzwerk und ein Daten-Volume, veröffentlicht keine Ports und entfernt Container sowie Volume auch bei einem Fehler. Ein laufender Entwicklungs-Stack ist nicht erforderlich. Die Redis-Bereitschaft wird höchstens zehnmal geprüft; für die Testdatei gilt ein Timeout von 120 Sekunden. `REDIS_CONNECT_TIMEOUT_MS` begrenzt Verbindungen des Sitzungs-Stores beim Start (Standardwert: 10000 Millisekunden).
+Der Redis-Test startet ein isoliertes Docker-Compose-Projekt mit `apps/backend/docker/compose/docker-compose.test.redis.yml`. Es baut das Dockerfile-Ziel `builder`, das Backend-Testquellen enthält, sowie einen Redis-Dienst, ohne `apps/backend/.env` zu laden oder Laufzeit-Compose-Dienste zu erweitern. Das Standard-Produktionsimage entfernt dagegen `src/tests`. Das feste Testpasswort ist auf das interne Docker-Netzwerk begrenzt. Die Redis-TLS-Konfiguration wird gemeinsam verwendet; der Runner erzeugt jedoch eine eigene eintägige Test-CA und ein Redis-Zertifikat in einem temporären Verzeichnis. Entwicklerzertifikate werden nicht eingebunden; OpenSSL auf dem Host ist nicht erforderlich. Redis muss vor Testbeginn einen authentifizierten TLS-Healthcheck bestehen. Das Projekt verwendet ein eigenes Netzwerk sowie Daten-/Log-Volumes, veröffentlicht keine Ports und entfernt Container, Daten-Volume und temporäre Zertifikate anschließend auch bei einem Fehler. Ein laufender Entwicklungs-Stack ist nicht erforderlich. Die Redis-Bereitschaft wird höchstens zehnmal geprüft; für die Testdatei gilt ein Timeout von 120 Sekunden. `REDIS_CONNECT_TIMEOUT_MS` begrenzt Verbindungen des Sitzungs-Stores beim Start (Standardwert: 10000 Millisekunden).
 
-Das Root-Gate benötigt außerdem installierte Playwright-Browser und eine erreichbare Entwicklungs-API sowie einen Auth0-Tenant für Live-Integrationstests. Die Live-Playwright-Suite deckt Chromium, Firefox und Edge in einem Aufruf ab. Verwende dafür dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`, niemals persönliche Konten.
+Die Live-Playwright-Suite deckt Chromium, Firefox und Edge in einem Aufruf ab. Verwende für diese Integrationssuite dedizierte Zugangsdaten `TESTUSER_EMAIL` / `TESTUSER_PASSWORD`.
+
+Monitoring und Redis teilen sich `apps/backend/src/tests/compose-integration.mjs`: Die Hilfe verankert Backend-Verzeichnis und Compose-Datei, deaktiviert automatisches Laden von Umgebungsdateien mit `COMPOSE_DISABLE_ENV_FILE=true`, versieht Ausgaben mit Zeitstempeln, entfernt verwaiste Testprojekte und versucht stets den Teardown. Testfehler haben Vorrang vor Cleanup-Fehlern; Unterbrechungen liefern 130/143. Jede Suite behält die Erzeugung ihrer Fixtures und die Bereinigung temporärer Dateien. `npm run test:tooling` prüft den gemeinsamen Lifecycle ohne Docker-Daemon.
 
 ---
 
 ## Testgrenzen
 
-- **Backend:** `npm run check:backend` führt Lint und Typprüfung aus; `npm run test:backend` führt Unit-, Monitoring-, Redis- und Discord-Integrationstests aus. Die Redis-Suite verwendet einen isolierten echten Redis-Dienst.
+- **Backend:** `npm run check:backend` führt Lint und Typprüfung aus; `npm run test:unit -w backend` führt Unit-Tests aus; `npm run test:integration -w backend` führt Monitoring-, Redis- und Opt-in-Discord-Integrationen aus. Die Redis-Suite verwendet einen isolierten echten Redis-Dienst.
 - **Frontend:** `npm run test:e2e:mocked` führt gemockte Browser- und Accessibility-Prüfungen aus; `npm run build:frontend` erstellt beide Apps und die Dokumentation. Siehe [Automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx).
 - **Systemübergreifende Integration:** `npm run test:e2e:real` prüft verbundene Apps, API und den Live-Auth0-Passwort-Flow in Chromium, Firefox und Edge in einem Aufruf. Dies ist kein reines Backend- oder Frontend-Gate; Google-Automatisierung wird absichtlich übersprungen.
 
@@ -38,4 +41,4 @@ Nutze [Manuelle Backend-Tests](./manual-testing.mdx) für Backend- und gehostete
 
 ---
 
-Letzte Bearbeitung: 20.10.2026
+Letzte Bearbeitung: 23.10.2026
