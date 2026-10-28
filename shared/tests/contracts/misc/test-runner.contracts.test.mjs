@@ -268,7 +268,7 @@ test('live authentication uses one API origin for the app and backend checks', (
   const liveConfig = read('shared/tests/e2e/playwright.real.config.ts');
   const liveTest = read('shared/tests/e2e/real/login-logout.spec.ts');
   const apiOrigin =
-    /SANNY_E2E_API_URL\s*\?\?\s*(?:process\.)?env\.VITE_API_URL\s*\?\?\s*["']https:\/\/localhost:8443["']/;
+    /E2E_API_URL\s*\?\?\s*(?:process\.)?env\.VITE_API_URL\s*\?\?\s*["']https:\/\/localhost:8443["']/;
 
   assert.match(liveConfig, apiOrigin);
   assert.match(liveTest, apiOrigin);
@@ -277,36 +277,54 @@ test('live authentication uses one API origin for the app and backend checks', (
   assert.doesNotMatch(liveConfig, /auth -- --host/);
   assert.match(liveTest, /127\.0\.0\.1:5178/);
   assert.match(liveTest, /SANNY_E2E_TRUSTED_ORIGIN/);
-  assert.match(liveConfig, /\['TESTUSER_EMAIL', 'TESTUSER_PASSWORD'\]/);
+  assert.match(liveConfig, /LIVE_AUTH_CREDENTIALS/);
+  assert.match(
+    read('shared/tests/e2e/backend-environment.ts'),
+    /\[\s*'TESTUSER_EMAIL',\s*'TESTUSER_PASSWORD',?\s*\]/
+  );
   assert.match(liveConfig, /Live Auth0 tests require/);
   assert.doesNotMatch(liveConfig, /TESTGOOGLEUSER_EMAIL/);
   assert.match(
     read('shared/tests/e2e/playwright.monitoring.config.ts'),
-    /SANNY_E2E_API_URL\s*\?\?\s*process\.env\.VITE_API_URL\s*\?\?/
+    /E2E_API_URL\s*\?\?\s*process\.env\.VITE_API_URL\s*\?\?/
   );
 });
 
-test('opted-in 429 tests load only Grafana credentials from the local backend environment', () => {
+test('opted-in monitoring tests load only their credentials from the local backend environment', () => {
   const monitoringConfig = read(
     'shared/tests/e2e/playwright.monitoring.config.ts'
   );
+  const backendEnvironment = read('shared/tests/e2e/backend-environment.ts');
   assert.match(monitoringConfig, /RUN_429_SPIKE_E2E === 'true'/);
+  assert.match(monitoringConfig, /RUN_DISCORD_INTEGRATION === 'true'/);
+  assert.match(monitoringConfig, /RUN_EMAIL_INTEGRATION === 'true'/);
+  assert.match(monitoringConfig, /MONITORING_CREDENTIALS/);
   assert.match(
-    monitoringConfig,
+    backendEnvironment,
     /'NGINX_BASIC_AUTH_USER'[\s\S]*?'NGINX_BASIC_AUTH_PASSWORD'[\s\S]*?'GRAFANA_ADMIN_USER'[\s\S]*?'GRAFANA_ADMIN_PASSWORD'/
   );
-  assert.match(monitoringConfig, /apps\/backend\/.env/);
+  assert.match(backendEnvironment, /apps\/backend\/\.env/);
   assert.match(
     monitoringConfig,
     /only these four credentials are read by this test config/
   );
-  assert.match(
-    read('shared/tests/e2e/monitoring/429-spike.spec.ts'),
-    /nginx\/secret\/\.htpasswd/
+  assert.match(backendEnvironment, /DISCORD_WEBHOOK: 'DEV_DISCORD_WEBHOOK'/);
+  assert.doesNotMatch(
+    backendEnvironment.replace(/\/\/.*$/gm, ''),
+    /PROD_DISCORD_WEBHOOK/
   );
+  for (const config of ['real', 'monitoring']) {
+    assert.doesNotMatch(
+      read(`shared/tests/e2e/playwright.${config}.config.ts`),
+      /dotenv/
+    );
+  }
+  const session = read('shared/tests/e2e/monitoring/grafana-session.ts');
+  assert.match(session, /nginx\/secret\/\.htpasswd/);
+  assert.match(session, /request\.post\('\/grafana\/login'/);
   assert.match(
-    read('shared/tests/e2e/monitoring/429-spike.spec.ts'),
-    /request\.post\('\/grafana\/login'/
+    read('shared/tests/e2e/monitoring/discord-routing.spec.ts'),
+    /LOOPBACK_HOSTS/
   );
 });
 
@@ -424,80 +442,110 @@ test('mocked browser and visual commands cover accessibility checks', () => {
 });
 
 test('menu choices execute safe or confirmed full runs exactly once', async () => {
-  for (const target of ['development', 'production']) {
-    for (const scope of ['safe', 'full']) {
-      for (const approved of scope === 'full' ? [false, true] : [true]) {
-        const answers = [target, scope];
-        const calls = [];
-        let confirmations = 0;
-        await runTestMenu('/fixture/npm-cli.js', {
-          selectOption: async (options) => {
-            assert.deepEqual(
-              options.options.map(({ value }) => value),
-              answers.length === 2
-                ? ['development', 'production']
-                : ['safe', 'full']
-            );
-            return answers.shift();
-          },
-          confirmRun: async (options) => {
-            confirmations++;
-            assert.equal(options.initialValue, false);
-            assert.equal(
-              options.message.includes('PRODUCTION:'),
-              target === 'production'
-            );
-            return approved;
-          },
-          resolveOrigin: (selected) => {
-            assert.equal(selected, target);
-            return `https://${target}.example.test`;
-          },
-          execute: (...args) => calls.push(args),
-        });
-        assert.equal(confirmations, scope === 'full' ? 1 : 0);
-        assert.equal(calls.length, approved ? 1 : 0);
-        if (!approved) continue;
-        const [runtime, args, options] = calls[0];
-        assert.equal(runtime, process.execPath);
-        if (scope === 'safe')
-          assert.deepEqual(args, ['/fixture/npm-cli.js', 'run', 'test:ci']);
-        else
-          assert.equal(
-            resolve(args[0]),
-            resolve(root, 'tooling/scripts/test/run-suites.mjs')
+  const cases = [
+    { scope: 'safe', approvals: [true] },
+    { scope: 'full', target: 'development', approvals: [false, true] },
+    { scope: 'full', target: 'production', approvals: [false, true] },
+  ];
+  for (const { scope, target, approvals } of cases) {
+    for (const approved of approvals) {
+      const answers = scope === 'full' ? [scope, target] : [scope];
+      const prompts = [
+        ['safe', 'full'],
+        ['development', 'production'],
+      ];
+      const calls = [];
+      let confirmations = 0;
+      await runTestMenu('/fixture/npm-cli.js', {
+        selectOption: async (options) => {
+          assert.deepEqual(
+            options.options.map(({ value }) => value),
+            prompts.shift()
           );
-        assert.equal(options.stdio, 'inherit');
-        assert.equal(
-          options.env.VITE_API_URL,
-          `https://${target}.example.test`
-        );
-        assert.equal(options.env.SANNY_E2E_API_URL, options.env.VITE_API_URL);
+          return answers.shift();
+        },
+        confirmRun: async (options) => {
+          confirmations++;
+          assert.equal(options.initialValue, false);
+          assert.equal(
+            options.message.includes('PRODUCTION:'),
+            target === 'production'
+          );
+          return approved;
+        },
+        resolveOrigin: (selected) => {
+          assert.equal(selected, target);
+          return `https://${target}.example.test`;
+        },
+        loadDiscordEnvironment: () => {
+          assert.equal(target, 'development');
+          return { DISCORD_WEBHOOK: 'https://discord.com/api/webhooks/1/x' };
+        },
+        execute: (...args) => calls.push(args),
+      });
+      assert.equal(confirmations, scope === 'full' ? 1 : 0);
+      assert.equal(calls.length, approved ? 1 : 0);
+      if (!approved) continue;
+      const [runtime, args, options] = calls[0];
+      assert.equal(runtime, process.execPath);
+      assert.equal(options.stdio, 'inherit');
+      assert.equal(options.env.NODE_ENV, 'development');
+      if (scope === 'safe') {
+        assert.deepEqual(args, ['/fixture/npm-cli.js', 'run', 'test:ci']);
+        assert.equal(options.env.E2E_API_URL, process.env.E2E_API_URL);
         for (const flag of [
           'RUN_CRITICAL_TESTS',
           'RUN_429_SPIKE_E2E',
           'RUN_DISCORD_INTEGRATION',
         ]) {
-          assert.equal(options.env[flag], scope === 'full' ? 'true' : 'false');
+          assert.equal(options.env[flag], 'false');
         }
+        continue;
       }
+      assert.equal(
+        resolve(args[0]),
+        resolve(root, 'tooling/scripts/test/run-suites.mjs')
+      );
+      assert.equal(options.env.VITE_API_URL, `https://${target}.example.test`);
+      assert.equal(options.env.E2E_API_URL, options.env.VITE_API_URL);
+      assert.equal(options.env.RUN_CRITICAL_TESTS, 'true');
+      assert.equal(options.env.RUN_429_SPIKE_E2E, 'true');
+      assert.equal(
+        options.env.RUN_DISCORD_INTEGRATION,
+        target === 'development' ? 'true' : 'false'
+      );
     }
   }
-  for (const answers of [[CANCEL_SYMBOL], ['development', CANCEL_SYMBOL]]) {
+  for (const answers of [[CANCEL_SYMBOL], ['full', CANCEL_SYMBOL]]) {
     await runTestMenu('/fixture/npm-cli.js', {
       selectOption: async () => answers.shift(),
       resolveOrigin: () =>
         assert.fail('Cancellation must not load environment files'),
+      loadDiscordEnvironment: () =>
+        assert.fail('Cancellation must not load environment files'),
       execute: () => assert.fail('Cancellation must not start tests'),
     });
   }
+  await runTestMenu('/fixture/npm-cli.js', {
+    selectOption: async () => 'safe',
+    resolveOrigin: () => assert.fail('Safe runs need no API target'),
+    loadDiscordEnvironment: () => assert.fail('Safe runs need no credentials'),
+    execute: () => {},
+  });
 });
 
 test('the test menu maps safe and full targets and protects live opt-ins', async () => {
   const { resolveApiOrigin, resolveSharedApiOrigin } =
     await import('../../../../tooling/scripts/test/api-origin.mjs');
-  const { createTestEnvironment, safeTestEnvironment } =
+  const { createFullTestEnvironment, safeTestEnvironment } =
     await import('../../../../tooling/scripts/test/environment.mjs');
+  const {
+    applyBackendTestEnvironment,
+    DISCORD_CREDENTIALS,
+    LIVE_AUTH_CREDENTIALS,
+    MONITORING_CREDENTIALS,
+    readBackendTestEnvironment,
+  } = await import('../../e2e/backend-environment.ts');
   const environment = {
     VITE_DEV_API_URL: 'https://dev.example.test/',
     VITE_PROD_API_URL: 'https://prod.example.test',
@@ -554,38 +602,98 @@ test('the test menu maps safe and full targets and protects live opt-ins', async
     /without a path or credentials/
   );
 
-  const safe = createTestEnvironment(
+  const full = createFullTestEnvironment(
     environment,
     resolveSharedApiOrigin([environment, secondFrontend], 'development'),
-    'safe'
+    'development',
+    { DISCORD_WEBHOOK: 'https://discord.com/api/webhooks/1/x' }
   );
-  assert.equal(safe.VITE_API_URL, 'https://dev.example.test');
-  assert.equal(safe.SANNY_E2E_API_URL, safe.VITE_API_URL);
-  assert.equal(safe.NODE_ENV, 'development');
-  assert.equal(safe.RUN_CRITICAL_TESTS, 'false');
-  assert.equal(safe.RUN_429_SPIKE_E2E, 'false');
-  assert.equal(safe.RUN_DISCORD_INTEGRATION, 'false');
-
-  const full = createTestEnvironment(
-    environment,
-    resolveSharedApiOrigin([environment, secondFrontend], 'production'),
-    'full'
-  );
-  assert.equal(full.VITE_API_URL, 'https://prod.example.test');
+  assert.equal(full.VITE_API_URL, 'https://dev.example.test');
+  assert.equal(full.E2E_API_URL, full.VITE_API_URL);
+  assert.equal(full.NODE_ENV, 'development');
   assert.equal(full.RUN_CRITICAL_TESTS, 'true');
   assert.equal(full.RUN_429_SPIKE_E2E, 'true');
   assert.equal(full.RUN_DISCORD_INTEGRATION, 'true');
+  assert.equal(full.RUN_EMAIL_INTEGRATION, 'true');
+  assert.equal(full.DISCORD_WEBHOOK, 'https://discord.com/api/webhooks/1/x');
+  assert.equal(
+    createFullTestEnvironment(
+      { DISCORD_WEBHOOK: 'shell-hook' },
+      'https://dev.example.test',
+      'development',
+      { DISCORD_WEBHOOK: 'file-hook' }
+    ).DISCORD_WEBHOOK,
+    'shell-hook'
+  );
+
+  const production = createFullTestEnvironment(
+    environment,
+    resolveSharedApiOrigin([environment, secondFrontend], 'production'),
+    'production',
+    { DISCORD_WEBHOOK: 'must-not-be-forwarded' }
+  );
+  assert.equal(production.VITE_API_URL, 'https://prod.example.test');
+  assert.equal(production.RUN_CRITICAL_TESTS, 'true');
+  assert.equal(production.RUN_429_SPIKE_E2E, 'true');
+  assert.equal(production.RUN_DISCORD_INTEGRATION, 'false');
+  assert.equal(production.RUN_EMAIL_INTEGRATION, 'false');
+  assert.equal(production.DISCORD_WEBHOOK, undefined);
+  assert.throws(
+    () => createFullTestEnvironment(environment, 'https://x.test', 'typo'),
+    /development or production/
+  );
+
+  const envDirectory = mkdtempSync(resolve(tmpdir(), 'sanny-env-'));
+  try {
+    const envFile = resolve(envDirectory, '.env');
+    writeFileSync(
+      envFile,
+      'DEV_DISCORD_WEBHOOK=dev-hook\nPROD_DISCORD_WEBHOOK=prod-hook\nDISCORD_WEBHOOK=legacy\nGRAFANA_ADMIN_USER=admin\nTESTUSER_EMAIL=user@example.test\nOTHER=x\n'
+    );
+    assert.deepEqual(readBackendTestEnvironment(DISCORD_CREDENTIALS, envFile), {
+      DISCORD_WEBHOOK: 'dev-hook',
+    });
+    assert.deepEqual(
+      readBackendTestEnvironment(MONITORING_CREDENTIALS, envFile),
+      { GRAFANA_ADMIN_USER: 'admin' }
+    );
+    assert.deepEqual(
+      readBackendTestEnvironment(LIVE_AUTH_CREDENTIALS, envFile),
+      { TESTUSER_EMAIL: 'user@example.test' }
+    );
+    const target = { GRAFANA_ADMIN_USER: 'shell-user' };
+    applyBackendTestEnvironment(
+      [...MONITORING_CREDENTIALS, ...DISCORD_CREDENTIALS],
+      target,
+      envFile
+    );
+    assert.deepEqual(target, {
+      GRAFANA_ADMIN_USER: 'shell-user',
+      DISCORD_WEBHOOK: 'dev-hook',
+    });
+    assert.deepEqual(
+      readBackendTestEnvironment(
+        DISCORD_CREDENTIALS,
+        resolve(envDirectory, 'missing')
+      ),
+      {}
+    );
+  } finally {
+    rmSync(envDirectory, { recursive: true, force: true });
+  }
 
   const ci = safeTestEnvironment({
     NODE_ENV: 'production',
     RUN_CRITICAL_TESTS: 'true',
     RUN_429_SPIKE_E2E: 'true',
     RUN_DISCORD_INTEGRATION: 'true',
+    RUN_EMAIL_INTEGRATION: 'true',
   });
   assert.equal(ci.NODE_ENV, 'development');
   assert.equal(ci.RUN_CRITICAL_TESTS, 'false');
   assert.equal(ci.RUN_429_SPIKE_E2E, 'false');
   assert.equal(ci.RUN_DISCORD_INTEGRATION, 'false');
+  assert.equal(ci.RUN_EMAIL_INTEGRATION, 'false');
   assert.throws(
     () => resolveApiOrigin(environment, 'preview'),
     /development or production/
@@ -593,10 +701,6 @@ test('the test menu maps safe and full targets and protects live opt-ins', async
   assert.throws(
     () => resolveSharedApiOrigin([], 'development'),
     /auth and sanny/
-  );
-  assert.throws(
-    () => createTestEnvironment(environment, 'https://example.test', 'typo'),
-    /safe or full/
   );
 });
 
@@ -702,7 +806,7 @@ test('the full gate runs each suite once and covers all major browsers', () => {
   );
   assert.equal(backendHealthUrl({}).href, 'https://localhost:8443/healthcheck');
   assert.equal(
-    backendHealthUrl({ SANNY_E2E_API_URL: 'https://127.0.0.1:9443/api' }).href,
+    backendHealthUrl({ E2E_API_URL: 'https://127.0.0.1:9443/api' }).href,
     'https://127.0.0.1:9443/healthcheck'
   );
   assert.deepEqual(
@@ -782,14 +886,9 @@ test('the full gate runs each suite once and covers all major browsers', () => {
       .services['sanny64-backend'].build.dockerfile,
     'apps/backend/docker/Dockerfile'
   );
-  assert.equal(
-    scripts['test:e2e:real'],
-    'node tooling/scripts/test/run-suites.mjs --live-only'
-  );
-  assert.equal(
-    scripts['test:e2e'],
-    'node tooling/scripts/test/run-suites.mjs --e2e-only'
-  );
+  assert.equal(scripts['test:e2e:real'], undefined);
+  assert.equal(scripts['test:e2e:429'], undefined);
+  assert.equal(scripts['test:e2e'], undefined);
   assert.equal(
     scripts['test:e2e:mocked'],
     'playwright test --config=shared/tests/e2e/playwright.mocked.config.ts'

@@ -6,9 +6,7 @@ const discordWebhook = process.env.DISCORD_WEBHOOK?.trim();
 test(
   'Discord webhook accepts a synthetic monitoring notification',
   {
-    skip:
-      process.env.RUN_CRITICAL_TESTS !== 'true' &&
-      process.env.RUN_DISCORD_INTEGRATION !== 'true',
+    skip: process.env.RUN_DISCORD_INTEGRATION !== 'true',
   },
   async () => {
     assert.ok(discordWebhook, 'DISCORD_WEBHOOK must be configured');

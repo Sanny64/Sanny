@@ -28,6 +28,10 @@ test('tooling modules follow domain ownership and have no import cycles', async 
       'test/run-suites.mjs',
       '../../../apps/backend/src/tests/test-lifecycle.mjs',
     ],
+    [
+      'test/environment.mjs',
+      '../../../shared/tests/e2e/backend-environment.ts',
+    ],
   ]);
   for (const path of paths) {
     assert.ok(

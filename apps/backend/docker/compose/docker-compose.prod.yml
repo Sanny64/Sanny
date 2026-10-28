@@ -80,6 +80,9 @@ services:
     environment:
       - GF_SERVER_ROOT_URL=${GRAFANA_PROD_ROOT_URL}
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - 'DISCORD_WEBHOOK=${PROD_DISCORD_WEBHOOK:?Set PROD_DISCORD_WEBHOOK via --env-file apps/backend/.env}'
+    volumes:
+      - ./src/monitoring/alerting/policies.yml:/etc/grafana/provisioning/alerting/policies.yml:ro
 
 networks:
   app-network:

@@ -1,42 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
-import { config as loadDotenv } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import baseConfig from '../../../playwright.config.ts';
+import {
+  applyBackendTestEnvironment,
+  MONITORING_CREDENTIALS,
+} from './backend-environment.ts';
 
 if (
   process.env.RUN_CRITICAL_TESTS === 'true' ||
-  process.env.RUN_429_SPIKE_E2E === 'true'
+  process.env.RUN_429_SPIKE_E2E === 'true' ||
+  process.env.RUN_DISCORD_INTEGRATION === 'true' ||
+  process.env.RUN_EMAIL_INTEGRATION === 'true'
 ) {
-  const backendEnvironment: Record<string, string | undefined> = {};
-  loadDotenv({
-    path: fileURLToPath(new URL('../../../apps/backend/.env', import.meta.url)),
-    processEnv: backendEnvironment,
-    quiet: true,
-  });
+  applyBackendTestEnvironment(MONITORING_CREDENTIALS);
 
-  for (const key of [
-    'NGINX_BASIC_AUTH_USER',
-    'NGINX_BASIC_AUTH_PASSWORD',
-    'GRAFANA_ADMIN_USER',
-    'GRAFANA_ADMIN_PASSWORD',
-  ]) {
-    if (
-      process.env[key] === undefined &&
-      backendEnvironment[key] !== undefined
-    ) {
-      process.env[key] = backendEnvironment[key];
-    }
-  }
-
-  const missingCredentials = [
-    'NGINX_BASIC_AUTH_USER',
-    'NGINX_BASIC_AUTH_PASSWORD',
-    'GRAFANA_ADMIN_USER',
-    'GRAFANA_ADMIN_PASSWORD',
-  ].filter((key) => !process.env[key]?.trim());
+  const missingCredentials = MONITORING_CREDENTIALS.filter(
+    (key) => !process.env[key]?.trim()
+  );
   if (missingCredentials.length > 0) {
     throw new Error(
-      `The opted-in 429 spike test requires ${missingCredentials.join(' and ')}. Set them in the environment or apps/backend/.env; only these four credentials are read by this test config.`
+      `The opted-in monitoring tests require ${missingCredentials.join(' and ')}. Set them in the environment or apps/backend/.env; only these four credentials are read by this test config.`
     );
   }
 }
@@ -51,7 +34,7 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL:
-      process.env.SANNY_E2E_API_URL ??
+      process.env.E2E_API_URL ??
       process.env.VITE_API_URL ??
       'https://localhost:8443',
     ignoreHTTPSErrors: true,

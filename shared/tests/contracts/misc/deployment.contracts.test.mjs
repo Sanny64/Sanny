@@ -146,6 +146,26 @@ test('test deployment staging populates the directories selected for upload', ()
   }
 });
 
+test('only the production alert policy routes critical alerts to email', () => {
+  const routes = (file) =>
+    parse(read(`apps/backend/src/monitoring/alerting/${file}`)).policies[0];
+  const production = routes('policies.yml');
+  assert.ok(
+    production.routes.some(
+      (route) =>
+        route.receiver === 'email-alerts' &&
+        route.matchers.includes('severity = critical')
+    )
+  );
+  const development = routes('policies.dev.yml');
+  assert.equal(development.receiver, 'discord-alerts');
+  assert.equal(development.routes, undefined);
+  assert.match(
+    read('apps/backend/docker/compose/docker-compose.dev.yml'),
+    /policies\.dev\.yml:\/etc\/grafana\/provisioning\/alerting\/policies\.yml/
+  );
+});
+
 test('production Compose resolves environment and TLS paths from the backend project', () => {
   const fixture = mkdtempSync(resolve(tmpdir(), 'sanny-compose-contract-'));
   const project = resolve(fixture, 'apps/backend');
@@ -164,7 +184,7 @@ test('production Compose resolves environment and TLS paths from the backend pro
       [
         'BACKEND_IMAGE_TAG=0123456789012345678901234567890123456789',
         'REDIS_PASSWORD=fixture-only',
-        'DISCORD_WEBHOOK=https://example.invalid/fixture',
+        'PROD_DISCORD_WEBHOOK=https://example.invalid/fixture-prod',
         'GRAFANA_ADMIN_USER=fixture',
         'GRAFANA_ADMIN_PASSWORD=fixture-only',
         'GRAFANA_DEV_ROOT_URL=https://example.invalid/grafana/',
@@ -215,6 +235,17 @@ test('production Compose resolves environment and TLS paths from the backend pro
       resolve(project, 'redis/secret/certs/ca.crt')
     );
     assert.equal(backend.build, undefined);
+    const policies = JSON.parse(result.stdout)
+      .services.grafana.volumes.filter(
+        (volume) =>
+          volume.target === '/etc/grafana/provisioning/alerting/policies.yml'
+      )
+      .map((volume) => volume.source.replaceAll('\\', '/'));
+    assert.equal(policies.length, 1);
+    assert.ok(
+      policies[0].endsWith('/src/monitoring/alerting/policies.yml'),
+      policies[0]
+    );
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }

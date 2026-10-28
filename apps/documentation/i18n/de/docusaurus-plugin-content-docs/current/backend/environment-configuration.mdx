@@ -100,8 +100,11 @@ TESTGOOGLEUSER_PASSWORD="dein Google-Kontokennwort für die Anwendung"
 AUTH0_GLOBAL_BUDGET_PER_MIN=200
 
 # Webhooks
-DISCORD_WEBHOOK="deine Discord-Webhook-URL"
+DEV_DISCORD_WEBHOOK="deine Discord-Webhook-URL"
+PROD_DISCORD_WEBHOOK="deine Produktions-Discord-Webhook-URL"
 ```
+
+Der lokale Entwicklungsstack verwendet `DEV_DISCORD_WEBHOOK`, die Produktions-Compose-Datei `PROD_DISCORD_WEBHOOK`. Beide sollten auf unterschiedliche Discord-Kanäle zeigen. Das interaktive Testmenü ordnet nur `DEV_DISCORD_WEBHOOK` `DISCORD_WEBHOOK` zu, und nur bei vollständigen Entwicklungsläufen; `PROD_DISCORD_WEBHOOK` wird von Tests nie gelesen.
 
 `REDIS_CONNECT_TIMEOUT_MS` begrenzt den gesamten ersten Redis-Verbindungsversuch, einschließlich Wiederholungen. Der Standardwert beträgt 10000 Millisekunden; zulässig sind Ganzzahlen von 1 bis 2147483647. Wird das Limit erreicht, schlägt der Start fehl und der Client wird geschlossen. Der automatische Neuverbindungsversuch nach einem erfolgreichen Start bleibt unverändert.
 
@@ -149,4 +152,4 @@ Die Werte müssen zur ausgewählten Backend-Umgebung und deren CORS-Konfiguratio
 
 ---
 
-Letzte Bearbeitung: 20.10.2026
+Letzte Bearbeitung: 28.10.2026

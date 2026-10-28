@@ -91,7 +91,7 @@ Der Konfigurationsvertrag verlangt für jede englische Seite eine deutsche Über
 
 Die Standard-Playwright-Konfiguration wählt ausschließlich `shared/tests/e2e/mock`. `shared/tests/e2e/playwright.real.config.ts` wählt explizit Live-Authentifizierung, serialisiert Tests und liest nur dedizierte Test-Zugangsdaten aus der Backend-Umgebung, ohne exportierte Werte zu überschreiben. Live-Traces/Screenshots sind deaktiviert, damit keine Authentifizierungsgeheimnisse aufgezeichnet werden. Monitoring- und Redis-Tests verwenden isolierte Stacks statt Runtime-Zugangsdaten des Backends. CI weist fokussierte Tests zurück und verwendet keine vorhandenen Frontend-Server erneut; Mock-Fehler behalten Traces/Screenshots.
 
-`npm run test:e2e:real` führt die sichtbare Live-Suite in einer Playwright-Invocation für Chromium, Firefox und Edge aus. Direkte Live-Aufrufe benötigen `--config=shared/tests/e2e/playwright.real.config.ts`; ein Live-Verzeichnis an die Standardkonfiguration zu übergeben wählt diese Tests nicht mehr aus.
+`node tooling/scripts/test/run-suites.mjs --live-only` führt die sichtbare Live-Suite in einer Playwright-Invocation für Chromium, Firefox und Edge aus. Direkte Live-Aufrufe benötigen `--config=shared/tests/e2e/playwright.real.config.ts`; ein Live-Verzeichnis an die Standardkonfiguration zu übergeben wählt diese Tests nicht mehr aus.
 
 Mock-Projekte laufen in einer Playwright-Invocation mit global höchstens zwei Workern und einem Frontend-Server-Lebenszyklus. Die synthetische API-Konfiguration wird nicht an Live-Frontend-Server vererbt. Browser-Source erhält React-/Browser-Lintregeln; Node-Konfigurationen keine Browser-Globals. Frontend- und Backend-Produktionscode verwenden den TypeScript Project Service mit Prüfungen für `await-thenable` und `no-floating-promises`.
 
@@ -147,4 +147,4 @@ Alloy behält `job="nginx"`, `job="backend"`, Logpfade und privaten Loki-Zugriff
 
 ---
 
-Letzte Bearbeitung: 23.10.2026
+Letzte Bearbeitung: 28.10.2026

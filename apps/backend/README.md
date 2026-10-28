@@ -20,9 +20,9 @@ deploying the backend; the repository copy is not executed by the backend.
 Pending or confirmed metadata must not suppress confirmation for identities
 that are still unlinked. Proof logins (`link_proof=true`) still bypass the
 linking prompt. Configure the development Action with `NODE_ENV=development`
-and `DEV_ACCOUNT_LINK_CONFIRMATION_URL` pointing to the backend's
+and `<env>_ACCOUNT_LINK_CONFIRMATION_URL` pointing to the backend's
 `/api/v001/auth/confirm-account-linking` endpoint (not directly to the frontend).
-The backend's `DEV_ACCOUNT_LINK_FRONTEND_URL` points to the auth frontend's
+The backend's `<env>_ACCOUNT_LINK_FRONTEND_URL` points to the auth frontend's
 `/confirm-linking` page.
 
 ## Automated testing

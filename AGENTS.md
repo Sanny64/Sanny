@@ -21,6 +21,24 @@ Use `npm run check` for formatting-independent static checks, `npm run test:ci` 
 
 Root configuration files are authoritative. Workspace configurations extend them and only add local paths, overrides, or test setup.
 
+`npm run test` needs a TTY, which agent shells lack. To run the full development suite non-interactively, call the menu with preset answers. This is the same code path as the menu (`createFullTestEnvironment`, allowlisted `.env` values, `run-suites.mjs`). Run it from the repository root in PowerShell, only after the user approved a full run, because it uses live Auth0 and sends Discord messages and 429 traffic to the development stack. Expect about 22 minutes, so use an async shell with a long wait:
+
+```powershell
+$env:npm_execpath = Join-Path (Split-Path (Get-Command node).Source) 'node_modules/npm/bin/npm-cli.js'
+@'
+import { runTestMenu } from './tooling/scripts/test/menu.mjs';
+const answers = ['full', 'development'];
+await runTestMenu(process.env.npm_execpath, {
+  selectOption: async () => answers.shift(),
+  confirmRun: async () => true,
+});
+'@ | node --input-type=module - *> "$env:TEMP\full-dev.log"
+```
+
+Use `'full', 'production'` only when the user explicitly asks for a production run. It never reads `PROD_DISCORD_WEBHOOK` and skips the Discord checks. The target is the API URL; `NODE_ENV` stays `development` for the in-process tests. Do not read `.env` while debugging; the log contains no secrets. Individual live stages run with `node tooling/scripts/test/run-suites.mjs --live-only | --monitoring-only | --e2e-only`; `--monitoring-only` with `RUN_DISCORD_INTEGRATION=true` runs the Discord routing check against the local stack, and `RUN_EMAIL_INTEGRATION=true` sends the single email test (the local policy `policies.dev.yml` never emails; only production `policies.yml` routes critical alerts to email). If the dev containers fail to start with mount errors, recreate them with `npm run initialize:stack`.
+
+After each `npm run test` run update the latest run log in `general-info/testing.mdx/#latest-full-run`; it must only contain at maximum one entry and must be updated for both English and German translations.
+
 Document structural changes in both English and German documentation, then refresh reviewed source hashes with:
 
 ```sh

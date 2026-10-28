@@ -1,29 +1,21 @@
 import { defineConfig } from '@playwright/test';
-import { config as loadDotenv } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import baseConfig from '../../../playwright.config.ts';
+import {
+  applyBackendTestEnvironment,
+  LIVE_AUTH_CREDENTIALS,
+} from './backend-environment.ts';
 
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
 const apiUrl =
-  process.env.SANNY_E2E_API_URL ??
+  process.env.E2E_API_URL ??
   process.env.VITE_API_URL ??
   'https://localhost:8443';
 
-const backendEnvironment: Record<string, string | undefined> = {};
-loadDotenv({
-  path: fileURLToPath(new URL('../../../apps/backend/.env', import.meta.url)),
-  processEnv: backendEnvironment,
-  quiet: true,
-});
+applyBackendTestEnvironment(LIVE_AUTH_CREDENTIALS);
 
-for (const key of ['TESTUSER_EMAIL', 'TESTUSER_PASSWORD']) {
-  if (process.env[key] === undefined && backendEnvironment[key] !== undefined) {
-    process.env[key] = backendEnvironment[key];
-  }
-}
-
-const missingCredentials = ['TESTUSER_EMAIL', 'TESTUSER_PASSWORD'].filter(
+const missingCredentials = LIVE_AUTH_CREDENTIALS.filter(
   (key) => !process.env[key]?.trim()
 );
 if (missingCredentials.length > 0) {

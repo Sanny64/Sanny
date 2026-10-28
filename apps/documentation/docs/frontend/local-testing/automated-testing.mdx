@@ -18,7 +18,7 @@ Run commands from the repository root. For runtime versions and shared root-gate
 | `npx playwright test shared/tests/e2e/mock/auth-accessibility.spec.ts`  | Run only Auth accessibility specs.                                                                                    |
 | `npx playwright test shared/tests/e2e/mock/sanny-accessibility.spec.ts` | Run only Sanny accessibility specs.                                                                                   |
 | `npx playwright test shared/tests/e2e/mock/accessibility.spec.ts`       | Run only shared accessibility specs.                                                                                  |
-| `npm run test:e2e:real`                                                 | Run live Auth0 tests in Chromium, Firefox, and Edge in one Playwright invocation.                                     |
+| `node tooling/scripts/test/run-suites.mjs --live-only`                  | Run live Auth0 tests in Chromium, Firefox, and Edge in one Playwright invocation.                                     |
 | `npm run test:components`                                               | Run the shared UI Vitest component suite.                                                                             |
 | `npm run check -w auth`                                                 | Run Auth lint and typechecking through its base scripts.                                                              |
 | `npm run check -w sanny`                                                | Run Sanny lint and typechecking through its base scripts.                                                             |
@@ -74,4 +74,4 @@ Use [Frontend Manual Testing](./manual-testing.mdx) for keyboard, screen-reader,
 
 ---
 
-Last edit: 20.10.2026
+Last edit: 28.10.2026

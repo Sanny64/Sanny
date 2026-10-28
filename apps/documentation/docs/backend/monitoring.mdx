@@ -24,7 +24,7 @@ They query NGINX logs in Loki:
 - **Auth Endpoint Abuse**: more than 50 requests matching the auth route in five minutes; warning severity.
 - **Auth Callback Flood**: more than 20 requests matching the auth callback in five minutes; critical severity.
 
-Each rule must remain above its threshold for two minutes. The default Grafana notification contact point is Discord; critical alerts are routed to the configured email contact point. Grafana SMTP is enabled through Compose environment variables. Verify delivery to both destinations when changing provisioning or credentials.
+Each rule must remain above its threshold for two minutes. The default Grafana notification contact point is Discord. In production (`policies.yml`), critical alerts are additionally routed to the configured email contact point; the local development stack uses `policies.dev.yml`, which sends every alert to Discord only and never emails. Grafana SMTP stays configured in both stacks so the single opt-in email test can send one message from the development stack. Verify delivery to both destinations on the real backend when changing provisioning or credentials.
 
 For local contact-point, rule-trigger, and rate-limit test procedures and recorded outcomes, see [Monitoring Integration Testing](./local-testing/monitoring-integration-testing.mdx). These opt-in tests can send real notifications and should only target the development stack.
 

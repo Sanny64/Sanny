@@ -18,7 +18,7 @@ Alle Befehle im Repository-Stammverzeichnis ausführen. Laufzeitversionen und ge
 | `npx playwright test shared/tests/e2e/mock/auth-accessibility.spec.ts`  | Nur Auth-Accessibility-Tests ausführen.                                                                            |
 | `npx playwright test shared/tests/e2e/mock/sanny-accessibility.spec.ts` | Nur Sanny-Accessibility-Tests ausführen.                                                                           |
 | `npx playwright test shared/tests/e2e/mock/accessibility.spec.ts`       | Nur gemeinsame Accessibility-Tests ausführen.                                                                      |
-| `npm run test:e2e:real`                                                 | Live-Auth0-Tests in Chromium, Firefox und Edge in einem Playwright-Aufruf.                                         |
+| `node tooling/scripts/test/run-suites.mjs --live-only`                  | Live-Auth0-Tests in Chromium, Firefox und Edge in einem Playwright-Aufruf.                                         |
 | `npm run test:components`                                               | Vitest-Komponententests für das gemeinsame UI-Paket.                                                               |
 | `npm run check -w auth`                                                 | Auth-Lint und Typprüfung über die Workspace-Basisskripte ausführen.                                                |
 | `npm run check -w sanny`                                                | Sanny-Lint und Typprüfung über die Workspace-Basisskripte ausführen.                                               |
@@ -74,4 +74,4 @@ Tastatur-, Screenreader-, Zoom-, Responsive- und Reduced-Motion-Prüfungen stehe
 
 ---
 
-Letzte Bearbeitung: 20.10.2026
+Letzte Bearbeitung: 28.10.2026

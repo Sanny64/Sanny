@@ -29,7 +29,7 @@ Monitoring and Redis share `apps/backend/src/tests/compose-integration.mjs`: it 
 
 - **Backend:** `npm run check:backend` runs lint/types; `npm run test:unit -w backend` runs unit tests; `npm run test:integration -w backend` runs monitoring, Redis, and opt-in Discord integrations. The Redis suite uses a disposable real Redis service.
 - **Frontend:** `npm run test:e2e:mocked` runs mocked browser/accessibility checks; `npm run build:frontend` builds both apps and docs. See [Frontend Automated Testing](../../frontend/local-testing/automated-testing.mdx).
-- **Cross-system integration:** `npm run test:e2e:real` exercises the connected apps, API, and live Auth0 password flow in Chromium, Firefox, and Edge in one invocation. It is not a backend-only or frontend-only gate; Google automation is intentionally skipped.
+- **Cross-system integration:** `node tooling/scripts/test/run-suites.mjs --live-only` exercises the connected apps, API, and live Auth0 password flow in Chromium, Firefox, and Edge in one invocation. It is not a backend-only or frontend-only gate; Google automation is intentionally skipped.
 
 Passing backend unit, monitoring, and Redis tests does not prove every branch, production workload, or failure mode. Monitoring test rules are derived from production definitions in a temporary file; only timing is accelerated. See the [Local Testing guide](../../general-info/testing.mdx) for shared root-gate interpretation and limits.
 
@@ -41,4 +41,4 @@ Use [Backend Manual Testing](./manual-testing.mdx) for backend and hosted-enviro
 
 ---
 
-Last edit: 23.10.2026
+Last edit: 28.10.2026

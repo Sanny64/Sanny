@@ -1,3 +1,4 @@
+// Gate ids below are internal run-suites identifiers, not npm scripts.
 export const PLAYWRIGHT_GATE_ARGS = {
   'test:e2e:real': [
     'test',

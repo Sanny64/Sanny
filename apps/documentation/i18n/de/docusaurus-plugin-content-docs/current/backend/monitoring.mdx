@@ -24,7 +24,7 @@ Die NGINX-Logregeln melden:
 - **Auth Endpoint Abuse**: mehr als 50 zur Auth-Route passende Requests in fünf Minuten; Warnstufe.
 - **Auth Callback Flood**: mehr als 20 zur Auth-Callback-Route passende Requests in fünf Minuten; kritische Stufe.
 
-Die Regeln bleiben jeweils mindestens zwei Minuten über dem Schwellenwert. Standard-Kontaktpunkt ist Discord; kritische Alarme werden an den konfigurierten E-Mail-Kontaktpunkt geleitet. SMTP ist über Compose-Umgebungsvariablen aktiviert. Zustellung an beide Ziele bei Änderungen an Provisionierung oder Zugangsdaten prüfen.
+Die Regeln bleiben jeweils mindestens zwei Minuten über dem Schwellenwert. Standard-Kontaktpunkt ist Discord. In Produktion (`policies.yml`) werden kritische Alarme zusätzlich an den konfigurierten E-Mail-Kontaktpunkt geleitet; der lokale Entwicklungsstack nutzt `policies.dev.yml`, das jeden Alarm nur an Discord sendet und nie E-Mails versendet. SMTP bleibt in beiden Stacks konfiguriert, damit der einzelne optionale E-Mail-Test aus dem Entwicklungsstack eine Nachricht senden kann. Zustellung an beide Ziele im echten Backend bei Änderungen an Provisionierung oder Zugangsdaten prüfen.
 
 Lokale Verfahren für Kontaktpunkt-, Regel- und Rate-Limit-Tests sowie dokumentierte Ergebnisse stehen unter [Monitoring-Integrationstests](./local-testing/monitoring-integration-testing.mdx). Diese optionalen Tests können echte Benachrichtigungen versenden und dürfen nur gegen den Entwicklungs-Stack laufen.
 

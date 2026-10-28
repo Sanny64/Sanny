@@ -8,7 +8,7 @@ The monitoring-rule suite uses a disposable Compose project and a local notifica
 
 ## Prerequisites
 
-- Ensure `DISCORD_WEBHOOK` is already available in the environment before running the direct webhook test.
+- Ensure `DISCORD_WEBHOOK` is already available in the environment before running the direct webhook test. The test menu sets it from `DEV_DISCORD_WEBHOOK` for full development runs only; `PROD_DISCORD_WEBHOOK` is never used by tests. With `RUN_DISCORD_INTEGRATION=true`, the monitoring suite also verifies that the notification policy routes warning and critical alerts to `discord-alerts` (the local policy has no email route) and asks Grafana to send a test notification through that contact point. With `RUN_EMAIL_INTEGRATION=true` it additionally sends one test email through `email-alerts`. Both run only against loopback API hosts.
 - In Grafana, verify alert rules are loaded under **Alerting > Alert rules**.
 - Before triggering a rule, wait for existing 429/auth-volume/callback-flood alerts to resolve.
 
@@ -18,7 +18,7 @@ The Grafana image is a minimal runtime image without npm. Use the workspace comm
 
 ## Email Contact Point
 
-Use Grafana's built-in contact-point test:
+Use Grafana's built-in contact-point test. The development stack never routes alerts to email, so this is the only way local runs send mail. The full development test run does it once through `RUN_EMAIL_INTEGRATION=true` (`email-delivery.spec.ts`, loopback hosts only) and sends one real email to the addresses in `contactpoints.yml`. Manual steps:
 
 1. Open Grafana through the authenticated `/grafana/` path.
 2. Open **Alerting → Notification configuration → Contact points**.
@@ -64,7 +64,7 @@ In PowerShell at the repository root:
 
 ```powershell
 $env:RUN_429_SPIKE_E2E = "true"
-npm run test:e2e:429
+node tooling/scripts/test/run-suites.mjs --monitoring-only
 ```
 
 This Chromium test uses `shared/tests/e2e/playwright.monitoring.config.ts` and is invoked by regular E2E and full test runs, but skips unless `RUN_429_SPIKE_E2E=true`. Set that variable only when the alert side effect is intended; the test also needs Grafana credentials to verify the firing alert.
@@ -84,4 +84,4 @@ This Chromium test uses `shared/tests/e2e/playwright.monitoring.config.ts` and i
 
 ---
 
-Last edit: 22.10.2026
+Last edit: 28.10.2026

@@ -27,7 +27,7 @@ export function newlyStartedServices(runningBefore, runningAfter) {
 export function backendHealthUrl(env = process.env) {
   return new URL(
     '/healthcheck',
-    env.SANNY_E2E_API_URL ?? env.VITE_API_URL ?? 'https://localhost:8443'
+    env.E2E_API_URL ?? env.VITE_API_URL ?? 'https://localhost:8443'
   );
 }
 

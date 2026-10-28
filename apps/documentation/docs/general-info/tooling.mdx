@@ -91,7 +91,7 @@ The configuration contract separately requires a German counterpart for every En
 
 The default Playwright config selects only `shared/tests/e2e/mock`. `shared/tests/e2e/playwright.real.config.ts` explicitly selects live authentication, serializes tests, and loads only dedicated test-credential keys from the backend environment without overriding exported values. Live traces/screenshots are disabled to avoid recording authentication secrets. Monitoring and Redis tests use isolated stacks, not backend runtime credentials. CI rejects focused tests and does not reuse existing frontend servers; mocked failures retain traces/screenshots.
 
-`npm run test:e2e:real` runs the headed live suite across Chromium, Firefox, and Edge in one Playwright invocation. Direct live invocations require `--config=shared/tests/e2e/playwright.real.config.ts`; passing a live directory to the default config no longer selects those tests.
+`node tooling/scripts/test/run-suites.mjs --live-only` runs the headed live suite across Chromium, Firefox, and Edge in one Playwright invocation. Direct live invocations require `--config=shared/tests/e2e/playwright.real.config.ts`; passing a live directory to the default config no longer selects those tests.
 
 Mocked projects run in one Playwright invocation with a global two-worker limit and one frontend-server lifecycle. Their synthetic API setting is not inherited by live frontend servers. Browser source receives React/browser lint rules; Node configs do not. Frontend and backend production source use the TypeScript project service with `await-thenable` and `no-floating-promises` checks.
 
@@ -147,4 +147,4 @@ Alloy preserves `job="nginx"`, `job="backend"`, log paths, and private Loki acce
 
 ---
 
-Last edit: 23.10.2026
+Last edit: 28.10.2026

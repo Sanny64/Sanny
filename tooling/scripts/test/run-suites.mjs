@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import process from 'node:process';
 import { startStopwatch } from './stopwatch.mjs';
 import {
@@ -55,9 +57,14 @@ export async function main() {
     process.exitCode = 1;
     return;
   }
-  const npmCli = process.env.npm_execpath;
+  const npmCli =
+    process.env.npm_execpath ??
+    [
+      join(dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js'),
+      join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js'),
+    ].find((candidate) => existsSync(candidate));
   if (!npmCli) {
-    console.error('Cannot locate the npm CLI; run this script through npm.');
+    console.error('Cannot locate the npm CLI next to the Node.js runtime.');
     process.exitCode = 1;
     return;
   }

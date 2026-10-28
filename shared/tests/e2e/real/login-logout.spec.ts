@@ -3,8 +3,7 @@
 import { expect, test } from '@playwright/test';
 import { env } from 'node:process';
 
-const apiUrl =
-  env.SANNY_E2E_API_URL ?? env.VITE_API_URL ?? 'https://localhost:8443';
+const apiUrl = env.E2E_API_URL ?? env.VITE_API_URL ?? 'https://localhost:8443';
 
 async function beginSignIn(
   page: import('@playwright/test').Page,

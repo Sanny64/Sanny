@@ -29,7 +29,7 @@ Monitoring und Redis teilen sich `apps/backend/src/tests/compose-integration.mjs
 
 - **Backend:** `npm run check:backend` führt Lint und Typprüfung aus; `npm run test:unit -w backend` führt Unit-Tests aus; `npm run test:integration -w backend` führt Monitoring-, Redis- und Opt-in-Discord-Integrationen aus. Die Redis-Suite verwendet einen isolierten echten Redis-Dienst.
 - **Frontend:** `npm run test:e2e:mocked` führt gemockte Browser- und Accessibility-Prüfungen aus; `npm run build:frontend` erstellt beide Apps und die Dokumentation. Siehe [Automatisierte Frontend-Tests](../../frontend/local-testing/automated-testing.mdx).
-- **Systemübergreifende Integration:** `npm run test:e2e:real` prüft verbundene Apps, API und den Live-Auth0-Passwort-Flow in Chromium, Firefox und Edge in einem Aufruf. Dies ist kein reines Backend- oder Frontend-Gate; Google-Automatisierung wird absichtlich übersprungen.
+- **Systemübergreifende Integration:** `node tooling/scripts/test/run-suites.mjs --live-only` prüft verbundene Apps, API und den Live-Auth0-Passwort-Flow in Chromium, Firefox und Edge in einem Aufruf. Dies ist kein reines Backend- oder Frontend-Gate; Google-Automatisierung wird absichtlich übersprungen.
 
 Erfolgreiche Backend-Unit-, Monitoring- und Redis-Tests belegen nicht jeden Codepfad, Produktionslastfall oder Fehlerzustand. Monitoring-Testregeln werden temporär aus den Produktionsdefinitionen abgeleitet; nur das Timing wird beschleunigt. Gemeinsame Aussagekraft und Grenzen der Root-Gates stehen im [Leitfaden zu lokalen Tests](../../general-info/testing.mdx).
 
@@ -41,4 +41,4 @@ Nutze [Manuelle Backend-Tests](./manual-testing.mdx) für Backend- und gehostete
 
 ---
 
-Letzte Bearbeitung: 23.10.2026
+Letzte Bearbeitung: 28.10.2026

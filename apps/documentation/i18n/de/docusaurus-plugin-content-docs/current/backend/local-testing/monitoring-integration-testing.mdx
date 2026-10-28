@@ -8,7 +8,7 @@ Die Suite für Monitoring-Regeln verwendet ein wegwerfbares Compose-Projekt und 
 
 ## Voraussetzungen
 
-- Vor dem direkten Webhooktest sicherstellen, dass `DISCORD_WEBHOOK` bereits in der Umgebung gesetzt ist.
+- Vor dem direkten Webhooktest sicherstellen, dass `DISCORD_WEBHOOK` bereits in der Umgebung gesetzt ist. Das Testmenü setzt es nur bei vollständigen Entwicklungsläufen aus `DEV_DISCORD_WEBHOOK`; `PROD_DISCORD_WEBHOOK` wird von Tests nie verwendet. Mit `RUN_DISCORD_INTEGRATION=true` prüft die Monitoring-Suite zusätzlich, dass die Benachrichtigungsrichtlinie Warn- und kritische Alarme an `discord-alerts` weiterleitet (die lokale Richtlinie hat keine E-Mail-Route), und lässt Grafana über diesen Kontaktpunkt eine Testbenachrichtigung senden. Mit `RUN_EMAIL_INTEGRATION=true` sendet sie zusätzlich eine Test-E-Mail über `email-alerts`. Beides läuft nur gegen Loopback-API-Hosts.
 - In Grafana prüfen, ob die Alarmregeln unter **Alerting > Alert rules** geladen sind.
 - Vor einem Trigger-Test warten, bis vorhandene 429-, Auth-Volumen- oder Callback-Flood-Alarme beendet sind.
 
@@ -18,7 +18,7 @@ Das Grafana-Image ist ein minimales Laufzeit-Image ohne npm. Verwende die Worksp
 
 ## E-Mail-Kontaktpunkt testen
 
-Grafanas integrierten Kontaktpunkttest verwenden:
+Grafanas integrierten Kontaktpunkttest verwenden. Der Entwicklungsstack leitet Alarme nie an E-Mail, daher ist dies der einzige Weg, wie lokale Läufe E-Mails senden. Der vollständige Entwicklungstestlauf tut dies einmal über `RUN_EMAIL_INTEGRATION=true` (`email-delivery.spec.ts`, nur Loopback-Hosts) und sendet eine echte E-Mail an die Adressen in `contactpoints.yml`. Manuelle Schritte:
 
 1. Grafana über den authentifizierten Pfad `/grafana/` öffnen.
 2. **Alerting → Notification configuration → Contact points** aufrufen.
@@ -64,7 +64,7 @@ In PowerShell im Repository-Stammverzeichnis:
 
 ```powershell
 $env:RUN_429_SPIKE_E2E = "true"
-npm run test:e2e:429
+node tooling/scripts/test/run-suites.mjs --monitoring-only
 ```
 
 Der Test verwendet `shared/tests/e2e/playwright.monitoring.config.ts` und nur Chromium. Er wird von normalen E2E- und vollständigen Testläufen aufgerufen, aber übersprungen, sofern `RUN_429_SPIKE_E2E=true` nicht gesetzt ist. Setze die Variable nur, wenn der Alarm-Nebeneffekt beabsichtigt ist; zur Prüfung des ausgelösten Alarms benötigt der Test außerdem Grafana-Zugangsdaten.
@@ -84,4 +84,4 @@ Der Test verwendet `shared/tests/e2e/playwright.monitoring.config.ts` und nur Ch
 
 ---
 
-Letzte Bearbeitung: 22.10.2026
+Letzte Bearbeitung: 28.10.2026
